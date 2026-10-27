@@ -1,0 +1,111 @@
+@import '@fontsource/onest/400.css';
+@import '@fontsource/onest/500.css';
+@import '@fontsource/onest/600.css';
+@import '@fontsource/onest/700.css';
+
+:root {
+  --cobalt: #2f3bff;
+  --cobalt-600: #1f29d6;
+  --cobalt-300: #8c95ff;
+  --cobalt-100: #e3e6ff;
+  --hot: #ff5a1f;
+  --hot-600: #d93d00;
+
+  /* day — default */
+  --bg: #f2f2f6;
+  --surface: #ffffff;
+  --raised: #e6e7ee;
+  --line: #d9dbe5;
+  --t1: #0d0f1f;
+  --t2: #5b5f73;
+  --accent: var(--cobalt);
+  --on-signal: #ffffff;
+  --danger: var(--hot-600);
+  --glass: rgba(255, 255, 255, 0.45);
+  --glass-edge: rgba(255, 255, 255, 0.62);
+  --glass-hi: rgba(255, 255, 255, 0.75);
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
+  --safe-t: max(env(safe-area-inset-top), 12px);
+  --safe-b: max(env(safe-area-inset-bottom), 10px);
+
+  font-family: 'Onest', system-ui, sans-serif;
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  color-scheme: light;
+}
+
+[data-mode='night'] {
+  --bg: #0b0c1a;
+  --surface: #15172b;
+  --raised: #1e2140;
+  --line: #2a2d4d;
+  --t1: #f2f2f6;
+  --t2: #9a9db8;
+  --accent: var(--cobalt-300);
+  --danger: var(--hot);
+  --glass: rgba(255, 255, 255, 0.11);
+  --glass-edge: rgba(255, 255, 255, 0.18);
+  --glass-hi: rgba(255, 255, 255, 0.22);
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: #e9e9ef;
+  color: var(--t1);
+  overscroll-behavior: none;
+}
+
+body {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+a {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid var(--cobalt-300);
+  outline-offset: 3px;
+}
+
+.nb {
+  white-space: nowrap;
+}
+
+/* pressable: instant feedback, release is quick too */
+.press {
+  transition: transform 160ms var(--ease-out), background-color 200ms ease, opacity 200ms ease;
+}
+.press:active {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .press:active {
+    transform: none;
+    opacity: 0.85;
+  }
+}

@@ -1,0 +1,386 @@
+/* ---------- device frame: full screen on phones, a framed phone on desktop */
+.stage {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.device {
+  position: relative;
+  width: 100vw;
+  height: 100dvh;
+  background: var(--bg);
+  overflow: hidden;
+  isolation: isolate;
+  transition: background-color 500ms ease;
+}
+
+@media (min-width: 900px) and (min-height: 760px) {
+  .stage {
+    grid-template-columns: auto minmax(0, 420px);
+    gap: 56px;
+    justify-content: center;
+    padding: 24px;
+  }
+  .device {
+    width: 402px;
+    height: min(874px, calc(100dvh - 48px));
+    border-radius: 56px;
+    box-shadow: 0 0 0 10px #101225, 0 0 0 11px #2a2d4d, 0 40px 80px -20px rgba(16, 18, 60, 0.45);
+    --safe-t: 14px;
+    --safe-b: 12px;
+  }
+}
+
+.glass-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+.veil {
+  position: absolute;
+  inset: 34% 0 0 0;
+  z-index: 1;
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--bg) 0%, transparent), color-mix(in srgb, var(--bg) 92%, transparent) 30%, var(--bg));
+  transition: background 500ms ease;
+  pointer-events: none;
+}
+.device[data-tall] .veil {
+  inset: 26% 0 0 0;
+}
+
+/* ---------- layers */
+.mascot,
+.prop {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  user-select: none;
+}
+.mascot {
+  width: min(84vw, 340px);
+  left: 50%;
+  top: calc(var(--safe-t) + 44px);
+  translate: -50% 0;
+}
+.mascot img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.device[data-has-prop] .mascot {
+  translate: -72% 0;
+  width: min(74vw, 290px);
+}
+.device[data-tall] .mascot {
+  width: min(78vw, 310px);
+  top: calc(var(--safe-t) + 20px);
+}
+.prop {
+  width: min(42vw, 170px);
+  right: 14px;
+  top: calc(var(--safe-t) + 110px);
+}
+.prop img {
+  width: 100%;
+  display: block;
+}
+
+/* the mascot breathes — slow, decorative, off for reduced motion */
+.breath {
+  animation: breath 4.2s ease-in-out infinite;
+  transform-origin: 50% 70%;
+}
+@keyframes breath {
+  50% {
+    transform: translateY(-4px) scale(1.012);
+  }
+}
+
+.chip {
+  position: absolute;
+  z-index: 3;
+  left: 20px;
+  top: calc(var(--safe-t) + 14px);
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 24px 12px 20px;
+  border-radius: 40px;
+  font: 500 30px/1 'Onest';
+  letter-spacing: -0.01em;
+  color: var(--t1);
+}
+.chip i {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--cobalt);
+  flex: none;
+}
+.chip i[data-dot='muted'] {
+  background: var(--t2);
+}
+.chip i[data-dot='danger'] {
+  background: var(--danger);
+}
+
+/* liquid glass: blur + saturation + a lit top edge */
+.glass {
+  background: var(--glass);
+  backdrop-filter: blur(18px) saturate(1.7);
+  -webkit-backdrop-filter: blur(18px) saturate(1.7);
+  box-shadow: inset 0 0 0 1.5px var(--glass-edge), inset 0 1px 0 var(--glass-hi), 0 10px 30px -12px rgba(16, 20, 80, 0.25);
+}
+
+.menu-btn {
+  position: absolute;
+  z-index: 4;
+  right: 16px;
+  top: calc(var(--safe-t) + 12px);
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+
+/* ---------- content, anchored above the controls */
+.content {
+  position: absolute;
+  z-index: 3;
+  left: 24px;
+  right: 24px;
+  bottom: calc(var(--safe-b) + 16px + var(--ctrl-h, 112px) + 30px);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--t1);
+}
+.b-label,
+.b-line {
+  font: 500 clamp(30px, 9.2vw, 36px) / 1.15 'Onest';
+  letter-spacing: -0.015em;
+  color: var(--t2);
+  text-wrap: balance;
+}
+.b-line {
+  color: var(--t1);
+}
+.b-label {
+  color: var(--t2);
+}
+.b-status {
+  font: 600 clamp(34px, 10.3vw, 40px) / 1.06 'Onest';
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+.b-note {
+  font: 500 clamp(28px, 8vw, 30px) / 1.2 'Onest';
+  color: var(--t2);
+}
+.b-figure {
+  font: 700 112px/0.95 'Onest';
+  letter-spacing: -0.045em;
+}
+.b-figure[data-size='l'] {
+  font-size: clamp(84px, 26vw, 104px);
+}
+.b-figure[data-size='m'] {
+  font-size: clamp(54px, 15vw, 64px);
+  letter-spacing: -0.03em;
+}
+.b-figure[data-accent] {
+  color: var(--accent);
+}
+.b-figure img {
+  display: block;
+  height: 150px;
+  width: auto;
+  max-width: 100%;
+  margin-left: -10px;
+}
+.b-src {
+  align-self: flex-start;
+  padding: 10px 22px;
+  border-radius: 40px;
+  background: var(--cobalt);
+  color: #fff;
+  font: 500 clamp(26px, 7.6vw, 30px) / 1.1 'Onest';
+}
+.b-src[data-quiet] {
+  background: var(--raised);
+  color: var(--t1);
+}
+.b-scale,
+.b-dots {
+  display: flex;
+  gap: 6px;
+}
+.b-scale span {
+  flex: 1;
+  height: 14px;
+  border-radius: 7px;
+  background: var(--raised);
+}
+.b-scale span[data-on] {
+  background: var(--cobalt);
+}
+.b-dots span {
+  width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  background: var(--raised);
+}
+.b-dots span[data-on] {
+  background: var(--cobalt);
+}
+.b-dots span[data-cur] {
+  width: 56px;
+}
+
+.b-split {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 20px;
+  align-items: end;
+}
+.b-split b {
+  font: 700 clamp(56px, 18vw, 72px) / 1 'Onest';
+  letter-spacing: -0.04em;
+}
+.b-split b:first-child {
+  color: var(--t2);
+}
+.b-split span {
+  font: 500 28px/1.1 'Onest';
+  color: var(--t2);
+}
+.b-split span + span {
+  color: var(--accent);
+}
+.b-split .bar {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+.b-split .bar i {
+  height: 16px;
+  border-radius: 8px;
+  background: var(--line);
+  flex: 40;
+}
+.b-split .bar i + i {
+  background: var(--cobalt);
+  flex: 60;
+}
+
+/* ---------- controls: two pills max, 112 pt, in the lower third */
+.controls {
+  position: absolute;
+  z-index: 3;
+  left: 24px;
+  right: 24px;
+  bottom: calc(var(--safe-b) + 16px);
+  display: flex;
+  gap: 12px;
+}
+.controls[data-vertical] {
+  flex-direction: column;
+}
+.pill {
+  height: 112px;
+  min-width: 112px;
+  border-radius: 56px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 0 26px;
+  font: 500 clamp(26px, 7.8vw, 30px) / 1 'Onest';
+  color: var(--t1);
+  white-space: nowrap;
+}
+.pill[data-grow] {
+  flex: 1;
+}
+.controls[data-vertical] .pill {
+  width: 100%;
+}
+.pill[data-kind='primary'],
+.pill[data-kind='mic'] {
+  background: var(--cobalt);
+  color: #fff;
+  box-shadow: 0 14px 30px -14px rgba(47, 59, 255, 0.7);
+}
+.pill[data-kind='danger'] {
+  background: var(--danger);
+  color: #fff;
+}
+.pill .sq {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--t1);
+}
+.pill svg {
+  flex: none;
+}
+
+/* ---------- answer as an event: a fan of light, then the card springs in */
+.rays {
+  position: absolute;
+  z-index: 1;
+  width: 720px;
+  height: 720px;
+  left: 50%;
+  top: calc(var(--safe-t) + 44px + min(42vw, 170px));
+  translate: -50% -50%;
+  background: repeating-conic-gradient(from 4deg, rgba(255, 255, 255, 0.9) 0deg 5deg, transparent 5deg 20deg);
+  -webkit-mask-image: radial-gradient(circle, #000 12%, transparent 62%);
+  mask-image: radial-gradient(circle, #000 12%, transparent 62%);
+  opacity: 0;
+  pointer-events: none;
+}
+[data-mode='night'] .rays {
+  background: repeating-conic-gradient(from 4deg, rgba(200, 206, 255, 0.55) 0deg 5deg, transparent 5deg 20deg);
+}
+
+/* ---------- SOS ring */
+.sos {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  top: calc(var(--safe-t) + 110px);
+  translate: -50% 0;
+  width: 240px;
+  height: 240px;
+}
+.sos svg {
+  width: 100%;
+  height: 100%;
+  rotate: -90deg;
+}
+.sos .ring {
+  stroke-dasharray: 690;
+  stroke-dashoffset: 0;
+}
+.sos b {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font: 700 120px/1 'Onest';
+  color: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .breath {
+    animation: none;
+  }
+}

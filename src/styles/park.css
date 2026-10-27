@@ -1,0 +1,127 @@
+.scr {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+
+.park {
+  background: var(--bg);
+  color: var(--t1);
+}
+.p-scroll {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: calc(var(--safe-t) + 28px) 0 140px;
+}
+.p-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 0 20px 18px;
+}
+.p-head h2 {
+  margin: 0;
+  font: 600 40px/1 'Onest';
+  letter-spacing: -0.03em;
+}
+.p-head p {
+  margin: 10px 0 0;
+  font: 400 17px/1.45 'Onest';
+  color: var(--t2);
+}
+.p-head img {
+  width: 120px;
+  margin: 16px 0 0 0;
+}
+.p-sec {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+}
+.p-sec h4 {
+  margin: 0;
+  writing-mode: vertical-rl;
+  rotate: 180deg;
+  justify-self: center;
+  align-self: start;
+  padding-bottom: 16px;
+  font: 600 17px/1 'Onest';
+  color: var(--accent);
+  letter-spacing: 0.01em;
+}
+.p-row {
+  position: relative;
+  padding: 16px 20px 18px 0;
+  border-top: 1px solid var(--line);
+}
+.p-row h3 {
+  margin: 0 76px 6px 0;
+  font: 600 24px/1.15 'Onest';
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+.p-row p {
+  margin: 0;
+  font: 400 17px/1.45 'Onest';
+  color: var(--t2);
+  max-width: 34ch;
+}
+.p-prop {
+  position: absolute;
+  right: 14px;
+  top: 8px;
+  width: 64px;
+}
+.p-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+.p-pills span {
+  padding: 6px 12px;
+  border-radius: 20px;
+  background: var(--cobalt);
+  color: #fff;
+  font: 500 14px/1.1 'Onest';
+}
+.p-pills span[data-quiet] {
+  background: var(--raised);
+  color: var(--t1);
+}
+.rate {
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+  overflow: visible;
+}
+.rate text {
+  font: 500 13px 'Onest';
+  fill: var(--t2);
+}
+.rate text.hi {
+  fill: var(--cobalt);
+}
+.p-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  gap: 10px;
+  padding: 26px 20px calc(var(--safe-b) + 12px);
+  background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--bg) 94%, transparent) 35%, var(--bg));
+}
+.p-btn {
+  height: 56px;
+  padding: 0 22px;
+  border-radius: 28px;
+  background: var(--raised);
+  font: 600 17px/1 'Onest';
+}
+.p-btn[data-kind='primary'] {
+  flex: 1;
+  background: var(--cobalt);
+  color: #fff;
+}
