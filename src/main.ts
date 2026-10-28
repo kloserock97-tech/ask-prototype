@@ -2,6 +2,7 @@ import '@fontsource/manrope/300.css'
 import '@fontsource/manrope/400.css'
 import '@fontsource/manrope/500.css'
 import '@fontsource/manrope/600.css'
+import '@fontsource/manrope/700.css'
 import './styles/base.css'
 import './styles/player.css'
 import './styles/park.css'
@@ -9,13 +10,16 @@ import './styles/panel.css'
 import './styles/pages.css'
 import './styles/app.css'
 import './styles/widget.css'
+import './styles/grif.css'
 import { AskApp } from './app/app'
+import { GrifApp } from './grif/grif'
 import { SCREENS } from './data/screens'
 import { flow, guide, home, island, leaveGuide } from './pages/pages'
 import { WidgetPage } from './pages/widget'
 import { Player } from './player/player'
 
 let askApp: AskApp | null = null
+let grif: GrifApp | null = null
 let widget: WidgetPage | null = null
 
 const app = document.getElementById('app')!
@@ -29,6 +33,10 @@ function route() {
   const h = location.hash || '#/'
   const m = h.match(/^#\/p\/(\w+)/)
   leaveGuide()
+  if (!(h === '#/' || h === '#')) {
+    grif?.destroy()
+    grif = null
+  }
   widget?.destroy()
   widget = null
   if (h.startsWith('#/widget')) {
@@ -42,12 +50,20 @@ function route() {
     app.replaceChildren(widget.root)
     return
   }
-  // the working app lives at the root; the concept (all screens, flow, guide) behind it
+  // GRIF with the «В дороге» mode lives at the root; the previous voice-only app at #/v9
   if (h === '#/' || h === '#') {
     if (inPlayer) {
       player.unmount()
       inPlayer = false
     }
+    askApp?.destroy()
+    askApp = null
+    grif?.destroy()
+    grif = new GrifApp()
+    app.replaceChildren(grif.root)
+    return
+  }
+  if (h.startsWith('#/v9')) {
     askApp?.destroy()
     askApp = new AskApp()
     app.replaceChildren(askApp.root)
