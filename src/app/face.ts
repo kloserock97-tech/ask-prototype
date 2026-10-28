@@ -15,7 +15,7 @@ const EXPR: Record<S, SquishExpression> = {
   paused: 'sleepy',
 }
 const BODY: Record<Theme, { body: string; eye: string }> = {
-  sun: { body: '#1f28d6', eye: '#ffffff' },
+  light: { body: '#2f3bff', eye: '#ffffff' },
   night: { body: '#ffffff', eye: '#000000' },
 }
 const SEED = 'ась'

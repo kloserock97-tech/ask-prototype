@@ -26,6 +26,16 @@ let ctx: AudioContext | null = null
 let analyser: AnalyserNode | null = null
 const buf = new Float32Array(1024)
 const missing = new Set<string>()
+const present = new Set<string>()
+
+/** find out up front which recordings exist — a fallback started after a failed load
+ * runs outside the tap, and iOS keeps it silent */
+export function prepare(ids: string[]) {
+  for (const id of ids)
+    fetch(`./voice/${id}.mp3`, { method: 'HEAD' })
+      .then((r) => (r.ok && (r.headers.get('content-type') ?? '').includes('audio') ? present.add(id) : missing.add(id)))
+      .catch(() => missing.add(id))
+}
 
 export function isOn() {
   return enabled
@@ -93,6 +103,30 @@ export function say(line: string, onWord: () => void): Promise<void> {
   })
 }
 
+/** the browser's voice, with the same handlers: word boundaries give the progress */
+function sayWithProgress(text: string, h: SpeakHandlers): Promise<void> {
+  if (!supported) return Promise.resolve()
+  const len = text.length || 1
+  speechSynthesis.cancel()
+  return new Promise((resolve) => {
+    const u = new SpeechSynthesisUtterance(text)
+    u.lang = 'ru-RU'
+    if (voiceRu) u.voice = voiceRu
+    u.rate = 1.04
+    u.onboundary = (e) => {
+      h.onWord?.()
+      h.onLevel?.(0.55)
+      h.onProgress?.(Math.min(1, e.charIndex / len))
+    }
+    u.onend = u.onerror = () => {
+      h.onProgress?.(1)
+      h.onLevel?.(0)
+      resolve()
+    }
+    speechSynthesis.speak(u)
+  })
+}
+
 export type SpeakHandlers = {
   onLevel?: (lv: number) => void // 0..1 loudness of ась's voice
   onWord?: () => void // a syllable onset (or a word, in the fallback)
@@ -102,7 +136,7 @@ export type SpeakHandlers = {
 /** play the recorded line `id`; falls back to speech synthesis of `text` */
 export function speak(id: string, text: string, h: SpeakHandlers = {}): Promise<void> {
   if (!enabled) return Promise.resolve()
-  if (!audio || missing.has(id)) return say(`«${text}»`, () => h.onWord?.())
+  if (!audio || !present.has(id)) return sayWithProgress(text, h)
   stop()
   return new Promise((resolve) => {
     let raf = 0

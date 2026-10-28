@@ -1,20 +1,26 @@
 /* ---------- «ась?» — after the «Expiratory Volume» reference.
-   Black field of dots, a halftone sphere, a dotted figure with a small label,
-   a navy panel with a lavender rim glow. Everything is sized from the app's own
-   box (container units), so phones, tablets, landscape and the desktop frame
-   all get the same composition. */
+   Black field of dots, a halftone sphere, the answer in solid type under it,
+   a navy panel whose lavender rim light slowly drifts round. Everything is sized
+   from the app's own box (container units): phones, tablets, landscape and the
+   desktop frame get the same composition. */
 .app {
   --bg: #000000;
   --ink: #ffffff;
-  --ink-2: #a3a3b8;
+  --ink-2: #9d9db4;
   --soft: #8e8ac6;
-  --lime: #d8f26a;
+  --accent: #d8f26a;
   --panel: #04051a;
-  --panel-edge: rgba(196, 186, 255, 0.3);
+  --rim-a: #a493ff;
+  --rim-b: #4b44d6;
+  --rim-c: #cbbfff;
   --ctl: rgba(255, 255, 255, 0.075);
-  --ctl-edge: rgba(255, 255, 255, 0.07);
+  --ctl-ink: #ffffff;
+  --circle: #ffffff;
+  --circle-ink: #05060f;
+  --head-glow: 0 0 42px rgba(150, 140, 255, 0.35);
   --knob: 15%;
   --ring: 66%;
+  --radius: clamp(34px, 11cqmin, 54px);
 
   position: fixed;
   inset: 0;
@@ -30,17 +36,24 @@
   -webkit-user-select: none;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+  transition: background-color 400ms ease, color 400ms ease;
 }
-.app[data-theme='sun'] {
-  --bg: #ffffff;
-  --ink: #05060f;
-  --ink-2: #3d4152;
-  --soft: rgba(255, 255, 255, 0.82);
-  --lime: #e8ff6b;
-  --panel: #1f28d6;
-  --panel-edge: #05060f;
-  --ctl: rgba(255, 255, 255, 0.16);
-  --ctl-edge: rgba(255, 255, 255, 0.9);
+/* light: pale lavender-grey, ink dots, a white panel lit by a soft violet rim — no hard outlines */
+.app[data-theme='light'] {
+  --bg: #f3f3f8;
+  --ink: #151738;
+  --ink-2: #6b6d86;
+  --soft: #7a76a8;
+  --accent: #2f3bff;
+  --panel: #ffffff;
+  --rim-a: #b9adff;
+  --rim-b: #dcd6ff;
+  --rim-c: #8f86f0;
+  --ctl: rgba(21, 23, 56, 0.06);
+  --ctl-ink: #151738;
+  --circle: #151738;
+  --circle-ink: #ffffff;
+  --head-glow: none;
 }
 
 .f-canvas {
@@ -52,42 +65,42 @@
   display: block;
 }
 
-/* ---------- top: one centred title, the menu on the right */
+/* ---------- top: keyboard · the answer's title · menu */
 .a-top {
   grid-area: top;
   position: relative;
   z-index: 2;
   display: grid;
-  grid-template-columns: 44px 1fr 44px;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
   align-items: center;
   gap: 8px;
   padding: calc(max(env(safe-area-inset-top), 10px) + 10px) 16px 0;
 }
 .a-title {
-  grid-column: 2;
   margin: 0;
   text-align: center;
-  font: 500 clamp(22px, 7cqmin, 32px) / 1.1 'Manrope', sans-serif;
+  font: 500 clamp(20px, 6.2cqmin, 30px) / 1.15 'Manrope', sans-serif;
   letter-spacing: -0.015em;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.a-menu {
-  grid-column: 3;
+.a-menu,
+.a-keys {
   width: 44px;
   height: 44px;
   border-radius: 50%;
   display: grid;
   place-items: center;
   background: var(--ctl);
-  color: var(--ink);
-  box-shadow: inset 0 0 0 1px var(--ctl-edge);
+  color: var(--ctl-ink);
 }
-.app[data-theme='sun'] .a-menu {
-  background: #ffffff;
-  box-shadow: inset 0 0 0 2px var(--ink);
+.app[data-compose] .a-keys {
+  background: var(--circle);
+  color: var(--circle-ink);
 }
 
-/* ---------- stage: sphere, figure, label — placeholders the dot field follows */
+/* ---------- stage: sphere, the answer, its line — placeholders the dot field follows */
 .a-stage {
   grid-area: stage;
   position: relative;
@@ -97,11 +110,10 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: clamp(6px, 2.2cqh, 22px);
+  gap: clamp(6px, 2cqh, 20px);
   padding: clamp(4px, 1.5cqh, 16px) 20px;
 }
-/* the sphere takes whatever height is left after the figure and the label;
-   the field draws it with radius = half the shorter side, so it never overflows */
+/* the sphere takes whatever height is left; the field draws it at half the shorter side */
 .f-sphere {
   position: relative;
   flex: 1 1 0;
@@ -110,27 +122,75 @@
   max-height: min(68cqw, 360px);
 }
 .f-digits {
+  position: relative;
   flex: none;
-  width: min(84cqw, 460px);
-  height: clamp(48px, 9.5cqh, 112px);
+  width: min(88cqw, 480px);
+  height: clamp(66px, 12cqh, 136px);
+}
+/* the answer in solid type: a number fills the box, a phrase sits on up to two lines */
+.a-head {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font: 600 clamp(30px, 8.6cqmin, 46px) / 1.04 'Manrope', sans-serif;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+  text-shadow: var(--head-glow);
+}
+.a-head.num {
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.045em;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 .a-label {
   flex: none;
   margin: 0;
   max-width: min(88cqw, 460px);
-  min-height: 2.4em;
+  min-height: 2.5em;
   text-align: center;
-  font: 400 clamp(18px, 5.4cqmin, 26px) / 1.2 'Manrope', sans-serif;
+  font: 400 clamp(17px, 5cqmin, 24px) / 1.25 'Manrope', sans-serif;
   letter-spacing: -0.01em;
-  color: var(--ink);
+  color: var(--ink-2);
   text-wrap: balance;
+}
+.a-label.you {
+  color: var(--ink);
 }
 .a-label .old {
   color: var(--ink-2);
   opacity: 0.7;
 }
-.app[data-theme='sun'] .a-label {
-  font-weight: 600;
+/* ась's captions: spoken words light up as the voice reaches them */
+.a-label.caps span {
+  color: var(--ink-2);
+  opacity: 0.45;
+  transition: opacity 180ms ease, color 180ms ease;
+}
+.a-label.caps span.on {
+  color: var(--ink);
+  opacity: 1;
+}
+/* «думаю»: a light runs through the step's words */
+.a-label.think {
+  color: transparent;
+  background: linear-gradient(100deg, var(--ink-2) 30%, var(--ink) 50%, var(--ink-2) 70%) 0 0 / 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: shimmer 1.3s linear infinite;
+}
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -150% 0;
+  }
 }
 .a-face {
   position: absolute;
@@ -143,7 +203,7 @@
   height: 100%;
 }
 
-/* ---------- panel: navy glass, lavender rim glow, readings, hint, track, controls */
+/* ---------- panel: navy glass with a drifting lavender rim light */
 .a-panel {
   grid-area: panel;
   position: relative;
@@ -152,59 +212,41 @@
   width: min(100% - 20px, 560px);
   margin: 0 0 calc(max(env(safe-area-inset-bottom), 8px) + 2px);
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.7fr) minmax(0, 1fr);
-  grid-template-areas: 'l hint r' 'track track track' 'ctl ctl ctl';
-  align-items: start;
-  row-gap: clamp(2px, 1.2cqh, 16px);
-  padding: clamp(14px, 2.6cqh, 28px) clamp(14px, 5cqmin, 26px) clamp(12px, 2cqh, 20px);
-  border-radius: clamp(34px, 11cqmin, 54px);
-  background: var(--panel);
-  box-shadow: inset 0 0 0 1px var(--panel-edge);
+  grid-template-areas: 'hint' 'track' 'ctl';
+  row-gap: clamp(2px, 1.2cqh, 14px);
+  padding: clamp(14px, 2.4cqh, 26px) clamp(14px, 5cqmin, 26px) clamp(12px, 2cqh, 20px);
+  border-radius: var(--radius);
+  background: var(--rim-b);
+  overflow: hidden;
   isolation: isolate;
 }
+.p-aura {
+  position: absolute;
+  z-index: -2;
+  left: 50%;
+  top: 50%;
+  width: 160%;
+  aspect-ratio: 1;
+  margin: -80% 0 0 -80%;
+  background: conic-gradient(from 0deg, var(--rim-a), var(--rim-b) 22%, var(--rim-c) 45%, var(--rim-b) 68%, var(--rim-a));
+  pointer-events: none;
+  will-change: transform;
+}
+/* the dark core: the rim light only shows round the edges, strongest at the corners */
 .p-glow {
   position: absolute;
-  inset: 0;
   z-index: -1;
+  inset: 0;
   border-radius: inherit;
+  background: radial-gradient(94% 76% at 50% 58%, var(--panel) 34%, color-mix(in srgb, var(--panel) 66%, transparent) 60%, transparent 90%);
+  box-shadow: inset 0 0 0 1px rgba(205, 195, 255, 0.35);
   pointer-events: none;
-  box-shadow:
-    inset 0 0 0 1px rgba(205, 195, 255, 0.4),
-    inset 0 0 54px 20px rgba(122, 106, 240, 0.95),
-    inset 0 52px 80px -12px rgba(172, 156, 255, 0.92),
-    inset 0 0 150px 34px rgba(58, 52, 188, 0.6);
-  opacity: 0.8;
-  transition: opacity 120ms linear;
 }
-.app[data-theme='sun'] .a-panel {
-  box-shadow: inset 0 0 0 2px var(--panel-edge);
+.app[data-theme='light'] .p-glow {
+  box-shadow: inset 0 0 0 1px rgba(143, 134, 240, 0.25);
 }
-.app[data-theme='sun'] .p-glow {
-  display: none;
-}
-.p-stat {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.p-stat.l {
-  grid-area: l;
-}
-.p-stat.r {
-  grid-area: r;
-  align-items: flex-end;
-  text-align: right;
-  margin-top: clamp(10px, 2.4cqh, 26px);
-}
-.p-stat b {
-  font: 400 clamp(19px, 5.6cqmin, 26px) / 1 'Manrope', sans-serif;
-  letter-spacing: -0.01em;
-  color: #fff;
-}
-.p-stat span {
-  font: 400 clamp(13px, 3.6cqmin, 16px) / 1.15 'Manrope', sans-serif;
-  color: var(--soft);
-  white-space: nowrap;
+.app[data-theme='light'] .a-panel {
+  box-shadow: 0 20px 50px -24px rgba(60, 50, 160, 0.35);
 }
 .p-hint {
   grid-area: hint;
@@ -213,17 +255,17 @@
   align-items: center;
   gap: 8px;
   padding-top: 2px;
-  color: #fff;
+  color: var(--ink);
   text-align: center;
+}
+.app[data-theme='night'] .p-hint {
+  color: #ffffff;
 }
 .p-hint-t {
   font: 400 clamp(17px, 5cqmin, 23px) / 1.15 'Manrope', sans-serif;
   letter-spacing: -0.01em;
-  max-width: 13em;
-  /* always two lines tall: a one-line hint must not make the panel, and the stage above it, jump */
-  min-height: 2.3em;
-  display: flex;
-  align-items: center;
+  max-width: 15em;
+  min-height: 1.2em;
   text-wrap: balance;
 }
 .p-tri {
@@ -232,15 +274,25 @@
   fill: currentColor;
 }
 .p-tri circle {
-  animation: none;
+  animation: twinkle 3.2s ease-in-out infinite;
+  animation-delay: calc(var(--i) * -0.31s);
 }
-.app:is([data-state='listening'], [data-state='thinking']) .p-tri circle {
-  animation: tri 1.1s ease-in-out infinite;
-  animation-delay: calc(var(--i) * -0.09s);
+.app:is([data-state='listening'], [data-state='thinking'], [data-state='speaking']) .p-tri circle {
+  animation: tri 1s ease-in-out infinite;
+  animation-delay: calc(var(--i) * -0.08s);
 }
 @keyframes tri {
   50% {
-    opacity: 0.25;
+    opacity: 0.2;
+    transform: translateY(1.5px);
+  }
+}
+@keyframes twinkle {
+  0%, 80%, 100% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 0.35;
   }
 }
 
@@ -249,8 +301,8 @@
   --p: 0;
   grid-area: track;
   position: relative;
-  height: clamp(42px, 8cqh, 76px);
-  margin: 0 calc(clamp(16px, 5cqmin, 26px) * -1);
+  height: clamp(42px, 8cqh, 74px);
+  margin: 0 calc(clamp(14px, 5cqmin, 26px) * -1);
 }
 .p-line {
   position: absolute;
@@ -258,6 +310,9 @@
   width: var(--knob);
   top: 50%;
   height: 1px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--ink) 55%, transparent));
+}
+.app[data-theme='night'] .p-line {
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55));
 }
 .p-dash {
@@ -271,6 +326,9 @@
   -webkit-mask-image: linear-gradient(90deg, #000 70%, transparent);
   mask-image: linear-gradient(90deg, #000 70%, transparent);
 }
+.app[data-theme='light'] .p-dash {
+  background-image: radial-gradient(circle, rgba(21, 23, 56, 0.35) 0.9px, transparent 1.3px);
+}
 .p-ring {
   position: absolute;
   left: var(--ring);
@@ -280,6 +338,10 @@
   translate: -50% -50%;
   border-radius: 50%;
   border: 2px dotted rgba(255, 255, 255, 0.4);
+  animation: spin 18s linear infinite;
+}
+.app[data-theme='light'] .p-ring {
+  border-color: rgba(21, 23, 56, 0.28);
 }
 .p-lime {
   position: absolute;
@@ -288,7 +350,7 @@
   top: 50%;
   height: 2px;
   margin-top: -1px;
-  background: var(--lime);
+  background: var(--accent);
   transform: scaleX(var(--p));
   transform-origin: 0 50%;
   border-radius: 1px;
@@ -301,10 +363,10 @@
   height: 10px;
   translate: -50% -50%;
   border-radius: 50%;
-  background: var(--lime);
-  box-shadow: 0 0 10px color-mix(in srgb, var(--lime) 60%, transparent);
+  background: var(--accent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 65%, transparent);
 }
-/* a small shaded moon in a ring of dots */
+/* a small shaded moon in a slowly turning ring of dots */
 .p-moon {
   position: absolute;
   left: var(--knob);
@@ -329,6 +391,19 @@
   inset: -9px;
   border-radius: 50%;
   border: 2px dotted rgba(255, 255, 255, 0.8);
+  animation: spin 14s linear infinite;
+}
+.app[data-theme='light'] .p-moon::after {
+  border-color: rgba(21, 23, 56, 0.5);
+}
+.app[data-state='thinking'] .p-moon::after,
+.app[data-state='thinking'] .p-ring {
+  animation-duration: 2.4s;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 .app[data-state='paused'] .p-lime,
 .app[data-state='paused'] .p-dot {
@@ -336,7 +411,7 @@
   box-shadow: none;
 }
 
-/* the two controls */
+/* the two controls — or, with the keyboard open, a field and a send button */
 .p-ctl {
   grid-area: ctl;
   display: grid;
@@ -344,15 +419,15 @@
   gap: clamp(8px, 2.6cqmin, 14px);
 }
 .p-round,
-.p-pill {
+.p-pill,
+.p-compose {
   height: clamp(52px, 8.4cqh, 70px);
   border-radius: 999px;
   background: var(--ctl);
-  color: #fff;
-  box-shadow: inset 0 0 0 1px var(--ctl-edge);
+  color: var(--ctl-ink);
 }
-.app[data-theme='sun'] :is(.p-round, .p-pill) {
-  box-shadow: inset 0 0 0 2px var(--ctl-edge);
+.app[data-theme='night'] :is(.p-round, .p-pill, .p-compose) {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
 }
 .p-round {
   aspect-ratio: 1;
@@ -368,6 +443,10 @@
   padding: 0 7px 0 20px;
   min-width: 0;
 }
+.p-pill[hidden],
+.p-compose[hidden] {
+  display: none;
+}
 .p-pill-t {
   flex: 1;
   text-align: center;
@@ -377,15 +456,38 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.p-pill-i {
+.p-pill-i,
+.p-send {
   flex: none;
   display: grid;
   place-items: center;
   width: clamp(44px, 7cqh, 56px);
   aspect-ratio: 1;
   border-radius: 50%;
-  background: #ffffff;
-  color: #05060f;
+  background: var(--circle);
+  color: var(--circle-ink);
+}
+.p-compose {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 7px 0 20px;
+  min-width: 0;
+}
+.p-input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  outline: 0;
+  background: none;
+  color: var(--ctl-ink);
+  font: 400 clamp(17px, 5cqmin, 21px) / 1 'Manrope', sans-serif;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.p-input::placeholder {
+  color: var(--ink-2);
 }
 
 /* the touch mark: a white dot in a soft halo under the finger */
@@ -408,12 +510,22 @@
   background: #ffffff;
   box-shadow: 0 0 18px rgba(255, 255, 255, 0.8);
 }
-.app[data-theme='sun'] .a-touch {
-  background: rgba(31, 40, 214, 0.18);
-}
-.app[data-theme='sun'] .a-touch i {
-  background: #1f28d6;
+.app[data-theme='light'] .a-touch {
+  background: rgba(47, 59, 255, 0.14);
   box-shadow: none;
+}
+.app[data-theme='light'] .a-touch i {
+  background: #2f3bff;
+  box-shadow: 0 0 14px rgba(47, 59, 255, 0.4);
+}
+
+/* keyboard open: the stage shrinks to the answer, the sphere steps aside */
+.app[data-kb] .f-sphere {
+  min-height: 0;
+  flex-basis: 0;
+}
+.app[data-kb] .p-track {
+  display: none;
 }
 
 /* ---------- landscape (phone across the dashboard): stage left, panel right */
@@ -425,7 +537,6 @@
   }
   .a-top {
     padding-left: max(env(safe-area-inset-left), 16px);
-    grid-template-columns: 0 1fr 44px;
   }
   .a-panel {
     width: auto;
@@ -437,20 +548,20 @@
     width: min(40cqw, 300px);
     max-height: min(40cqw, 300px);
   }
-  /* the figure needs ~9 grid rows to read — keep it tall even on a low screen */
   .f-digits {
-    width: min(48cqw, 420px);
-    height: clamp(62px, 19cqh, 100px);
+    width: min(50cqw, 440px);
+    height: clamp(62px, 19cqh, 104px);
   }
   .a-label {
-    max-width: 46cqw;
+    max-width: 48cqw;
     min-height: 1.3em;
   }
   .p-track {
     height: clamp(44px, 14cqh, 70px);
   }
   .p-round,
-  .p-pill {
+  .p-pill,
+  .p-compose {
     height: clamp(52px, 15cqh, 66px);
   }
 }
@@ -470,10 +581,8 @@
   body:has(.app) {
     background: #d9dae3;
   }
-  .p-round:hover,
-  .p-pill:hover,
-  .a-menu:hover {
-    background: rgba(255, 255, 255, 0.12);
+  :is(.p-round, .p-pill, .a-menu, .a-keys):hover {
+    filter: brightness(1.15);
   }
 }
 
@@ -485,8 +594,8 @@
   top: calc(max(env(safe-area-inset-top), 10px) + 64px);
   padding: 12px 18px;
   border-radius: 18px;
-  background: #ffffff;
-  color: #05060f;
+  background: var(--circle);
+  color: var(--circle-ink);
   font: 500 16px/1.3 'Manrope', sans-serif;
   width: max-content;
   max-width: min(320px, 86%);
@@ -527,6 +636,11 @@
   -webkit-user-select: text;
   user-select: text;
 }
+.app[data-theme='light'] .s-body {
+  background: #ffffff;
+  color: #151738;
+  box-shadow: inset 0 30px 60px -30px rgba(143, 134, 240, 0.35);
+}
 .a-sheet.closing .s-body {
   animation: sheetout 200ms var(--ease-out) forwards;
 }
@@ -537,7 +651,7 @@
   width: 40px;
   height: 5px;
   border-radius: 3px;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(128, 128, 160, 0.3);
   align-self: center;
 }
 .s-body h3 {
@@ -548,11 +662,14 @@
 .s-body p {
   margin: 0;
   font: 400 14px/1.45 'Manrope', sans-serif;
-  color: #a3a3b8;
+  color: #9d9db4;
+}
+.app[data-theme='light'] .s-body p {
+  color: #5b5d76;
 }
 .s-body code {
   font: 500 12px/1.4 ui-monospace, monospace;
-  color: #ececf4;
+  color: inherit;
   word-break: break-all;
 }
 .s-seg {
@@ -562,17 +679,17 @@
   gap: 4px;
   padding: 4px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(128, 128, 170, 0.12);
 }
 .s-seg button {
   height: 46px;
   border-radius: 999px;
-  color: #ececf4;
+  color: inherit;
   font: 500 15px/1 'Manrope', sans-serif;
 }
 .s-seg button[aria-current] {
-  background: #ffffff;
-  color: #05060f;
+  background: var(--circle);
+  color: var(--circle-ink);
 }
 .s-row {
   display: flex;
@@ -581,8 +698,8 @@
   height: 58px;
   padding: 0 18px 0 8px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
-  color: #ececf4;
+  background: rgba(128, 128, 170, 0.12);
+  color: inherit;
   font: 500 15px/1 'Manrope', sans-serif;
   text-decoration: none;
 }
@@ -592,15 +709,15 @@
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  background: #ffffff;
-  color: #05060f;
+  background: var(--circle);
+  color: var(--circle-ink);
 }
 .s-row .t {
   flex: 1;
   text-align: left;
 }
 .s-row b {
-  color: var(--lime);
+  color: var(--accent);
   font-weight: 600;
 }
 .s-grid {
@@ -612,8 +729,8 @@
   min-height: 54px;
   padding: 10px 16px;
   border-radius: 22px;
-  background: rgba(255, 255, 255, 0.06);
-  color: #ececf4;
+  background: rgba(128, 128, 170, 0.12);
+  color: inherit;
   text-align: left;
   font: 500 15px/1.2 'Manrope', sans-serif;
 }
@@ -627,13 +744,16 @@
   font: 500 14px/1 'Manrope', sans-serif;
 }
 .s-links a {
-  color: #c9c4ff;
+  color: #8f86f0;
   text-decoration: none;
   padding: 6px 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .app:is([data-state='listening'], [data-state='thinking']) .p-tri circle {
-    animation: none;
+  .p-tri circle,
+  .p-ring,
+  .p-moon::after,
+  .a-label.think {
+    animation: none !important;
   }
 }

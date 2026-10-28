@@ -79,12 +79,6 @@
 .w-wtop {
   font: 600 15px/1 'Manrope', sans-serif;
 }
-.w-wfig {
-  display: block;
-  width: 100%;
-  height: 44%;
-  margin: auto 0 6px;
-}
 .w-wfoot {
   display: flex;
   justify-content: space-between;
@@ -244,10 +238,6 @@
   font: 500 15px/1 'Manrope', sans-serif;
   color: rgba(255, 255, 255, 0.75);
 }
-.w-ibig {
-  width: 160px;
-  height: 60px;
-}
 .w-isub {
   font: 400 18px/1.2 'Manrope', sans-serif;
 }
@@ -340,4 +330,34 @@
     left: 24px;
     top: 24px;
   }
+}
+
+/* solid figures (the dots only land and dissolve) */
+.w-wfig {
+  margin: auto 0 4px;
+  font: 500 clamp(44px, 15cqw, 64px) / 1 'Manrope', sans-serif;
+  letter-spacing: -0.045em;
+}
+.w-ibig {
+  font: 500 56px/1 'Manrope', sans-serif;
+  letter-spacing: -0.045em;
+}
+.w-digits {
+  position: relative;
+}
+.w-head {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font: 500 clamp(56px, 18cqw, 88px) / 1 'Manrope', sans-serif;
+  letter-spacing: -0.045em;
+  text-shadow: 0 0 42px rgba(150, 140, 255, 0.35);
+}
+.w-cap.think {
+  color: transparent;
+  background: linear-gradient(100deg, #9d9db4 30%, #ffffff 50%, #9d9db4 70%) 0 0 / 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: shimmer 1.3s linear infinite;
 }

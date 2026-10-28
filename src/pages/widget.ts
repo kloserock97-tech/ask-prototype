@@ -4,7 +4,7 @@
 // (the app never opens) → the answer folds into the island and stays there.
 
 import { icon } from '../app/app'
-import { Field, paintDots } from '../app/field'
+import { Field } from '../app/field'
 import { REPLY } from '../app/script'
 import { EASE_OUT, enter, reduced, spring } from '../motion'
 import * as voice from '../voice'
@@ -47,7 +47,7 @@ export class WidgetPage {
           <div class="w-grid">
             <button class="w-widget press" aria-label="виджет ась: ставка ЦБ 14%, коснитесь, чтобы спросить">
               <span class="w-wtop">ась?</span>
-              <canvas class="w-wfig" aria-hidden="true"></canvas>
+              <b class="w-wfig">14%</b>
               <span class="w-wfoot"><span>ставка ЦБ<br><b>до 18 дек</b></span><span class="w-wmic">${icon('mic', 20)}</span></span>
             </button>
             <div class="w-cal" aria-hidden="true"><span>среда</span><b>28</b><i>М‑11 · 2 ч 40 мин</i></div>
@@ -62,13 +62,12 @@ export class WidgetPage {
             <canvas class="w-canvas" aria-hidden="true"></canvas>
             <span class="w-glow" aria-hidden="true"></span>
             <div class="w-sphere"></div>
-            <div class="w-digits"></div>
+            <div class="w-digits"><b class="w-head"></b></div>
             <p class="w-cap"></p>
           </div>
         </div>
       </div>
       <a class="w-back press" href="#/">${icon('arrow', 18)}<span>в приложение</span></a>`
-    requestAnimationFrame(() => document.fonts?.ready.then(() => paintDots(this.root.querySelector('.w-wfig')!, '14%', '#ffffff', 4)))
     this.root.querySelector('.w-widget')!.addEventListener('click', () => this.ask())
     this.root.querySelector('.w-island')!.addEventListener('click', () => this.toggleIsland())
     this.root.querySelector('.w-over')!.addEventListener('click', (e) => {
@@ -94,6 +93,7 @@ export class WidgetPage {
       this.field = new Field(sheet.querySelector('.w-canvas')!, { sphere: sheet.querySelector<HTMLElement>('.w-sphere')!, digits: sheet.querySelector<HTMLElement>('.w-digits')! })
     const f = this.field
     f.setText('', true)
+    sheet.querySelector<HTMLElement>('.w-head')!.textContent = ''
     // the sheet grows out of the widget; the home screen steps back
     const r = sheet.getBoundingClientRect()
     const s = spring(300, 26)
@@ -114,13 +114,22 @@ export class WidgetPage {
     }
     await wait(300)
     f.setState('thinking')
-    f.setText('···')
-    cap.textContent = 'листаю пресс‑релизы ЦБ'
-    await wait(1300)
-    if (tk !== this.token) return
+    cap.className = 'w-cap think'
+    for (const step of REPLY.rate.thinking ?? []) {
+      cap.textContent = step
+      await wait(600)
+      if (tk !== this.token) return
+    }
+    cap.className = 'w-cap'
     f.setState('speaking')
+    // the dots land into the figure, then the solid type takes over
     f.setText('14%')
-    cap.textContent = 'до 18 декабря'
+    const head = sheet.querySelector<HTMLElement>('.w-head')!
+    head.textContent = '14%'
+    if (!reduced()) head.animate([{ opacity: 0, filter: 'blur(12px)', transform: 'scale(0.96)' }, { opacity: 1, filter: 'blur(0)', transform: 'none' }], { duration: 520, delay: 520, easing: EASE_OUT, fill: 'backwards' })
+    if (navigator.userActivation?.hasBeenActive) navigator.vibrate?.([12, 60, 12])
+    f.wave(f.sphereCentre.x, f.sphereCentre.y, 1)
+    cap.textContent = 'до 18 декабря — следующего решения'
     const line = REPLY.rate.say.split('. ').slice(0, 2).join('. ') + '.'
     const t0 = performance.now()
     await voice.speak('rate-short', line, { onLevel: (lv) => f.level(lv * 0.8), onWord: () => f.pulse() })
@@ -190,10 +199,8 @@ export class WidgetPage {
       mode === 'compact'
         ? `<span class="w-idot"></span><b>14%</b>`
         : mode === 'expanded'
-          ? `<span class="w-ihead"><span class="w-idot"></span>ась · ставка ЦБ</span><canvas class="w-ibig"></canvas><span class="w-isub">до 18 декабря · ЦБ 23 окт</span>`
+          ? `<span class="w-ihead"><span class="w-idot"></span>ась · ставка ЦБ</span><b class="w-ibig">14%</b><span class="w-isub">до 18 декабря · ЦБ 23 окт</span>`
           : ''
-    const big = inner.querySelector<HTMLCanvasElement>('.w-ibig')
-    if (big) paintDots(big, '14%', '#ffffff', 5)
     const after = island.getBoundingClientRect()
     if (reduced() || !before.width) return
     // the island springs between sizes; contents cross-fade
