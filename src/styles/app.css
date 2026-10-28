@@ -1,20 +1,17 @@
-/* ---------- «ась?» — «Light from below» (research/13).
-   A black screen; ась is a light rising from the bottom edge through a grid of dots.
-   The question, the answer and two actions stack up from the bottom like the cards
-   in video 4; a previous answer folds into a strip at the top (video 1); the dock is
-   a status capsule and ась's round button. Sized from the app's own box. */
+/* ---------- «ась?» — research/14: no AI-look.
+   Solid surfaces, 1 px neutral borders, modest radii, no blur, no gradients, no glow.
+   One colour of its own: the warm amber of a car's instrument lights, used for the
+   voice display and ась's button only. Type does the rest. Sized from the app's own
+   box, so phones, tablets, landscape and the desktop frame share one composition. */
 .app {
-  --bg: #000000;
-  --ink: #ffffff;
-  --ink-2: #9d9db4;
-  --you: #d8f26a; /* lime is always the driver: your words, your voice */
-  --card: rgba(14, 14, 24, 0.72);
-  --card-edge-a: rgba(255, 255, 255, 0.22);
-  --card-edge-b: rgba(255, 255, 255, 0.04);
-  --ctl: rgba(255, 255, 255, 0.09);
-  --orb: #ffffff;
-  --orb-ink: #05060f;
-  --accent: #9fa6ff;
+  --bg: #0b0b0c;
+  --ink: #f2f0ec;
+  --ink-2: #8f8b84;
+  --line: rgba(242, 240, 236, 0.12);
+  --surface: #161615;
+  --amber: #f2a33a;
+  --amber-ink: #1a1206;
+  --ease: cubic-bezier(0.23, 1, 0.32, 1);
 
   position: fixed;
   inset: 0;
@@ -29,414 +26,307 @@
   -webkit-user-select: none;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
-  transition: background-color 400ms ease, color 400ms ease;
 }
 .app[data-theme='light'] {
-  --bg: #f3f3f8;
-  --ink: #151738;
-  --ink-2: #6b6d86;
-  --you: #2f3bff;
-  --card: rgba(255, 255, 255, 0.82);
-  --card-edge-a: rgba(21, 23, 56, 0.1);
-  --card-edge-b: rgba(21, 23, 56, 0.04);
-  --ctl: rgba(21, 23, 56, 0.06);
-  --orb: #151738;
-  --orb-ink: #ffffff;
-  --accent: #2f3bff;
-}
-.f-canvas,
-.c-canvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  display: block;
-  pointer-events: none;
-}
-.f-canvas {
-  z-index: 0;
-}
-.c-canvas {
-  z-index: 3;
+  --bg: #f4f3f0;
+  --ink: #141414;
+  --ink-2: #6e6a63;
+  --line: rgba(20, 20, 20, 0.12);
+  --surface: #e9e7e2;
+  --amber: #c4650b;
+  --amber-ink: #ffffff;
 }
 
-/* ---------- top: keyboard · status · menu */
-.a-top {
-  position: relative;
-  z-index: 2;
+/* ---------- top: keyboard · clock · menu */
+.v-top {
   display: grid;
   grid-template-columns: 44px 1fr 44px;
   align-items: center;
-  gap: 8px;
-  padding: calc(max(env(safe-area-inset-top), 10px) + 8px) 14px 6px;
+  padding: calc(max(env(safe-area-inset-top), 10px) + 6px) 14px 0;
 }
-.a-status {
+.v-clock {
   margin: 0;
-  display: flex;
-  justify-content: center;
-  align-items: baseline;
-  gap: 8px;
-  font: 600 17px/1 'Manrope', sans-serif;
-}
-.a-status span {
-  font-weight: 400;
+  text-align: center;
+  font: 500 15px/1 'Manrope', sans-serif;
   color: var(--ink-2);
   font-variant-numeric: tabular-nums;
 }
-.a-menu,
-.a-keys {
+.v-keys,
+.v-menu {
   width: 44px;
   height: 44px;
-  border-radius: 50%;
+  border-radius: 12px;
   display: grid;
   place-items: center;
-  background: var(--ctl);
   color: var(--ink);
 }
-.app[data-compose] .a-keys {
-  background: var(--orb);
-  color: var(--orb-ink);
+.app[data-compose] .v-keys {
+  background: var(--surface);
 }
 
-/* ---------- the stack, growing up from the bottom */
-.k-feed {
+/* ---------- main */
+.v-main {
   position: relative;
-  z-index: 2;
   min-height: 0;
   width: min(100%, 560px);
   justify-self: center;
+  padding: 0 22px;
+  display: grid;
+}
+.v-start,
+.v-talk {
+  grid-area: 1 / 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
-  gap: clamp(8px, 1.4cqh, 12px);
-  padding: 4px 12px clamp(8px, 1.6cqh, 14px);
 }
-/* every card: big radius, a hairline that is lighter on top (video 4) */
-.k-past,
-.k-answer,
-.k-act,
-.k-ask {
-  border: 1px solid transparent;
-  background:
-    linear-gradient(var(--card), var(--card)) padding-box,
-    linear-gradient(180deg, var(--card-edge-a), var(--card-edge-b)) border-box;
-  -webkit-backdrop-filter: blur(14px);
-  backdrop-filter: blur(14px);
-}
-.app[data-theme='light'] :is(.k-past, .k-answer, .k-act, .k-ask) {
-  box-shadow: 0 10px 30px -18px rgba(40, 40, 120, 0.35);
+.v-start[hidden],
+.v-talk[hidden] {
+  display: none;
 }
 
-/* the previous answer, folded into a strip at the top (video 1) */
-.k-past {
+/* the start screen: what you hear when you call someone, one line, two questions */
+.v-start {
+  justify-content: center;
+  gap: 14px;
+}
+.v-hi {
+  margin: 0;
+  font: 600 clamp(64px, 22cqmin, 112px) / 0.95 'Manrope', sans-serif;
+  letter-spacing: -0.045em;
+}
+.v-lead {
+  margin: 0 0 18px;
+  max-width: 19em;
+  font: 400 clamp(18px, 5cqmin, 22px) / 1.35 'Manrope', sans-serif;
+  color: var(--ink-2);
+}
+.v-sugg {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--line);
+}
+.v-s {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  min-height: 62px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  text-align: left;
+  font: 500 clamp(18px, 5cqmin, 21px) / 1.2 'Manrope', sans-serif;
+}
+.v-s svg {
+  flex: none;
+  color: var(--ink-2);
+}
+
+/* the conversation */
+.v-talk {
+  justify-content: flex-end;
+  gap: 14px;
+  padding-bottom: 12px;
+}
+.v-past {
   margin-bottom: auto;
-  align-self: stretch;
+  margin-top: 8px;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-2);
+  text-align: left;
+  font: 400 15px/1.2 'Manrope', sans-serif;
+}
+.v-past[hidden] {
+  display: none;
+}
+.v-past b {
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+/* your question: right-aligned, on a plain surface */
+.v-q {
+  align-self: flex-end;
+  max-width: 82%;
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 16px 16px 4px 16px;
+  background: var(--surface);
+  font: 500 clamp(17px, 4.8cqmin, 20px) / 1.3 'Manrope', sans-serif;
+}
+.v-q[hidden] {
+  display: none;
+}
+.v-q .old {
+  color: var(--ink-2);
+}
+.v-a {
+  display: flex;
+  flex-direction: column;
+}
+/* the steps of the work, ticked off */
+.v-steps {
+  margin: 0 0 4px;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.v-steps li {
   display: flex;
   align-items: center;
   gap: 10px;
-  height: 48px;
-  padding: 0 16px;
-  border-radius: 24px;
-  color: var(--ink);
-  font: 400 15px/1 'Manrope', sans-serif;
-}
-.k-past[hidden] {
-  display: none;
-}
-.k-past b {
-  font: 600 19px/1 'Manrope', sans-serif;
-  letter-spacing: -0.02em;
-}
-.k-past span {
-  flex: 1;
-  text-align: left;
+  font: 400 clamp(16px, 4.4cqmin, 19px) / 1.2 'Manrope', sans-serif;
   color: var(--ink-2);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  opacity: 0.45;
 }
-
-/* the answer card: title · the one big thing · a line (captions while ась speaks) */
-.k-answer {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: clamp(14px, 2.4cqh, 22px) 22px clamp(16px, 2.6cqh, 24px);
-  border-radius: 32px;
-  min-height: clamp(150px, 26cqh, 240px);
-  justify-content: flex-end;
+.v-steps li::before {
+  content: '';
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
 }
-.k-answer[hidden] {
-  display: none;
-}
-.k-answer[data-draft] {
-  background: transparent;
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-  border-color: transparent;
-}
-.k-outline {
-  position: absolute;
-  inset: -1px;
-  width: calc(100% + 2px);
-  height: calc(100% + 2px);
-  overflow: visible;
-  pointer-events: none;
-}
-.k-outline rect {
-  width: calc(100% - 2px);
-  height: calc(100% - 2px);
-  fill: none;
-  stroke: transparent;
-  stroke-width: 1.5;
-  stroke-dasharray: 100;
-}
-.k-answer[data-draft] .k-outline rect {
-  stroke: color-mix(in srgb, var(--accent) 70%, transparent);
-}
-.k-title {
-  margin: 0;
-  font: 500 clamp(16px, 4.4cqmin, 20px) / 1.2 'Manrope', sans-serif;
-  color: var(--ink-2);
-}
-.k-head {
-  margin: 4px 0 2px;
-  min-height: 1em;
-  font: 600 clamp(32px, 9.4cqmin, 46px) / 1.05 'Manrope', sans-serif;
-  letter-spacing: -0.025em;
-  text-wrap: balance;
-}
-.k-head.num {
-  font: 500 clamp(76px, 25cqmin, 132px) / 0.95 'Manrope', sans-serif;
-  letter-spacing: -0.05em;
-  font-variant-numeric: tabular-nums;
-}
-.k-answer[data-draft] .k-head {
-  display: none;
-}
-.k-sub {
-  margin: 0;
-  min-height: 1.25em;
-  font: 400 clamp(17px, 4.8cqmin, 22px) / 1.25 'Manrope', sans-serif;
-  color: var(--ink-2);
-  text-wrap: balance;
-}
-.k-sub.caps span {
-  opacity: 0.4;
-  transition: opacity 160ms ease, color 160ms ease;
-}
-.k-sub.caps span.on {
+.v-steps li.now {
   opacity: 1;
   color: var(--ink);
 }
-/* «думаю»: a light runs through the step's words */
-.k-sub.think {
-  color: transparent;
-  background: linear-gradient(100deg, var(--ink-2) 30%, var(--ink) 50%, var(--ink-2) 70%) 0 0 / 250% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  animation: shimmer 1.3s linear infinite;
+.v-steps li.now::before {
+  border-color: var(--amber);
 }
-@keyframes shimmer {
-  from {
-    background-position: 100% 0;
-  }
-  to {
-    background-position: -150% 0;
-  }
+.v-steps li.done {
+  opacity: 0.8;
 }
-
-/* two follow-ups (video 4's small cards); they hide while a new turn is under way */
-.k-acts {
+.v-steps li.done::before {
+  background: var(--amber);
+  border-color: var(--amber);
+}
+/* the answer: the one big thing, what it is, one line */
+.v-head {
+  margin: 0;
+  font: 600 clamp(34px, 10cqmin, 50px) / 1.04 'Manrope', sans-serif;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+.v-head:empty,
+.v-title:empty {
+  display: none;
+}
+.v-head.num {
+  font: 500 clamp(96px, 34cqmin, 168px) / 0.9 'Manrope', sans-serif;
+  white-space: nowrap;
+  letter-spacing: -0.06em;
+  font-variant-numeric: tabular-nums;
+  margin-left: -0.04em;
+}
+.v-title {
+  margin: 10px 0 0;
+  font: 600 clamp(19px, 5.4cqmin, 24px) / 1.2 'Manrope', sans-serif;
+}
+.v-sub {
+  margin: 4px 0 0;
+  min-height: 1.3em;
+  font: 400 clamp(17px, 4.8cqmin, 21px) / 1.3 'Manrope', sans-serif;
+  color: var(--ink-2);
+  text-wrap: balance;
+}
+.v-sub.caps span {
+  transition: color 140ms linear;
+}
+.v-sub.caps span.on {
+  color: var(--ink);
+}
+/* follow-ups: two plain buttons, the first filled */
+.v-acts {
   display: none;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
+  margin-top: 6px;
 }
-.app[data-acts] .k-acts {
+.app[data-acts] .v-acts {
   display: grid;
 }
-.k-act {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  grid-template-rows: auto auto;
-  column-gap: 12px;
-  align-items: center;
-  min-height: clamp(72px, 11cqh, 92px);
-  padding: 12px 14px;
-  border-radius: 26px;
+.v-act {
+  min-height: clamp(56px, 8.4cqh, 66px);
+  border-radius: 14px;
+  border: 1px solid var(--line);
   color: var(--ink);
-  text-align: left;
+  font: 600 clamp(17px, 4.8cqmin, 20px) / 1 'Manrope', sans-serif;
 }
-.k-act .ic {
-  grid-row: 1 / 3;
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: var(--ctl);
-}
-.k-act.first .ic {
-  background: var(--orb);
-  color: var(--orb-ink);
-}
-.k-act b {
-  align-self: end;
-  font: 600 clamp(17px, 4.8cqmin, 20px) / 1.1 'Manrope', sans-serif;
-}
-.k-act .s {
-  align-self: start;
-  font: 400 13px/1.25 'Manrope', sans-serif;
-  color: var(--ink-2);
+.v-act.first {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
 }
 
-/* your question (video 4's bottom card): lime words, the time, «думаю» dots */
-.k-ask {
-  padding: 14px 18px;
-  border-radius: 26px;
-}
-.k-q {
-  margin: 0;
-  font: 500 clamp(18px, 5cqmin, 22px) / 1.25 'Manrope', sans-serif;
-  color: var(--you);
-}
-.k-q .old {
-  color: var(--ink-2);
-}
-.k-ask[data-empty] .k-q {
-  color: var(--ink-2);
-  font-weight: 400;
-}
-.k-meta {
-  margin: 6px 0 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font: 400 13px/1 'Manrope', sans-serif;
-  color: var(--ink-2);
-  font-variant-numeric: tabular-nums;
-}
-.k-ask[data-empty] .k-meta {
-  display: none;
-}
-.k-dots {
-  display: none;
-  gap: 4px;
-}
-.app[data-state='thinking'] .k-dots {
-  display: inline-flex;
-}
-.k-dots i {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--accent);
-  animation: wave 1.1s ease-in-out infinite;
-}
-.k-dots i:nth-child(2) { animation-delay: 0.11s; }
-.k-dots i:nth-child(3) { animation-delay: 0.22s; }
-.k-dots i:nth-child(4) { animation-delay: 0.33s; }
-.k-dots i:nth-child(5) { animation-delay: 0.44s; }
-@keyframes wave {
-  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-  30% { transform: translateY(-3px); opacity: 1; }
-}
-
-/* ---------- the dock: a status capsule and ась's own round button (video 4) */
-.k-dock {
+/* ---------- bottom: the voice display and ась's button */
+.v-foot {
   position: relative;
-  z-index: 2;
-  width: min(100% - 24px, 536px);
+  display: grid;
+  grid-template-rows: auto auto;
+}
+.v-band {
+  display: block;
+  width: 100%;
+  height: clamp(96px, 15cqh, 150px);
+}
+.v-dock {
+  width: min(100% - 28px, 532px);
   justify-self: center;
   display: flex;
-  gap: 10px;
-  margin-bottom: calc(max(env(safe-area-inset-bottom), 8px) + 4px);
-}
-.k-cap {
-  flex: 1;
-  min-width: 0;
-  height: clamp(58px, 8.6cqh, 68px);
-  display: flex;
   align-items: center;
-  justify-content: center;
   gap: 12px;
-  padding: 0 20px;
-  border-radius: 999px;
-  background: rgba(10, 10, 18, 0.62);
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
-  transform-origin: left center;
+  padding: 10px 0 calc(max(env(safe-area-inset-bottom), 10px) + 4px);
 }
-.app[data-theme='light'] .k-cap {
-  background: rgba(255, 255, 255, 0.72);
-  box-shadow: inset 0 0 0 1px rgba(21, 23, 56, 0.08);
-}
-.app[data-compose] .k-cap {
-  display: none;
-}
-.k-cap-t {
+.v-state {
+  flex: 1;
+  margin: 0;
   font: 500 clamp(17px, 4.8cqmin, 20px) / 1 'Manrope', sans-serif;
+  color: var(--ink-2);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.k-wave {
-  display: none;
-  align-items: center;
-  gap: 3px;
-  height: 22px;
-}
-.app:is([data-state='listening'], [data-state='speaking']) .k-wave {
-  display: inline-flex;
-}
-.k-wave i {
-  width: 4px;
-  height: 22px;
-  border-radius: 2px;
-  background: var(--accent);
-  transform: scaleY(0.25);
-}
-.app[data-state='listening'] .k-wave i {
-  background: var(--you);
-}
-.k-orb {
+.v-mic {
   flex: none;
-  width: clamp(58px, 8.6cqh, 68px);
+  width: clamp(64px, 9.4cqh, 76px);
   aspect-ratio: 1;
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: var(--orb);
-  color: var(--orb-ink);
-  transition: background-color 200ms ease, box-shadow 300ms ease;
+  background: var(--amber);
+  color: var(--amber-ink);
+  transition: background-color 160ms ease, color 160ms ease;
 }
-.app[data-state='listening'] .k-orb {
-  background: var(--you);
-  color: #05060f;
-  box-shadow: 0 0 0 8px color-mix(in srgb, var(--you) 22%, transparent);
+.app:not([data-state='idle']) .v-mic {
+  background: var(--ink);
+  color: var(--bg);
 }
-.app[data-theme='light'][data-state='listening'] .k-orb {
-  color: #ffffff;
-}
-.k-compose {
+.v-compose {
   flex: 1;
   min-width: 0;
-  height: clamp(58px, 8.6cqh, 68px);
+  height: 60px;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 7px 0 20px;
-  border-radius: 999px;
-  background: var(--card);
-  box-shadow: inset 0 0 0 1px var(--card-edge-a);
-  transform-origin: right center;
+  padding: 0 6px 0 18px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: var(--surface);
 }
-.k-compose[hidden] {
+.v-compose[hidden] {
   display: none;
 }
-.k-input {
+.app[data-compose] :is(.v-state, .v-mic) {
+  display: none;
+}
+.v-input {
   flex: 1;
   min-width: 0;
   height: 100%;
@@ -448,78 +338,68 @@
   -webkit-user-select: text;
   user-select: text;
 }
-.k-input::placeholder {
+.v-input::placeholder {
   color: var(--ink-2);
 }
-.k-send {
+.v-send {
   flex: none;
   width: 46px;
   height: 46px;
-  border-radius: 50%;
+  border-radius: 12px;
   display: grid;
   place-items: center;
-  background: var(--orb);
-  color: var(--orb-ink);
-}
-.app[data-compose] .k-orb {
-  display: none;
+  background: var(--ink);
+  color: var(--bg);
 }
 
-/* the touch mark: a white dot in a soft halo under the finger */
+/* the finger: a small solid dot, nothing else */
 .a-touch {
   position: absolute;
   z-index: 6;
-  width: 76px;
-  height: 76px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.18);
+  border: 1.5px solid var(--amber);
   opacity: 0;
   pointer-events: none;
   transform: translate(-50%, -50%);
 }
-.a-touch i {
-  position: absolute;
-  inset: 22px;
-  border-radius: 50%;
-  background: #ffffff;
-  box-shadow: 0 0 18px rgba(255, 255, 255, 0.8);
-}
-.app[data-theme='light'] .a-touch {
-  background: rgba(47, 59, 255, 0.14);
-}
-.app[data-theme='light'] .a-touch i {
-  background: #2f3bff;
-  box-shadow: 0 0 14px rgba(47, 59, 255, 0.4);
-}
 
-/* keyboard open: the stack keeps only the answer and the question */
-.app[data-kb] .k-acts,
-.app[data-kb] .k-past {
+/* keyboard open: only the conversation and the field */
+.app[data-kb] .v-band,
+.app[data-kb] .v-acts,
+.app[data-kb] .v-past {
   display: none;
 }
 
-/* ---------- landscape (phone across the dashboard): the answer left, the rest right */
+/* ---------- landscape (phone across the dashboard): the answer left, the controls right */
 @media (orientation: landscape) and (max-height: 620px) {
-  .k-feed {
+  .app {
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 40%);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .v-top {
+    grid-column: 1 / -1;
+  }
+  .v-main {
+    grid-column: 1;
     width: 100%;
-    display: grid;
-    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-    grid-template-rows: auto 1fr auto auto;
-    grid-template-areas: 'past past' 'answer .' 'answer acts' 'answer ask';
-    column-gap: 12px;
-    align-items: end;
-    padding-left: max(env(safe-area-inset-left), 12px);
-    padding-right: max(env(safe-area-inset-right), 12px);
+    padding-left: max(env(safe-area-inset-left), 22px);
   }
-  .k-past { grid-area: past; }
-  .k-answer { grid-area: answer; min-height: 0; height: 100%; }
-  .k-acts { grid-area: acts; }
-  .k-ask { grid-area: ask; }
-  .k-head.num {
-    font-size: clamp(64px, 24cqh, 120px);
+  .v-foot {
+    grid-column: 2;
+    grid-row: 2;
+    align-content: end;
+    padding-right: max(env(safe-area-inset-right), 0px);
   }
-  .k-dock {
-    width: min(100% - 24px, 760px);
+  .v-band {
+    height: clamp(80px, 30cqh, 140px);
+  }
+  .v-hi {
+    font-size: clamp(56px, 22cqh, 96px);
+  }
+  .v-head.num {
+    font-size: clamp(80px, 34cqh, 150px);
   }
 }
 
@@ -533,13 +413,14 @@
     width: 402px;
     height: min(874px, calc(100dvh - 48px));
     border-radius: 56px;
-    box-shadow: 0 0 0 10px #15161c, 0 0 0 11px #2c2d36, 0 40px 80px -20px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 0 10px #161615, 0 0 0 11px #2c2b29, 0 40px 80px -24px rgba(0, 0, 0, 0.45);
   }
   body:has(.app) {
-    background: #d9dae3;
+    background: #d6d4cf;
   }
-  :is(.k-act, .k-orb, .k-past, .a-menu, .a-keys):hover {
-    filter: brightness(1.12);
+  :is(.v-s, .v-act, .v-past):hover {
+    color: var(--ink);
+    background: color-mix(in srgb, var(--ink) 4%, transparent);
   }
 }
 
@@ -548,18 +429,18 @@
   position: absolute;
   z-index: 20;
   left: 50%;
-  top: calc(max(env(safe-area-inset-top), 10px) + 60px);
-  padding: 12px 18px;
-  border-radius: 18px;
-  background: var(--orb);
-  color: var(--orb-ink);
-  font: 500 16px/1.3 'Manrope', sans-serif;
+  top: calc(max(env(safe-area-inset-top), 10px) + 58px);
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: var(--ink);
+  color: var(--bg);
+  font: 500 15px/1.3 'Manrope', sans-serif;
   width: max-content;
   max-width: min(320px, 86%);
   text-align: center;
 }
 
-/* ---------- settings sheet */
+/* ---------- settings sheet: a plain page from below */
 .a-sheet {
   position: absolute;
   inset: 0;
@@ -568,8 +449,8 @@
 .s-scrim {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  animation: fadein 240ms ease both;
+  background: rgba(0, 0, 0, 0.5);
+  animation: fadein 200ms ease both;
 }
 .s-body {
   position: absolute;
@@ -580,100 +461,83 @@
   max-height: 88%;
   overflow: auto;
   overscroll-behavior: contain;
-  padding: 10px 18px calc(env(safe-area-inset-bottom) + 18px);
-  border-radius: 32px 32px 0 0;
-  background: #0b0b14;
-  color: #ececf4;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  padding: 10px 20px calc(env(safe-area-inset-bottom) + 20px);
+  border-radius: 20px 20px 0 0;
+  background: var(--bg);
+  color: var(--ink);
+  border-top: 1px solid var(--line);
   display: flex;
   flex-direction: column;
   gap: 12px;
   font-family: 'Manrope', sans-serif;
-  animation: sheetin 300ms var(--ease-drawer) both;
+  animation: sheetin 260ms var(--ease) both;
   -webkit-user-select: text;
   user-select: text;
 }
-.app[data-theme='light'] .s-body {
-  background: #ffffff;
-  color: #151738;
-}
 .a-sheet.closing .s-body {
-  animation: sheetout 200ms var(--ease-out) forwards;
+  animation: sheetout 180ms var(--ease) forwards;
 }
 .a-sheet.closing .s-scrim {
-  animation: fadeout 200ms ease forwards;
+  animation: fadeout 180ms ease forwards;
 }
 .s-grab {
-  width: 40px;
-  height: 5px;
-  border-radius: 3px;
-  background: rgba(128, 128, 160, 0.3);
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line);
   align-self: center;
 }
 .s-body h3 {
-  margin: 8px 0 0;
-  font: 500 14px/1 'Manrope', sans-serif;
-  color: #8e8ac6;
+  margin: 10px 0 0;
+  font: 600 15px/1.2 'Manrope', sans-serif;
 }
 .s-body p {
   margin: 0;
   font: 400 14px/1.45 'Manrope', sans-serif;
-  color: #9d9db4;
-}
-.app[data-theme='light'] .s-body p {
-  color: #5b5d76;
+  color: var(--ink-2);
 }
 .s-body code {
   font: 500 12px/1.4 ui-monospace, monospace;
-  color: inherit;
+  color: var(--ink);
   word-break: break-all;
 }
 .s-seg {
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
-  gap: 4px;
-  padding: 4px;
-  border-radius: 999px;
-  background: rgba(128, 128, 170, 0.12);
+  gap: 2px;
+  padding: 2px;
+  border-radius: 12px;
+  background: var(--surface);
 }
 .s-seg button {
-  height: 46px;
-  border-radius: 999px;
-  color: inherit;
+  height: 44px;
+  border-radius: 10px;
+  color: var(--ink-2);
   font: 500 15px/1 'Manrope', sans-serif;
 }
 .s-seg button[aria-current] {
-  background: var(--orb);
-  color: var(--orb-ink);
+  background: var(--bg);
+  color: var(--ink);
+  box-shadow: 0 0 0 1px var(--line);
 }
 .s-row {
   display: flex;
   align-items: center;
   gap: 12px;
-  height: 58px;
-  padding: 0 18px 0 8px;
-  border-radius: 999px;
-  background: rgba(128, 128, 170, 0.12);
-  color: inherit;
-  font: 500 15px/1 'Manrope', sans-serif;
+  min-height: 54px;
+  padding: 0 4px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  font: 500 15px/1.2 'Manrope', sans-serif;
   text-decoration: none;
-}
-.s-row .ic {
-  display: grid;
-  place-items: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  background: var(--orb);
-  color: var(--orb-ink);
 }
 .s-row .t {
   flex: 1;
   text-align: left;
 }
 .s-row b {
-  color: var(--you);
+  color: var(--amber);
   font-weight: 600;
 }
 .s-grid {
@@ -682,11 +546,11 @@
   gap: 8px;
 }
 .s-grid button {
-  min-height: 54px;
-  padding: 10px 16px;
-  border-radius: 22px;
-  background: rgba(128, 128, 170, 0.12);
-  color: inherit;
+  min-height: 52px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  color: var(--ink);
   text-align: left;
   font: 500 15px/1.2 'Manrope', sans-serif;
 }
@@ -700,35 +564,12 @@
   font: 500 14px/1 'Manrope', sans-serif;
 }
 .s-links a {
-  color: #8f86f0;
-  text-decoration: none;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
   padding: 6px 0;
 }
-
-@media (prefers-reduced-motion: reduce) {
-  .k-dots i,
-  .k-sub.think {
-    animation: none !important;
-  }
-}
-
-/* before the first question: a greeting fills the top (video 3) */
-.k-hello {
-  display: none;
-  margin-bottom: auto;
-  padding: clamp(8px, 4cqh, 40px) 8px 0;
-}
-.app[data-hello] .k-hello {
-  display: block;
-}
-.k-hi {
-  margin: 0 0 8px;
-  font: 500 clamp(17px, 4.6cqmin, 20px) / 1.2 'Manrope', sans-serif;
-  color: var(--ink-2);
-}
-.k-big {
-  margin: 0;
-  font: 600 clamp(38px, 11cqmin, 56px) / 1.02 'Manrope', sans-serif;
-  letter-spacing: -0.035em;
-  text-wrap: balance;
+.v-talk,
+.v-a {
+  min-width: 0;
 }

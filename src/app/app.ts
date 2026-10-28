@@ -1,23 +1,21 @@
 // «ась?» — one working scenario: the driver asks about the key rate.
 //
-// «Light from below» (research/13): ась is a light rising from the bottom edge
-// through a grid of dots. Everything the driver deals with sits low, near the
-// thumb, as a stack growing up from the bottom (video 4): the question card, the
-// answer card above it — outline first, then the content, its figure built from
-// sparks out of the light — and two action cards. A previous answer folds up into
-// a strip at the top (video 1). The dock at the very bottom is a status capsule and
-// ась's own round button. The whole screen is one tap target except the controls.
+// research/14: no AI-look. No purple glow, no glass, no gradient borders, no
+// particles. The identity comes from the car: a dot-matrix strip in the warm amber
+// of instrument lights at the bottom (a stereo spectrum of whoever is speaking; a
+// K.I.T.T. scanner while ась thinks), and plain, confident type above it.
 //
-// An answer shows three layers: a title, one big «head» and a short line. The full
-// sentence is spoken and runs as captions while it plays. Like Alice, an answer that
-// ends with a question keeps listening for a few seconds — «да» needs no tap.
+// The start screen says only «Ась?» — what you hear when you call someone — with one
+// line of invitation and two questions to tap. A conversation shows your question,
+// the steps of the work, then the answer in three layers: the one big thing, what it
+// is, one line of context. The full sentence is spoken and runs as captions. Like
+// Alice, an answer that ends with a question keeps listening for a few seconds.
 
-import { EASE_OUT, reduced, spring } from '../motion'
+import { EASE_OUT, reduced } from '../motion'
 import * as voice from '../voice'
-import { Cloud } from './cloud'
+import { Band } from './band'
 import * as earcon from './earcon'
 import * as ears from './ears'
-import { Field } from './field'
 import { understand, type Intent } from './intents'
 import { AUDIO_IDS, DATA_AS_OF, DEMO_QUESTIONS, REPLY, ROAD, type Reply, type Road } from './script'
 import { canWake, startWake, stopWake } from './wake'
@@ -35,35 +33,24 @@ const ICON: Record<string, string> = {
   mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/>',
   arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>',
   up: '<path d="M12 19V5M6 11l6-6 6 6"/>',
-  bookmark: '<path d="M6 4.5h12v16l-6-4-6 4z"/>',
-  repeat: '<path d="M4 12a8 8 0 0 1 13.7-5.6L20 8.5M20 4v4.5h-4.5M20 12a8 8 0 0 1-13.7 5.6L4 15.5M4 20v-4.5h4.5"/>',
   play: '<path d="M8 5.5v13l10.5-6.5z"/>',
-  percent: '<path d="M19 5 5 19"/><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/>',
-  wallet: '<rect x="3" y="7" width="18" height="13" rx="3"/><path d="M16 13.5h2M6 7l9-3.5L16.5 7"/>',
-  ear: '<path d="M7 9a5 5 0 0 1 10 0c0 3-3 4-3 7a3 3 0 0 1-5.5 1.6"/><path d="M10 9.5a2 2 0 0 1 4 0"/>',
   menu: '<path d="M5 9h14M5 15h14"/>',
   keys: '<rect x="2.5" y="6" width="19" height="12" rx="3"/><path d="M6.5 10h.01M10 10h.01M13.5 10h.01M17 10h.01M8 14h8"/>',
+  ear: '<path d="M7 9a5 5 0 0 1 10 0c0 3-3 4-3 7a3 3 0 0 1-5.5 1.6"/><path d="M10 9.5a2 2 0 0 1 4 0"/>',
+  percent: '<path d="M19 5 5 19"/><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/>',
 }
 export const icon = (k: string, size = 24) =>
   `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[k]}</svg>`
 
-// the follow-up cards: what each one says, small print and icon (Alice's «suggests»)
-const ACT: Record<string, { t: string; s: string; i: string }> = {
-  more: { t: 'Подробнее', s: 'что ждут в декабре', i: 'arrow' },
-  save: { t: 'Сохранить', s: 'покажу на стоянке', i: 'bookmark' },
-  repeat: { t: 'Повторить', s: 'ещё раз голосом', i: 'repeat' },
-  listen: { t: 'Ещё вопрос', s: 'коснитесь и спросите', i: 'mic' },
-  rate: { t: 'Про ставку', s: 'ключевая ставка ЦБ', i: 'percent' },
-  advice: { t: 'Про вклады', s: 'без советов', i: 'wallet' },
-}
+// follow-ups under an answer (Alice's «suggests»): plain words, no icon tiles
+const ACT: Record<string, string> = { more: 'Подробнее', save: 'Сохранить', repeat: 'Повторить', listen: 'Ещё вопрос', rate: 'Про ставку', advice: 'Про вклады' }
 
 const isNumber = (s: string) => /^[\d\s.,%−-]+$/.test(s)
 const hhmm = () => new Date().toTimeString().slice(0, 5)
 
 export class AskApp {
   readonly root = document.createElement('div')
-  private field: Field
-  private sparks: Cloud
+  private band: Band
   private state: State = 'idle'
   private input: Input = ears.canHear ? 'voice' : 'tap'
   private wakeOn = false
@@ -80,7 +67,8 @@ export class AskApp {
   private demoStep = 0
   private progress = 0
   private progressTarget = 0
-  private speakLv = 0
+  private fakeLv = 0
+  private faking = false // a typed or tapped question is «spoken» by the app itself
   private caps: { words: string[]; starts: number[]; total: number } | null = null
   private capShown = -1
   private hold = { x: 0, y: 0, t: 0, down: false, id: -1 }
@@ -89,47 +77,63 @@ export class AskApp {
   constructor() {
     this.root.className = 'app'
     this.root.innerHTML = `
-      <canvas class="f-canvas" aria-hidden="true"></canvas>
-      <canvas class="c-canvas" aria-hidden="true"></canvas>
-      <header class="a-top">
-        <button class="a-keys press" aria-label="написать вопрос">${icon('keys', 22)}</button>
-        <p class="a-status"><b>ась</b><span class="a-clock"></span></p>
-        <button class="a-menu press" aria-label="настройки и ситуации в дороге">${icon('menu', 22)}</button>
+      <header class="v-top">
+        <button class="v-keys press" aria-label="написать вопрос">${icon('keys', 22)}</button>
+        <p class="v-clock"></p>
+        <button class="v-menu press" aria-label="настройки и ситуации в дороге">${icon('menu', 22)}</button>
       </header>
-      <section class="k-feed">
-        <div class="k-hello"><p class="k-hi"></p><p class="k-big">Спросите про&nbsp;ставку ЦБ</p></div>
-        <button class="k-past press" hidden></button>
-        <article class="k-answer" aria-live="polite" hidden>
-          <svg class="k-outline" aria-hidden="true"><rect x="1" y="1" rx="30" ry="30" pathLength="100"/></svg>
-          <p class="k-title"></p>
-          <p class="k-head"></p>
-          <p class="k-sub"></p>
-        </article>
-        <div class="k-acts"></div>
-        <div class="k-ask"><p class="k-q"></p><p class="k-meta"><span class="k-time"></span><span class="k-dots"><i></i><i></i><i></i><i></i><i></i></span></p></div>
-      </section>
-      <nav class="k-dock">
-        <div class="k-cap"><span class="k-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="k-cap-t"></span></div>
-        <button class="k-orb press" aria-label="спросить">${icon('mic', 26)}</button>
-        <form class="k-compose" hidden>
-          <input class="k-input" type="text" enterkeyhint="send" autocomplete="off" placeholder="Спросите ась…" aria-label="вопрос" />
-          <button class="k-send press" type="submit" aria-label="отправить">${icon('up', 22)}</button>
-        </form>
-      </nav>
-      <span class="a-touch" aria-hidden="true"><i></i></span>
+      <main class="v-main">
+        <section class="v-start">
+          <h1 class="v-hi">Ась?</h1>
+          <p class="v-lead">Спросите про ключевую ставку. Коснитесь экрана и говорите.</p>
+          <div class="v-sugg">
+            <button class="v-s press" data-say="какая ставка ЦБ на месяц?">Какая ставка ЦБ на месяц ${icon('arrow', 18)}</button>
+            <button class="v-s press" data-say="а вклад открывать?">Стоит ли открывать вклад ${icon('arrow', 18)}</button>
+          </div>
+        </section>
+        <section class="v-talk" hidden>
+          <button class="v-past press" hidden></button>
+          <p class="v-q"></p>
+          <div class="v-a" aria-live="polite">
+            <ol class="v-steps"></ol>
+            <p class="v-head"></p>
+            <p class="v-title"></p>
+            <p class="v-sub"></p>
+          </div>
+          <div class="v-acts"></div>
+        </section>
+      </main>
+      <footer class="v-foot">
+        <canvas class="v-band" aria-hidden="true"></canvas>
+        <div class="v-dock">
+          <p class="v-state"></p>
+          <button class="v-mic press" aria-label="спросить">${icon('mic', 28)}</button>
+          <form class="v-compose" hidden>
+            <input class="v-input" type="text" enterkeyhint="send" autocomplete="off" placeholder="Спросите ась" aria-label="вопрос" />
+            <button class="v-send press" type="submit" aria-label="отправить">${icon('up', 22)}</button>
+          </form>
+        </div>
+      </footer>
+      <span class="a-touch" aria-hidden="true"></span>
       <div class="a-sheet" hidden></div>`
-    this.field = new Field($(this.root, '.f-canvas'))
-    this.sparks = new Cloud($(this.root, '.c-canvas'))
+    this.band = new Band($(this.root, '.v-band'))
     voice.prepare(AUDIO_IDS)
     this.bind()
     this.applyTheme()
-    this.showWelcome()
     this.set('idle')
+    this.revealStart()
     this.loop()
     this.keepAwake()
     this.watchLight()
     this.fitKeyboard()
     this.deepLink()
+  }
+
+  /** the start screen comes in piece by piece, never all at once */
+  private revealStart() {
+    if (reduced()) return
+    const parts = [$(this.root, '.v-hi'), $(this.root, '.v-lead'), ...this.root.querySelectorAll('.v-s')]
+    parts.forEach((el, i) => el.animate([{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'none' }], { duration: 420, delay: 120 + i * 110, easing: EASE_OUT, fill: 'backwards' }))
   }
 
   /** where the browser exposes a light sensor (Chrome on Android), switch to the light theme by itself */
@@ -175,17 +179,16 @@ export class AskApp {
     setTimeout(() => {
       if (q === 'listen' && this.input === 'voice') this.listen()
       else this.fakeSpeech('какая ставка ЦБ на месяц?')
-      if (!voice.isOn()) this.toast('ответ без звука — коснитесь экрана, чтобы ась заговорил')
+      if (!voice.isOn()) this.toast('Ответ без звука. Коснитесь экрана, чтобы ась заговорил.')
     }, 600)
   }
 
   // ---------------------------------------------------------------- haptics you can see
-  /** a short vibration where the device supports it, and always a ring of dots from (x, y) */
-  private buzz(pattern: number | number[], at?: { x: number; y: number }, strength = 1) {
+  /** a short vibration where supported, and always a bump running along the display from x */
+  private buzz(pattern: number | number[], xPx?: number, strength = 1) {
     if (navigator.userActivation?.hasBeenActive) navigator.vibrate?.(pattern)
-    const p = at ?? this.field.source
-    this.field.wave(p.x, p.y, strength)
-    this.sparks.kick(strength * 0.6)
+    const w = this.root.clientWidth || 1
+    this.band.bump(xPx == null ? 0.5 : xPx / w, strength)
   }
 
   // ---------------------------------------------------------------- state
@@ -193,107 +196,105 @@ export class AskApp {
     if (s !== this.state) this.changedAt = performance.now()
     this.state = s
     this.root.dataset.state = s
-    this.field.setState(s)
-    this.sparks.setState(s)
+    this.band.setState(s)
     const waits = this.wakeOn && this.input === 'voice'
-    // the capsule is a status; the verb lives on ась's round button
-    const cap: Record<State, string> = {
-      idle: this.composing ? 'за рулём — лучше голосом' : waits ? 'жду слово «ась»' : this.last ? 'на связи' : 'коснитесь где угодно',
-      listening: 'слушаю',
-      thinking: 'думаю',
-      speaking: 'отвечаю',
-      paused: this.road ? ROAD[this.road].title : 'пауза',
+    const line: Record<State, string> = {
+      idle: this.composing ? 'За рулём лучше голосом' : waits ? 'Жду слово «ась»' : this.last ? 'На связи' : '',
+      listening: 'Слушаю',
+      thinking: 'Ищу',
+      speaking: 'Отвечаю',
+      paused: this.road ? ROAD[this.road].title : 'Пауза',
     }
-    this.capsule(cap[s])
-    const orb = $(this.root, '.k-orb')
-    const busy = s !== 'idle'
-    orb.innerHTML = icon(s === 'paused' ? 'play' : busy ? 'x' : 'mic', 26)
-    orb.setAttribute('aria-label', s === 'paused' ? 'продолжить' : busy ? 'стоп' : 'спросить')
-    // before the first question the top greets (video 3); after it, the answers own the screen
-    this.root.toggleAttribute('data-hello', !this.last && s === 'idle')
-    $(this.root, '.k-hi').textContent = greeting()
-    // the follow-ups hide while a new turn is under way (Alice's «hide» buttons)
+    const st = $(this.root, '.v-state')
+    if (st.textContent !== line[s]) {
+      st.textContent = line[s]
+      if (!reduced() && line[s]) st.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180, easing: EASE_OUT })
+    }
+    const mic = $(this.root, '.v-mic')
+    mic.innerHTML = icon(s === 'paused' ? 'play' : s === 'idle' ? 'mic' : 'x', 28)
+    mic.setAttribute('aria-label', s === 'paused' ? 'продолжить' : s === 'idle' ? 'спросить' : 'стоп')
     this.root.toggleAttribute('data-acts', s === 'idle' && !!this.last?.chips?.length)
   }
 
-  /** the dock's capsule: text swaps with a blur, the pill's width springs */
-  private capsule(t: string) {
-    const el = $(this.root, '.k-cap-t')
-    if (el.textContent === t) return
-    const cap = $(this.root, '.k-cap')
-    const before = cap.getBoundingClientRect().width
-    el.textContent = t
-    const after = cap.getBoundingClientRect().width
-    if (reduced() || !before || !after) return
-    const s = spring(420, 28)
-    cap.animate([{ transform: `scaleX(${before / after})` }, { transform: 'none' }], { duration: s.duration, easing: s.easing })
-    el.animate([{ opacity: 0, filter: 'blur(3px)' }, { opacity: 1, filter: 'blur(0)' }], { duration: 220, easing: EASE_OUT })
+  // ---------------------------------------------------------------- the conversation view
+  private talk() {
+    const start = $(this.root, '.v-start'), talk = $(this.root, '.v-talk')
+    if (!talk.hidden) return
+    if (!reduced()) {
+      start.animate([{ opacity: 1 }, { opacity: 0, transform: 'translateY(-8px)' }], { duration: 160, easing: EASE_OUT, fill: 'forwards' }).onfinish = () => (start.hidden = true)
+      talk.hidden = false
+      talk.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220, delay: 120, easing: EASE_OUT, fill: 'backwards' })
+    } else ((start.hidden = true), (talk.hidden = false))
   }
 
-  // ---------------------------------------------------------------- the stack: question, answer, actions
+  /** your question, right-aligned: the newest words bright, the start of the phrase quieter */
   private question(t: string, live = false) {
-    const q = $(this.root, '.k-q')
-    const ask = $(this.root, '.k-ask')
-    ask.toggleAttribute('data-empty', !t)
-    if (!t) return void (q.textContent = 'например: «какая ставка на месяц?»')
-    // your words: the newest in lime, the start of the phrase fades back
+    this.talk()
+    const q = $(this.root, '.v-q')
     const w = t.split(/\s+/).filter(Boolean)
     const cut = live ? Math.max(0, w.length - 3) : 0
     q.innerHTML = `<span class="old">${w.slice(0, cut).join(' ')}</span> ${w.slice(cut).join(' ')}`
-    $(this.root, '.k-time').textContent = hhmm()
+    q.hidden = !t
   }
 
-  /** the answer card: `draft` = outline only (ась is still looking) */
-  private answer(a: Shown, mode: 'draft' | 'event' | 'quiet') {
-    const card = $(this.root, '.k-answer')
-    const head = $(this.root, '.k-head')
-    const prev = this.lastShown
-    // a new answer over an old one: the old folds into a strip at the top (video 1)
-    if (mode === 'draft' && prev && prev.title !== a.title) this.foldPast(prev)
-    card.toggleAttribute('data-draft', mode === 'draft')
-    card.hidden = false
-    $(this.root, '.k-title').textContent = a.title
-    if (mode === 'draft') {
-      head.textContent = ''
-      this.sub(a.sub, 'think')
-      if (!reduced()) {
-        // the outline draws itself, then the card fills (video 4)
-        const r = card.querySelector('rect')!
-        r.animate([{ strokeDashoffset: 100 }, { strokeDashoffset: 0 }], { duration: 700, easing: EASE_OUT, fill: 'both' })
-        card.animate([{ opacity: 0, transform: 'translateY(14px)' }, { opacity: 1, transform: 'none' }], { duration: 320, easing: EASE_OUT })
-      }
-      return
-    }
+  /** the steps of the work, checked off one by one — real progress, not decoration */
+  private steps(list: string[], done: number) {
+    const ol = $(this.root, '.v-steps')
+    if (!list.length) return void (ol.innerHTML = '')
+    if (ol.children.length !== list.length) ol.innerHTML = list.map((s) => `<li>${s}</li>`).join('')
+    ;[...ol.children].forEach((li, i) => {
+      const was = li.className
+      li.className = i < done ? 'done' : i === done ? 'now' : ''
+      if (li.className && li.className !== was && !reduced()) li.animate([{ opacity: 0.3 }, { opacity: 1 }], { duration: 200, easing: EASE_OUT })
+    })
+  }
+
+  private answer(a: Shown, event: boolean) {
+    const head = $(this.root, '.v-head')
     const num = isNumber(a.head)
     head.classList.toggle('num', num)
-    if (head.textContent !== a.head || mode === 'event') {
+    $(this.root, '.v-title').textContent = a.title
+    if (head.textContent !== a.head || event) {
       head.textContent = a.head
-      if (mode === 'event' && !reduced()) {
-        // the figure comes out of the light: sparks fly up into it, then the type turns solid
-        if (num) this.sparks.buildText(a.head, head)
-        head.animate([{ opacity: 0, filter: 'blur(12px)', transform: 'translateY(10px)' }, { opacity: 1, filter: 'blur(0)', transform: 'none' }], { duration: 420, delay: num ? 380 : 60, easing: EASE_OUT, fill: 'backwards' })
+      this.fitHead()
+      if (event && !reduced()) {
+        head.animate([{ opacity: 0, transform: 'translateY(12px)', filter: 'blur(6px)' }, { opacity: 1, transform: 'none', filter: 'blur(0)' }], { duration: 320, easing: EASE_OUT })
+        $(this.root, '.v-title').animate([{ opacity: 0 }, { opacity: 1 }], { duration: 260, delay: 90, easing: EASE_OUT, fill: 'backwards' })
       }
     }
     this.sub(a.sub)
     this.lastShown = a
   }
 
-  private foldPast(prev: Shown) {
-    const past = $(this.root, '.k-past')
-    past.hidden = false
-    past.innerHTML = `<b>${prev.head}</b><span>${prev.title}</span>${icon('arrow', 16)}`
-    past.setAttribute('aria-label', `${prev.title}: ${prev.head}. Показать`)
-    if (!reduced()) {
-      const s = spring(340, 30)
-      past.animate([{ opacity: 0, transform: 'translateY(40px) scale(0.96)' }, { opacity: 1, transform: 'none' }], { duration: s.duration, easing: s.easing })
-    }
+  /** a long figure («13,75%») shrinks to fit the width instead of running off the edge */
+  private fitHead() {
+    const head = $(this.root, '.v-head')
+    head.style.fontSize = ''
+    if (!head.classList.contains('num')) return
+    // the column, not the block itself: an unbreakable figure would stretch its own box
+    const main = $(this.root, '.v-main')
+    const cs = getComputedStyle(main)
+    const room = main.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
+    const rg = document.createRange()
+    rg.selectNodeContents(head)
+    const w = rg.getBoundingClientRect().width
+    if (w > room) head.style.fontSize = `${(parseFloat(getComputedStyle(head).fontSize) * room) / w}px`
   }
 
-  private sub(t: string, cls = '') {
-    const el = $(this.root, '.k-sub')
+  /** a previous answer folds into one quiet line at the top (video 1) */
+  private foldPast(prev: Shown) {
+    const past = $(this.root, '.v-past')
+    past.hidden = false
+    past.innerHTML = `<b>${prev.head}</b><span>${prev.title}</span>`
+    past.setAttribute('aria-label', `${prev.title}: ${prev.head}. Показать снова`)
+    if (!reduced()) past.animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 240, easing: EASE_OUT })
+  }
+
+  private sub(t: string) {
+    const el = $(this.root, '.v-sub')
     this.caps = null
     this.capShown = -1
-    el.className = `k-sub ${cls}`.trim()
+    el.className = 'v-sub'
     el.textContent = t
   }
 
@@ -314,56 +315,47 @@ export class AskApp {
     let i = starts.findIndex((s, k) => s <= pos && (starts[k + 1] ?? Infinity) > pos)
     if (i < 0) i = words.length - 1
     const from = Math.floor(i / 9) * 9
-    const el = $(this.root, '.k-sub')
+    const el = $(this.root, '.v-sub')
     if (from !== this.capShown) {
       this.capShown = from
-      el.className = 'k-sub caps'
+      el.className = 'v-sub caps'
       el.innerHTML = words.slice(from, from + 9).map((w) => `<span>${w}</span>`).join(' ')
     }
     el.querySelectorAll('span').forEach((s, k) => s.classList.toggle('on', from + k <= i))
   }
 
-  /** two follow-up cards over the question (video 4) */
   private acts(chips: { intent: string }[]) {
-    const box = $(this.root, '.k-acts')
+    const box = $(this.root, '.v-acts')
     box.innerHTML = chips
       .slice(0, 2)
-      .map((c, k) => {
-        const a = ACT[c.intent] ?? { t: c.intent, s: '', i: 'arrow' }
-        return `<button class="k-act press${k === 0 ? ' first' : ''}" data-act="${c.intent}"><span class="ic">${icon(a.i, 22)}</span><b>${a.t}</b><span class="s">${a.s}</span></button>`
-      })
+      .map((c, k) => `<button class="v-act press${k === 0 ? ' first' : ''}" data-act="${c.intent}">${ACT[c.intent] ?? c.intent}</button>`)
       .join('')
-    if (!reduced()) [...box.children].forEach((c, k) => c.animate([{ opacity: 0, transform: 'translateY(16px) scale(0.97)' }, { opacity: 1, transform: 'none' }], { duration: 360, delay: 120 + k * 70, easing: EASE_OUT, fill: 'backwards' }))
-  }
-
-  private showWelcome() {
-    $(this.root, '.k-answer').hidden = true
-    this.question('')
+    if (!reduced()) [...box.children].forEach((c, k) => c.animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 260, delay: 160 + k * 60, easing: EASE_OUT, fill: 'backwards' }))
   }
 
   // ---------------------------------------------------------------- the conversation
   private async ask() {
     if (this.input === 'voice') return this.listen()
-    // tap mode: ась asks the obvious question for you, typed like a live caption
     const q = this.input === 'demo' ? DEMO_QUESTIONS[this.demoStep++ % DEMO_QUESTIONS.length] : this.lastIntent === 'rate' ? 'а что в декабре?' : 'какая ставка ЦБ на месяц?'
     await this.fakeSpeech(q)
   }
 
+  /** tap mode and the suggestions: the question types itself like a live caption */
   private async fakeSpeech(q: string) {
     const tk = ++this.token
     stopWake()
+    this.faking = true
     this.set('listening')
     if (voice.isOn()) earcon.listen()
     for (let i = 1; i <= q.length; i++) {
       if (tk !== this.token) return
       this.question(q.slice(0, i), true)
-      this.speakLv = 0.35 + 0.4 * Math.abs(Math.sin(i * 0.9))
-      this.field.level(this.speakLv)
-      this.sparks.level(this.speakLv)
-      await wait(38)
+      this.fakeLv = 0.3 + 0.5 * Math.abs(Math.sin(i * 0.9))
+      await wait(36)
     }
     this.question(q)
-    await wait(300)
+    this.faking = false
+    await wait(260)
     if (tk === this.token) this.handle(q)
   }
 
@@ -375,13 +367,11 @@ export class AskApp {
     this.set('listening')
     if (!follow) this.buzz(8, undefined, 0.6)
     if (voice.isOn()) earcon.listen()
-    if (!follow) this.question('говорите — я слушаю')
+    if (!follow) this.question('говорите, я слушаю')
     let heard = false
-    // no words in 7 s (a hidden permission prompt, a silent recognizer) — say so instead of hanging;
-    // a follow-up window closes quietly after 5 s
     setTimeout(() => {
       if (tk !== this.token || heard || this.state !== 'listening') return
-      if (!follow) this.toast('не слышу — коснитесь и скажите ещё раз')
+      if (!follow) this.toast('Не слышу. Коснитесь и скажите ещё раз.')
       if (voice.isOn()) earcon.stop()
       this.toIdle()
     }, follow ? 5000 : 7000)
@@ -397,7 +387,7 @@ export class AskApp {
       },
       onSilence: () => {
         if (tk !== this.token || this.state !== 'listening') return
-        if (!follow) this.toast('не услышал — коснитесь и говорите')
+        if (!follow) this.toast('Не услышал. Коснитесь и говорите.')
         this.toIdle()
       },
       onError: (k) => {
@@ -405,11 +395,11 @@ export class AskApp {
         if (k === 'denied') {
           this.input = 'tap'
           this.wakeOn = false
-          this.toast('нет доступа к микрофону — включил режим касания')
+          this.toast('Нет доступа к микрофону. Включил режим касания.')
           this.toIdle()
         } else if (k === 'network') this.roadEvent('offline')
         else if (k !== 'no-speech') {
-          this.toast('микрофон занят — попробуйте ещё раз')
+          this.toast('Микрофон занят. Попробуйте ещё раз.')
           this.toIdle()
         }
       },
@@ -429,19 +419,27 @@ export class AskApp {
     const tk = ++this.token
     ears.stopListening()
     stopWake()
-    if (think) {
+    this.talk()
+    if (this.lastShown && this.lastShown.title !== r.title) this.foldPast(this.lastShown)
+    // the old answer clears; the steps of the new one tick off
+    $(this.root, '.v-head').textContent = ''
+    $(this.root, '.v-title').textContent = ''
+    this.sub('')
+    if (think && r.thinking) {
       this.set('thinking')
-      // the outline of the answer-to-be, with the steps of the work running through it
-      this.answer({ title: r.title, head: '', sub: r.thinking?.[0] ?? 'думаю' }, 'draft')
-      for (const step of r.thinking ?? ['думаю']) {
-        this.sub(step, 'think')
-        await wait(650)
+      for (let i = 0; i < r.thinking.length; i++) {
+        this.steps(r.thinking, i)
+        await wait(620)
         if (tk !== this.token) return
       }
-    } else if (this.lastShown && this.lastShown.title !== r.title) this.foldPast(this.lastShown)
+      this.steps(r.thinking, r.thinking.length)
+      await wait(180)
+      if (tk !== this.token) return
+    }
+    this.steps([], 0)
     this.last = r
     this.set('speaking')
-    this.answer(r, 'event')
+    this.answer(r, true)
     this.acts(r.chips ?? [])
     this.buzz([12, 60, 12])
     if (voice.isOn()) earcon.ready()
@@ -453,21 +451,19 @@ export class AskApp {
       let timed = false
       const tick = setInterval(() => !timed && (this.progressTarget = Math.min(1, (performance.now() - t0) / est)), 120)
       await voice.speak(r.audio, r.say, {
-        onLevel: (lv) => ((this.speakLv = lv), this.field.level(lv * 0.8), this.sparks.level(lv * 0.8)),
-        onWord: () => this.field.pulse(),
+        onLevel: (lv) => (this.fakeLv = lv),
         onProgress: (p) => ((timed = true), (this.progressTarget = p)),
       })
       clearInterval(tick)
     } else {
       while (performance.now() - t0 < est && tk === this.token) {
         this.progressTarget = Math.min(1, (performance.now() - t0) / est)
-        this.field.pulse()
-        await wait(260)
+        this.fakeLv = 0.3 + 0.4 * Math.random()
+        await wait(140)
       }
     }
     if (tk !== this.token) return
     this.toIdle()
-    // Alice-style: an answer that asks something keeps the mic open for a moment
     if (this.input === 'voice' && voice.isOn() && /\?\s*$/.test(r.say)) setTimeout(() => this.state === 'idle' && this.listen(true), 350)
     if (this.input === 'demo' && this.demoStep < DEMO_QUESTIONS.length) setTimeout(() => this.state === 'idle' && this.ask(), 1600)
   }
@@ -477,9 +473,10 @@ export class AskApp {
     ears.stopListening()
     voice.stop()
     this.road = null
+    this.steps([], 0)
     this.set('idle')
-    if (this.last) this.answer(this.last, 'quiet')
-    else this.showWelcome()
+    if (this.last) this.answer(this.last, false)
+    else if (!$(this.root, '.v-talk').hidden) this.question('')
     this.armWake()
   }
 
@@ -501,7 +498,7 @@ export class AskApp {
         },
         () => {
           this.wakeOn = false
-          this.toast('нет доступа к микрофону — слово «ась» выключено')
+          this.toast('Нет доступа к микрофону. Слово «ась» выключено.')
           this.set(this.state)
         },
       )
@@ -516,11 +513,12 @@ export class AskApp {
     voice.stop()
     const wasSpeaking = this.last
     this.road = k
+    this.talk()
     this.set('paused')
+    this.answer(ROAD[k], true)
+    this.buzz(20, undefined, 0.9)
     const r = ROAD[k]
-    this.answer(r, 'quiet')
-    this.buzz(20, { x: this.root.clientWidth / 2, y: 0 }, 0.9)
-    if (r.say && voice.isOn()) voice.speak(k, r.say, { onWord: () => this.field.pulse() })
+    if (r.say && voice.isOn()) voice.speak(k, r.say)
     if (k === 'navigator' || k === 'toll' || k === 'call') {
       setTimeout(() => {
         if (tk !== this.token) return
@@ -534,21 +532,21 @@ export class AskApp {
   // ---------------------------------------------------------------- keyboard: for a passenger or a stop
   private compose(open: boolean) {
     this.composing = open
-    const form = $<HTMLFormElement>(this.root, '.k-compose')
+    const form = $<HTMLFormElement>(this.root, '.v-compose')
     form.hidden = !open
     this.root.toggleAttribute('data-compose', open)
     if (open) {
       if (this.state !== 'idle') this.toIdle()
-      const inp = $<HTMLInputElement>(this.root, '.k-input')
+      const inp = $<HTMLInputElement>(this.root, '.v-input')
       inp.value = ''
       inp.focus()
-      if (!reduced()) form.animate([{ opacity: 0, transform: 'scaleX(0.6)' }, { opacity: 1, transform: 'none' }], { duration: 260, easing: EASE_OUT })
-    } else $<HTMLInputElement>(this.root, '.k-input').blur()
+      if (!reduced()) form.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, easing: EASE_OUT })
+    } else $<HTMLInputElement>(this.root, '.v-input').blur()
     this.set(this.state)
   }
 
   private submit() {
-    const inp = $<HTMLInputElement>(this.root, '.k-input')
+    const inp = $<HTMLInputElement>(this.root, '.v-input')
     const q = inp.value.trim()
     if (!q) return
     if (!voice.isOn()) voice.setOn(true)
@@ -563,26 +561,18 @@ export class AskApp {
   private bind() {
     const app = this.root
     const isControl = (t: EventTarget | null) => !!(t as HTMLElement)?.closest?.('button, a, input, form, .a-sheet')
-    const local = (e: PointerEvent) => {
-      const r = app.getBoundingClientRect()
-      return { x: e.clientX - r.left, y: e.clientY - r.top }
-    }
     // the whole screen is the tap target, except the controls
     app.addEventListener('pointerdown', (e) => {
       if (isControl(e.target)) return
       if (this.hold.down) return void (this.hold.down = false) // a second finger cancels: palm or bump
       this.hold = { x: e.clientX, y: e.clientY, t: performance.now(), down: true, id: e.pointerId }
-      const p = local(e)
-      this.touchMark(p.x, p.y, true)
-      this.field.touch(p.x, p.y, true)
-      this.field.wave(p.x, p.y, 0.9)
+      this.touchMark(e.clientX, e.clientY, true)
     })
-    const release = () => (this.field.touch(0, 0, false), this.touchMark(0, 0, false))
-    app.addEventListener('pointercancel', () => ((this.hold.down = false), release()))
+    app.addEventListener('pointercancel', () => ((this.hold.down = false), this.touchMark(0, 0, false)))
     app.addEventListener('pointerup', (e) => {
       if (!this.hold.down || e.pointerId !== this.hold.id) return
       this.hold.down = false
-      release()
+      this.touchMark(0, 0, false)
       const dy = e.clientY - this.hold.y
       const dx = e.clientX - this.hold.x
       const dt = performance.now() - this.hold.t
@@ -595,7 +585,7 @@ export class AskApp {
       if (this.composing) return this.compose(false)
       if (!voice.isOn()) voice.setOn(true) // the first gesture unlocks speech, in every mode
       earcon.unlock()
-      this.buzz(6, local(e), 0.9)
+      this.buzz(6, e.clientX - app.getBoundingClientRect().left, 0.9)
       this.onTap()
     })
     app.addEventListener('keydown', (e) => {
@@ -605,36 +595,35 @@ export class AskApp {
       }
       if (e.key === 'Escape' && this.composing) this.compose(false)
     })
-    $(this.root, '.k-compose').addEventListener('submit', (e) => {
+    $(this.root, '.v-compose').addEventListener('submit', (e) => {
       e.preventDefault()
       this.submit()
     })
     app.addEventListener('click', (e) => {
       const t = e.target as HTMLElement
-      if (t.closest('.a-menu')) return this.sheet(true)
-      if (t.closest('.a-keys')) return this.compose(!this.composing)
+      if (t.closest('.v-menu')) return this.sheet(true)
+      if (t.closest('.v-keys')) return this.compose(!this.composing)
       const s = t.closest<HTMLElement>('[data-sheet]')
       if (s) return this.act(s.dataset.sheet!, s.dataset.v)
       if (!voice.isOn()) voice.setOn(true)
       earcon.unlock()
-      const at = (el: Element) => {
-        const r = el.getBoundingClientRect(), h = app.getBoundingClientRect()
-        return { x: r.left - h.left + r.width / 2, y: r.top - h.top + r.height / 2 }
+      const xOf = (el: Element) => {
+        const r = el.getBoundingClientRect()
+        return r.left - app.getBoundingClientRect().left + r.width / 2
       }
-      const orb = t.closest('.k-orb')
-      if (orb) return (this.buzz(6, at(orb), 0.8), this.onOrb())
-      if (t.closest('.k-past')) return this.unfoldPast()
-      const act = t.closest<HTMLElement>('.k-act')
-      if (act) {
-        this.buzz(act.dataset.act === 'save' ? [8, 30, 8] : 6, at(act), 0.8)
-        return this.control(act.dataset.act!)
-      }
+      const mic = t.closest('.v-mic')
+      if (mic) return (this.buzz(6, xOf(mic), 0.8), this.onMic())
+      const sugg = t.closest<HTMLElement>('.v-s')
+      if (sugg) return (this.buzz(6, xOf(sugg), 0.8), this.fakeSpeech(sugg.dataset.say!))
+      if (t.closest('.v-past')) return this.unfoldPast()
+      const act = t.closest<HTMLElement>('.v-act')
+      if (act) return (this.buzz(act.dataset.act === 'save' ? [8, 30, 8] : 6, xOf(act), 0.8), this.control(act.dataset.act!))
     })
   }
 
   /** controls grown by 16 px all round: the nearest one under a near-miss */
   private nearControl(x: number, y: number): HTMLElement | null {
-    const cands = [...this.root.querySelectorAll<HTMLElement>('.k-act, .k-orb')].filter((el) => el.offsetParent)
+    const cands = [...this.root.querySelectorAll<HTMLElement>('.v-act, .v-mic, .v-s')].filter((el) => el.offsetParent)
     let best: HTMLElement | null = null, bd = Infinity
     for (const el of cands) {
       const r = el.getBoundingClientRect()
@@ -647,18 +636,14 @@ export class AskApp {
 
   private touchMark(x: number, y: number, on: boolean) {
     const m = $(this.root, '.a-touch')
+    const r = this.root.getBoundingClientRect()
+    m.getAnimations().forEach((a) => a.cancel())
     if (on) {
-      m.style.left = `${x}px`
-      m.style.top = `${y}px`
-      m.getAnimations().forEach((a) => a.cancel())
-      if (!reduced()) {
-        const s = spring(420, 24)
-        m.animate([{ opacity: 0, transform: 'translate(-50%,-50%) scale(0.6)' }, { opacity: 1, transform: 'translate(-50%,-50%) scale(1)' }], { duration: s.duration, easing: s.easing, fill: 'forwards' })
-      } else m.style.opacity = '1'
-    } else {
-      m.getAnimations().forEach((a) => a.cancel())
-      m.animate([{ opacity: 1, transform: 'translate(-50%,-50%) scale(1)' }, { opacity: 0, transform: 'translate(-50%,-50%) scale(1.25)' }], { duration: 220, easing: EASE_OUT, fill: 'forwards' })
-    }
+      m.style.left = `${x - r.left}px`
+      m.style.top = `${y - r.top}px`
+      if (!reduced()) m.animate([{ opacity: 0, transform: 'translate(-50%,-50%) scale(0.7)' }, { opacity: 1, transform: 'translate(-50%,-50%) scale(1)' }], { duration: 160, easing: EASE_OUT, fill: 'forwards' })
+      else m.style.opacity = '1'
+    } else m.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, easing: EASE_OUT, fill: 'forwards' })
   }
 
   private onTap() {
@@ -675,8 +660,8 @@ export class AskApp {
     }
   }
 
-  /** ась's own button: ask when quiet, stop when busy, go on after a pause */
-  private onOrb() {
+  /** ась's button: ask when quiet, stop when busy, go on after a pause */
+  private onMic() {
     if (this.state === 'idle') return void this.ask()
     if (this.state === 'paused') return this.onTap()
     if (this.state === 'listening' && this.input === 'voice') return ears.stopListening()
@@ -684,15 +669,15 @@ export class AskApp {
     this.toIdle()
   }
 
-  /** the folded strip: bring that answer back, fold the current one */
+  /** the folded line: bring that answer back, fold the current one */
   private unfoldPast() {
     const prev = this.lastShown
-    const shown = $(this.root, '.k-past').querySelector('b')?.textContent
+    const shown = $(this.root, '.v-past').querySelector('b')?.textContent
     const back = Object.values(REPLY).find((r) => r.head === shown)
     if (!back || !prev) return
     this.foldPast(prev)
     this.last = back
-    this.answer(back, 'event')
+    this.answer(back, true)
     this.acts(back.chips ?? [])
     this.set('idle')
   }
@@ -760,40 +745,39 @@ export class AskApp {
   private renderSheet() {
     const seg = (act: string, cur: string, opts: [string, string][]) =>
       `<div class="s-seg">${opts.map(([v, l]) => `<button class="press" data-sheet="${act}" data-v="${v}" ${v === cur ? 'aria-current="true"' : ''}>${l}</button>`).join('')}</div>`
-    const row = (act: string, ic: string, label: string, value = '') =>
-      `<button class="s-row press" data-sheet="${act}"><span class="ic">${icon(ic, 20)}</span><span class="t">${label}</span>${value ? `<b>${value}</b>` : icon('arrow', 18)}</button>`
+    const row = (act: string, label: string, value = '') =>
+      `<button class="s-row press" data-sheet="${act}"><span class="t">${label}</span>${value ? `<b>${value}</b>` : icon('arrow', 18)}</button>`
     $(this.root, '.a-sheet').innerHTML = `
       <div class="s-scrim" data-sheet="close"></div>
       <div class="s-body" role="dialog" aria-label="настройки">
         <div class="s-grab"></div>
-        <h3>как спрашивать</h3>
-        ${seg('input', this.input, [['voice', 'голосом'], ['tap', 'касанием'], ['demo', 'демо']])}
-        <p>${this.input === 'voice' ? (ears.canHear ? 'Коснитесь экрана где угодно и спросите про ставку ЦБ. Понимаю «подробнее», «сохрани», «повтори», «стоп». Если ась спросил что-то в ответ — просто ответьте, касаться не нужно.' : 'Этот браузер не распознаёт речь — включите «касанием» или пишите текстом.') : this.input === 'tap' ? 'Без микрофона: касание задаёт вопрос за вас.' : 'Сценарий проигрывается сам: вопрос, ответ, подробности, сохранение.'}</p>
-        ${canWake ? row('wake', 'ear', 'слушать слово «ась»', this.wakeOn ? 'вкл' : 'выкл') : ''}
-        ${row('sound', 'mic', 'голос ответа', voice.isOn() ? 'вкл' : 'выкл')}
-        <h3>тема</h3>
-        ${seg('theme', this.theme, [['night', 'тёмная'], ['light', 'светлая']])}
-        <h3>ситуации в дороге</h3>
+        <h3>Как спрашивать</h3>
+        ${seg('input', this.input, [['voice', 'Голосом'], ['tap', 'Касанием'], ['demo', 'Демо']])}
+        <p>${this.input === 'voice' ? (ears.canHear ? 'Коснитесь экрана где угодно и спросите про ставку ЦБ. Понимаю «подробнее», «сохрани», «повтори», «стоп». Если ась спросил что-то в ответ, просто ответьте.' : 'Этот браузер не распознаёт речь. Включите «касанием» или пишите текстом.') : this.input === 'tap' ? 'Без микрофона: касание задаёт вопрос за вас.' : 'Сценарий проигрывается сам.'}</p>
+        ${canWake ? row('wake', 'Слушать слово «ась»', this.wakeOn ? 'вкл' : 'выкл') : ''}
+        ${row('sound', 'Голос ответа', voice.isOn() ? 'вкл' : 'выкл')}
+        <h3>Тема</h3>
+        ${seg('theme', this.theme, [['night', 'Тёмная'], ['light', 'Светлая']])}
+        <h3>Ситуации в дороге</h3>
         <div class="s-grid">
-          <button class="press" data-sheet="road" data-v="navigator">навигатор говорит</button>
-          <button class="press" data-sheet="road" data-v="toll">шлагбаум</button>
-          <button class="press" data-sheet="road" data-v="offline">пропала сеть</button>
-          <button class="press" data-sheet="road" data-v="call">звонок</button>
+          <button class="press" data-sheet="road" data-v="navigator">Навигатор говорит</button>
+          <button class="press" data-sheet="road" data-v="toll">Шлагбаум</button>
+          <button class="press" data-sheet="road" data-v="offline">Пропала сеть</button>
+          <button class="press" data-sheet="road" data-v="call">Звонок</button>
         </div>
-        <h3>не открывая приложение</h3>
-        <a class="s-row press" href="#/widget"><span class="ic">${icon('percent', 20)}</span><span class="t">виджет и Dynamic Island</span>${icon('arrow', 18)}</a>
-        <p>На Android: «Добавить на главный экран», потом долгое нажатие на иконку — «Ставка ЦБ». На iPhone: «Команды» → «Открыть URL» с адресом <code>${location.origin}${location.pathname}?ask=rate</code> и фразой «ась».</p>
+        <h3>Не открывая приложение</h3>
+        <a class="s-row press" href="#/widget"><span class="t">Виджет и Dynamic Island</span>${icon('arrow', 18)}</a>
+        <p>Android: «Добавить на главный экран», долгое нажатие на иконку, «Ставка ЦБ». iPhone: «Команды», «Открыть URL» с адресом <code>${location.origin}${location.pathname}?ask=rate</code> и фразой «ась».</p>
         <p class="s-note">Данные на ${DATA_AS_OF}. Экран не гаснет, пока приложение открыто.</p>
-        <nav class="s-links"><a href="#/screens">все экраны концепта</a><a href="#/flow">user flow</a><a href="#/guide">гайд</a></nav>
+        <nav class="s-links"><a href="#/screens">Все экраны концепта</a><a href="#/flow">User flow</a><a href="#/guide">Гайд</a></nav>
       </div>`
   }
 
   private applyTheme() {
     this.root.dataset.theme = this.theme
     document.documentElement.dataset.mode = this.theme === 'night' ? 'night' : 'day'
-    document.querySelector('meta[name=theme-color]')?.setAttribute('content', this.theme === 'night' ? '#000000' : '#f3f3f8')
-    this.field.setTheme(this.theme)
-    this.sparks.setTheme(this.theme)
+    document.querySelector('meta[name=theme-color]')?.setAttribute('content', this.theme === 'night' ? '#0b0b0c' : '#f4f3f0')
+    this.band.setTheme(this.theme)
   }
 
   private toast(t: string) {
@@ -801,34 +785,25 @@ export class AskApp {
     el.className = 'a-toast'
     el.textContent = t
     this.root.append(el)
-    el.animate([{ opacity: 0, transform: 'translate(-50%, 8px)' }, { opacity: 1, transform: 'translate(-50%, 0)' }], { duration: 220, easing: EASE_OUT, fill: 'both' })
-    setTimeout(() => (el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180, fill: 'forwards' }).onfinish = () => el.remove()), 2600)
+    el.animate([{ opacity: 0, transform: 'translate(-50%, 6px)' }, { opacity: 1, transform: 'translate(-50%, 0)' }], { duration: 200, easing: EASE_OUT, fill: 'both' })
+    setTimeout(() => (el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160, fill: 'forwards' }).onfinish = () => el.remove()), 2600)
   }
 
-  // ---------------------------------------------------------------- frame loop
-  private waveAt = 0
+  // ---------------------------------------------------------------- frame loop: the display gets a spectrum
+  private tick = 0
   private loop = () => {
     const now = performance.now()
-    let lv = 0
     if (this.state === 'listening') {
-      lv = this.input === 'voice' ? ears.level() : this.speakLv
-      this.field.level(lv)
-      this.sparks.level(lv)
+      if (this.input === 'voice' && !this.faking) this.band.feed(ears.spectrum(24))
+      else this.band.feed(fakeSpectrum(this.fakeLv, now))
+    } else if (this.state === 'speaking') {
+      const sp = voice.spectrum(24)
+      this.band.feed(sp.some((v) => v > 0) ? sp : fakeSpectrum(this.fakeLv, now))
     }
-    if (this.state !== 'speaking') this.progressTarget = this.state === 'idle' && this.last ? 1 : 0
-    this.progress += (this.progressTarget - this.progress) * 0.15
-    // the capsule's little equaliser: lime for you, lavender for ась
-    if (now - this.waveAt > 60) {
-      this.waveAt = now
-      const v = this.state === 'listening' ? lv : this.state === 'speaking' ? this.speakLv : 0
-      this.root.querySelectorAll<HTMLElement>('.k-wave i').forEach((b, k) => {
-        const s = reduced() ? 0.3 : 0.25 + Math.min(1, v * (0.6 + 0.6 * Math.abs(Math.sin(now / 140 + k * 1.3)))) * 0.75
-        b.style.transform = `scaleY(${s.toFixed(3)})`
-      })
-      if (this.state !== 'speaking') this.speakLv *= 0.6
-      $(this.root, '.a-clock').textContent = hhmm()
-    }
+    if (this.state !== 'speaking') this.progressTarget = 0
+    this.progress += (this.progressTarget - this.progress) * 0.18
     if (this.state === 'speaking') this.renderCaptions()
+    if (now - this.tick > 1000) ((this.tick = now), ($(this.root, '.v-clock').textContent = hhmm()))
     this.raf = requestAnimationFrame(this.loop)
   }
 
@@ -850,16 +825,19 @@ export class AskApp {
     ears.closeMeter()
     stopWake()
     voice.stop()
-    this.field.destroy()
-    this.sparks.destroy()
+    this.band.destroy()
     this.wake?.release?.()
   }
 }
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
-/** the dock's resting status before the first question: a greeting by the time of day */
-function greeting() {
-  const h = new Date().getHours()
-  return h >= 5 && h < 12 ? 'Доброе утро' : h >= 12 && h < 17 ? 'Добрый день' : h >= 17 && h < 23 ? 'Добрый вечер' : 'Доброй ночи'
+/** a believable voice-shaped spectrum from a single level (tap mode, browser voice) */
+function fakeSpectrum(lv: number, now: number) {
+  const out = new Float32Array(24)
+  for (let i = 0; i < 24; i++) {
+    const shape = Math.exp(-Math.pow((i - 5) / 6, 2)) * 0.9 + 0.15
+    out[i] = Math.max(0, lv * shape * (0.6 + 0.4 * Math.sin(now / 90 + i * 1.7)))
+  }
+  return out
 }

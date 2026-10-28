@@ -181,3 +181,19 @@ export function speak(id: string, text: string, h: SpeakHandlers = {}): Promise<
     audio.play().then(() => (raf = requestAnimationFrame(tick))).catch(() => audio.onerror?.(new Event('error')))
   })
 }
+
+const vbins = new Uint8Array(1024)
+/** ась's voice (the recording that plays now) as `n` bands, 120 Hz – 4 kHz, 0..1 */
+export function spectrum(n = 24): Float32Array {
+  const out = new Float32Array(n)
+  if (!analyser || !ctx || !audio || audio.paused) return out
+  analyser.getByteFrequencyData(vbins)
+  const hz = ctx.sampleRate / analyser.fftSize
+  for (let i = 0; i < n; i++) {
+    const f0 = 120 * Math.pow(4000 / 120, i / n), f1 = 120 * Math.pow(4000 / 120, (i + 1) / n)
+    let s = 0, c = 0
+    for (let b = Math.floor(f0 / hz); b <= Math.ceil(f1 / hz); b++) ((s += vbins[b] ?? 0), c++)
+    out[i] = Math.max(0, Math.min(1, (s / Math.max(1, c) - 60) / 140))
+  }
+  return out
+}

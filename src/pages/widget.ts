@@ -4,7 +4,7 @@
 // (the app never opens) → the answer folds into the island and stays there.
 
 import { icon } from '../app/app'
-import { Field } from '../app/field'
+import { Band } from '../app/band'
 import { REPLY } from '../app/script'
 import { EASE_OUT, enter, reduced, spring } from '../motion'
 import * as voice from '../voice'
@@ -33,7 +33,7 @@ const STATUS = `<svg width="66" height="14" viewBox="0 0 66 14" fill="currentCol
 
 export class WidgetPage {
   readonly root = document.createElement('main')
-  private field: Field | null = null
+  private field: Band | null = null
   private busy = false
   private token = 0
 
@@ -90,7 +90,7 @@ export class WidgetPage {
     cap.textContent = ''
     over.hidden = false
     if (!this.field)
-      this.field = new Field(sheet.querySelector('.w-canvas')!)
+      this.field = new Band(sheet.querySelector('.w-canvas')!)
     const f = this.field
     sheet.querySelector<HTMLElement>('.w-head')!.textContent = ''
     // the sheet grows out of the widget; the home screen steps back
@@ -108,7 +108,7 @@ export class WidgetPage {
     for (let i = 1; i <= q.length; i++) {
       if (tk !== this.token) return
       cap.textContent = q.slice(0, i)
-      f.level(0.4 + 0.3 * Math.abs(Math.sin(i)))
+      f.feed(new Float32Array(24).map((_, k) => (0.3 + 0.5 * Math.abs(Math.sin(i + k))) * Math.exp(-((k - 5) ** 2) / 40)))
       await wait(34)
     }
     await wait(300)
@@ -127,14 +127,14 @@ export class WidgetPage {
     head.textContent = '14%'
     if (!reduced()) head.animate([{ opacity: 0, filter: 'blur(12px)', transform: 'scale(0.96)' }, { opacity: 1, filter: 'blur(0)', transform: 'none' }], { duration: 520, delay: 520, easing: EASE_OUT, fill: 'backwards' })
     if (navigator.userActivation?.hasBeenActive) navigator.vibrate?.([12, 60, 12])
-    f.wave(f.source.x, f.source.y, 1)
+    f.bump(0.5, 1)
     cap.textContent = 'до 18 декабря — следующего решения'
     const line = 'Четырнадцать процентов — до восемнадцатого декабря, тогда следующее решение ЦБ.'
     const t0 = performance.now()
-    await voice.speak('rate-short', line, { onLevel: (lv) => f.level(lv * 0.8), onWord: () => f.pulse() })
+    await voice.speak('rate-short', line, { onLevel: () => f.feed(voice.spectrum(24)) })
     // no voice in this browser: hold the answer as long as it would take to say it
     while (performance.now() - t0 < 2600) {
-      f.pulse()
+      f.feed(new Float32Array(24).map(() => Math.random() * 0.6))
       await wait(280)
     }
     if (tk !== this.token) return
