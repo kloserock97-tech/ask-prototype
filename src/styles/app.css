@@ -1,16 +1,18 @@
-/* ---------- «ась?» — research/14: no AI-look.
-   Solid surfaces, 1 px neutral borders, modest radii, no blur, no gradients, no glow.
-   One colour of its own: the warm amber of a car's instrument lights, used for the
-   voice display and ась's button only. Type does the rest. Sized from the app's own
-   box, so phones, tablets, landscape and the desktop frame share one composition. */
+/* ---------- «ась?» — research/15.
+   The sphere of dots, a violet light and a glowing rim at the bottom; the glass of the
+   panel is drawn by the shader (src/app/scene.ts), so the panel here is transparent and
+   only holds its content. Sized from the app's own box. */
 .app {
-  --bg: #0b0b0c;
-  --ink: #f2f0ec;
-  --ink-2: #8f8b84;
-  --line: rgba(242, 240, 236, 0.12);
-  --surface: #161615;
-  --amber: #f2a33a;
-  --amber-ink: #1a1206;
+  --bg: #000000;
+  --ink: #ffffff;
+  --ink-2: #a3a1b8;
+  --soft: #8e8ac6;
+  --you: #d8f26a;
+  --tile: rgba(255, 255, 255, 0.07);
+  --tile-edge: rgba(255, 255, 255, 0.08);
+  --circle: #ffffff;
+  --circle-ink: #05060f;
+  --radius: clamp(32px, 10cqmin, 44px);
   --ease: cubic-bezier(0.23, 1, 0.32, 1);
 
   position: fixed;
@@ -28,305 +30,481 @@
   -webkit-tap-highlight-color: transparent;
 }
 .app[data-theme='light'] {
-  --bg: #f4f3f0;
-  --ink: #141414;
-  --ink-2: #6e6a63;
-  --line: rgba(20, 20, 20, 0.12);
-  --surface: #e9e7e2;
-  --amber: #c4650b;
-  --amber-ink: #ffffff;
+  --bg: #f3f3f8;
+  --ink: #141633;
+  --ink-2: #5d5f78;
+  --soft: #6b63c7;
+  --you: #3a2fb8;
+  --tile: rgba(20, 22, 51, 0.05);
+  --tile-edge: rgba(20, 22, 51, 0.08);
+  --circle: #141633;
+  --circle-ink: #ffffff;
+}
+.g-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
 }
 
-/* ---------- top: keyboard · clock · menu */
-.v-top {
+/* ---------- top: the island (status → the previous answer → «сохранено») */
+.g-top {
+  position: relative;
+  z-index: 2;
   display: grid;
   grid-template-columns: 44px 1fr 44px;
   align-items: center;
   padding: calc(max(env(safe-area-inset-top), 10px) + 6px) 14px 0;
 }
-.v-clock {
-  margin: 0;
-  text-align: center;
-  font: 500 15px/1 'Manrope', sans-serif;
-  color: var(--ink-2);
-  font-variant-numeric: tabular-nums;
-}
-.v-keys,
-.v-menu {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  display: grid;
-  place-items: center;
-  color: var(--ink);
-}
-.app[data-compose] .v-keys {
-  background: var(--surface);
-}
-
-/* ---------- main */
-.v-main {
-  position: relative;
-  min-height: 0;
-  width: min(100%, 560px);
+.g-island {
   justify-self: center;
-  padding: 0 22px;
-  display: grid;
+  position: relative;
+  height: 40px;
+  min-width: 96px;
+  padding: 0 18px 0 14px;
+  border-radius: 20px;
+  color: #fff;
 }
-.v-start,
-.v-talk {
-  grid-area: 1 / 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
+.g-isl-bg {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: #0d0c18;
+  box-shadow: inset 0 0 0 1px rgba(175, 160, 255, 0.28), 0 0 24px -6px rgba(143, 125, 255, 0.55);
+  transform-origin: center;
 }
-.v-start[hidden],
-.v-talk[hidden] {
-  display: none;
+.app[data-theme='light'] .g-isl-bg {
+  background: #141633;
 }
-
-/* the start screen: what you hear when you call someone, one line, two questions */
-.v-start {
-  justify-content: center;
-  gap: 14px;
-}
-.v-hi {
-  margin: 0;
-  font: 600 clamp(64px, 22cqmin, 112px) / 0.95 'Manrope', sans-serif;
-  letter-spacing: -0.045em;
-}
-.v-lead {
-  margin: 0 0 18px;
-  max-width: 19em;
-  font: 400 clamp(18px, 5cqmin, 22px) / 1.35 'Manrope', sans-serif;
-  color: var(--ink-2);
-}
-.v-sugg {
-  display: flex;
-  flex-direction: column;
-  border-top: 1px solid var(--line);
-}
-.v-s {
-  display: flex;
-  justify-content: space-between;
+.g-isl-in {
+  position: relative;
+  display: inline-flex;
   align-items: center;
-  gap: 12px;
-  min-height: 62px;
-  border-bottom: 1px solid var(--line);
-  color: var(--ink);
-  text-align: left;
-  font: 500 clamp(18px, 5cqmin, 21px) / 1.2 'Manrope', sans-serif;
+  gap: 9px;
+  height: 100%;
+  font: 600 15px/1 'Manrope', sans-serif;
+  white-space: nowrap;
 }
-.v-s svg {
-  flex: none;
-  color: var(--ink-2);
+.g-isl-in b {
+  font-weight: 700;
 }
-
-/* the conversation */
-.v-talk {
-  justify-content: flex-end;
-  gap: 14px;
-  padding-bottom: 12px;
+.g-isl-in svg {
+  color: var(--you);
 }
-.v-past {
-  margin-bottom: auto;
-  margin-top: 8px;
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--line);
-  color: var(--ink-2);
-  text-align: left;
-  font: 400 15px/1.2 'Manrope', sans-serif;
-}
-.v-past[hidden] {
-  display: none;
-}
-.v-past b {
-  font-weight: 600;
-  color: var(--ink);
-  font-variant-numeric: tabular-nums;
-}
-/* your question: right-aligned, on a plain surface */
-.v-q {
-  align-self: flex-end;
-  max-width: 82%;
-  margin: 0;
-  padding: 10px 14px;
-  border-radius: 16px 16px 4px 16px;
-  background: var(--surface);
-  font: 500 clamp(17px, 4.8cqmin, 20px) / 1.3 'Manrope', sans-serif;
-}
-.v-q[hidden] {
-  display: none;
-}
-.v-q .old {
-  color: var(--ink-2);
-}
-.v-a {
-  display: flex;
-  flex-direction: column;
-}
-/* the steps of the work, ticked off */
-.v-steps {
-  margin: 0 0 4px;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.v-steps li {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font: 400 clamp(16px, 4.4cqmin, 19px) / 1.2 'Manrope', sans-serif;
-  color: var(--ink-2);
-  opacity: 0.45;
-}
-.v-steps li::before {
-  content: '';
-  flex: none;
+.g-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  border: 1.5px solid currentColor;
+  background: #8f7dff;
 }
-.v-steps li.now {
-  opacity: 1;
+.app[data-state='listening'] .g-dot {
+  background: var(--you);
+}
+.g-island[data-live] .g-dot {
+  background: var(--you);
+}
+.g-menu {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--tile);
   color: var(--ink);
 }
-.v-steps li.now::before {
-  border-color: var(--amber);
+
+/* ---------- the stage: ась and the answer */
+.g-stage {
+  position: relative;
+  z-index: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(4px, 1.4cqh, 14px);
+  padding: 8px 22px 14px;
 }
-.v-steps li.done {
-  opacity: 0.8;
+.g-sphere {
+  flex: 1 1 0;
+  min-height: 60px;
+  width: min(66cqw, 340px);
+  max-height: min(66cqw, 340px);
 }
-.v-steps li.done::before {
-  background: var(--amber);
-  border-color: var(--amber);
+.g-figure {
+  flex: none;
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  justify-content: center;
 }
-/* the answer: the one big thing, what it is, one line */
-.v-head {
+.g-head {
   margin: 0;
-  font: 600 clamp(34px, 10cqmin, 50px) / 1.04 'Manrope', sans-serif;
+  text-align: center;
+  font: 600 clamp(36px, 11cqmin, 54px) / 1.02 'Manrope', sans-serif;
   letter-spacing: -0.03em;
   text-wrap: balance;
 }
-.v-head:empty,
-.v-title:empty {
+.g-head:empty {
   display: none;
 }
-.v-head.num {
-  font: 500 clamp(96px, 34cqmin, 168px) / 0.9 'Manrope', sans-serif;
+.g-head.num {
+  font: 500 clamp(84px, 28cqmin, 140px) / 0.92 'Manrope', sans-serif;
+  letter-spacing: -0.055em;
   white-space: nowrap;
-  letter-spacing: -0.06em;
   font-variant-numeric: tabular-nums;
-  margin-left: -0.04em;
 }
-.v-title {
-  margin: 10px 0 0;
-  font: 600 clamp(19px, 5.4cqmin, 24px) / 1.2 'Manrope', sans-serif;
+.g-title {
+  margin: 0;
+  text-align: center;
+  font: 600 clamp(18px, 5cqmin, 22px) / 1.2 'Manrope', sans-serif;
 }
-.v-sub {
-  margin: 4px 0 0;
-  min-height: 1.3em;
-  font: 400 clamp(17px, 4.8cqmin, 21px) / 1.3 'Manrope', sans-serif;
+.g-sub {
+  margin: 0;
+  max-width: 22em;
+  text-align: center;
+  font: 400 clamp(16px, 4.6cqmin, 20px) / 1.3 'Manrope', sans-serif;
   color: var(--ink-2);
   text-wrap: balance;
 }
-.v-sub.caps span {
-  transition: color 140ms linear;
-}
-.v-sub.caps span.on {
-  color: var(--ink);
-}
-/* follow-ups: two plain buttons, the first filled */
-.v-acts {
+.g-title:empty,
+.g-sub:empty {
   display: none;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-top: 6px;
-}
-.app[data-acts] .v-acts {
-  display: grid;
-}
-.v-act {
-  min-height: clamp(56px, 8.4cqh, 66px);
-  border-radius: 14px;
-  border: 1px solid var(--line);
-  color: var(--ink);
-  font: 600 clamp(17px, 4.8cqmin, 20px) / 1 'Manrope', sans-serif;
-}
-.v-act.first {
-  background: var(--ink);
-  color: var(--bg);
-  border-color: var(--ink);
 }
 
-/* ---------- bottom: the voice display and ась's button */
-.v-foot {
+/* ---------- the glass panel (drawn by the shader) and its content */
+.g-panel {
   position: relative;
-  display: grid;
-  grid-template-rows: auto auto;
-}
-.v-band {
-  display: block;
-  width: 100%;
-  height: clamp(96px, 15cqh, 150px);
-}
-.v-dock {
-  width: min(100% - 28px, 532px);
+  z-index: 2;
   justify-self: center;
+  width: min(100% - 20px, 560px);
+  height: clamp(292px, 40cqh, 380px);
+  margin-bottom: calc(max(env(safe-area-inset-bottom), 8px) + 2px);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  padding: clamp(14px, 2.2cqh, 20px) clamp(14px, 4cqmin, 18px) clamp(12px, 1.8cqh, 16px);
+}
+.g-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+}
+.g-body > * {
+  grid-area: 1 / 1;
+  min-height: 0;
+}
+.g-panel:not([data-mode='topics']) .g-topics,
+.g-panel:not([data-mode='heard']) .g-heard,
+.g-panel:not([data-mode='steps']) .g-steps,
+.g-panel:not([data-mode='caps']) .g-caps,
+.g-panel:not([data-mode='acts']) .g-acts,
+.g-panel:not([data-mode='save']) .g-save {
+  display: none;
+}
+
+/* topics (video 3): a round colour icon, a name, a hint, an arrow */
+.g-topics {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.g-topic {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-rows: auto auto;
+  column-gap: 14px;
+  align-items: center;
+  min-height: clamp(56px, 8cqh, 68px);
+  padding: 6px 6px;
+  color: var(--ink);
+  text-align: left;
+}
+.g-topic + .g-topic {
+  border-top: 1px solid var(--tile-edge);
+}
+.g-topic .ic {
+  grid-row: 1 / 3;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  color: #0b0b14;
+}
+.g-topic .ic.c1 { background: #a493ff; }
+.g-topic .ic.c2 { background: #ffb27a; }
+.g-topic .ic.c3 { background: #b6e98a; }
+.g-topic b {
+  grid-column: 2;
+  align-self: end;
+  font: 600 clamp(17px, 4.8cqmin, 20px) / 1.15 'Manrope', sans-serif;
+}
+.g-topic .s {
+  grid-column: 2;
+  align-self: start;
+  font: 400 13px/1.3 'Manrope', sans-serif;
+  color: var(--ink-2);
+}
+.g-topic > svg {
+  grid-column: 3;
+  grid-row: 1 / 3;
+  color: var(--ink-2);
+}
+
+/* your words: lime, the newest bright */
+.g-heard {
+  margin: 0;
+  align-self: center;
+  font: 500 clamp(22px, 6.4cqmin, 30px) / 1.2 'Manrope', sans-serif;
+  letter-spacing: -0.01em;
+  color: var(--you);
+  text-wrap: balance;
+}
+.g-heard .old {
+  color: var(--ink-2);
+}
+
+/* the steps of the work (video 4), ticked off */
+.g-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.g-steps li {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 0 calc(max(env(safe-area-inset-bottom), 10px) + 4px);
-}
-.v-state {
-  flex: 1;
-  margin: 0;
-  font: 500 clamp(17px, 4.8cqmin, 20px) / 1 'Manrope', sans-serif;
+  font: 500 clamp(17px, 4.8cqmin, 20px) / 1.2 'Manrope', sans-serif;
   color: var(--ink-2);
+  opacity: 0.45;
+}
+.g-steps li i {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid currentColor;
+  color: transparent;
+}
+.g-steps li.now {
+  opacity: 1;
+  color: var(--ink);
+}
+.g-steps li.now i {
+  border-color: var(--soft);
+  border-top-color: transparent;
+  animation: spin 0.9s linear infinite;
+}
+.g-steps li.done {
+  opacity: 0.85;
+  color: var(--ink);
+}
+.g-steps li.done i {
+  border-color: var(--you);
+  background: var(--you);
+  color: #0b0b14;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ась's captions */
+.g-caps {
+  margin: 0;
+  align-self: center;
+  font: 500 clamp(19px, 5.4cqmin, 24px) / 1.3 'Manrope', sans-serif;
+  color: var(--ink-2);
+  text-wrap: balance;
+}
+.g-caps span {
+  opacity: 0.45;
+  transition: opacity 160ms linear, color 160ms linear;
+}
+.g-caps span.on {
+  opacity: 1;
+  color: var(--ink);
+}
+
+/* two action cards (video 4) */
+.g-acts {
+  align-self: center;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.g-act {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 12px;
+  align-items: center;
+  min-height: clamp(76px, 11cqh, 96px);
+  padding: 12px 14px;
+  border-radius: 22px;
+  background: var(--tile);
+  box-shadow: inset 0 0 0 1px var(--tile-edge);
+  color: var(--ink);
+  text-align: left;
+}
+.g-act .ic {
+  grid-row: 1 / 3;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--tile);
+}
+.g-act.first .ic {
+  background: var(--circle);
+  color: var(--circle-ink);
+}
+.g-act b {
+  align-self: end;
+  font: 600 clamp(17px, 4.8cqmin, 19px) / 1.15 'Manrope', sans-serif;
+}
+.g-act .s {
+  align-self: start;
+  font: 400 13px/1.25 'Manrope', sans-serif;
+  color: var(--ink-2);
+}
+
+/* saving (video 2): a dashed card draws itself, then fills and says «Готово» */
+.g-save {
+  position: relative;
+  align-self: center;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 22px 16px 18px;
+  text-align: center;
+}
+.g-dash {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.g-dash rect {
+  width: calc(100% - 2px);
+  height: calc(100% - 2px);
+  fill: none;
+  stroke: var(--soft);
+  stroke-width: 1.5;
+  stroke-dasharray: 6 6;
+  transition: fill 300ms ease, stroke 300ms ease;
+}
+.g-save[data-done] .g-dash rect {
+  fill: var(--tile);
+  stroke: transparent;
+}
+.g-save-t {
+  font: 600 clamp(20px, 5.8cqmin, 26px) / 1.15 'Manrope', sans-serif;
+}
+.g-save-s {
+  font: 400 15px/1.3 'Manrope', sans-serif;
+  color: var(--ink-2);
+}
+.g-cards {
+  position: relative;
+  width: 84px;
+  height: 52px;
+  margin-top: 10px;
+}
+.g-cards i {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  border: 1.5px dashed var(--soft);
+  transition: transform 420ms var(--ease), background-color 300ms ease, border-color 300ms ease;
+}
+.g-save[data-done] .g-cards i {
+  border-style: solid;
+  border-color: transparent;
+  background: #a493ff;
+}
+.g-save[data-done] .g-cards i:nth-child(1) { transform: rotate(-9deg) translate(-10px, 2px); background: #7c6bea; }
+.g-save[data-done] .g-cards i:nth-child(2) { transform: rotate(6deg) translate(8px, 0); background: #a493ff; }
+.g-save[data-done] .g-cards i:nth-child(3) { transform: translateY(-4px); background: #d6ceff; }
+
+/* the dock: a round button and a pill with a white circle («Expiratory Volume») */
+.g-dock {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  margin-top: 10px;
+}
+.g-round,
+.g-pill,
+.g-compose {
+  height: clamp(58px, 8.6cqh, 68px);
+  border-radius: 999px;
+  background: var(--tile);
+  box-shadow: inset 0 0 0 1px var(--tile-edge);
+  color: var(--ink);
+}
+.g-round {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+}
+.app[data-compose] .g-round {
+  background: var(--circle);
+  color: var(--circle-ink);
+}
+.g-pill {
+  display: flex;
+  align-items: center;
+  padding: 0 7px 0 22px;
+  min-width: 0;
+}
+.g-pill-t {
+  flex: 1;
+  text-align: center;
+  font: 500 clamp(17px, 4.8cqmin, 20px) / 1 'Manrope', sans-serif;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.v-mic {
+.g-pill-i,
+.g-send {
   flex: none;
-  width: clamp(64px, 9.4cqh, 76px);
-  aspect-ratio: 1;
-  border-radius: 50%;
   display: grid;
   place-items: center;
-  background: var(--amber);
-  color: var(--amber-ink);
-  transition: background-color 160ms ease, color 160ms ease;
+  width: clamp(44px, 6.8cqh, 54px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--circle);
+  color: var(--circle-ink);
 }
-.app:not([data-state='idle']) .v-mic {
-  background: var(--ink);
-  color: var(--bg);
+.app[data-state='listening'] .g-pill-i {
+  background: var(--you);
+  color: #0b0b14;
 }
-.v-compose {
-  flex: 1;
-  min-width: 0;
-  height: 60px;
+.g-compose {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 6px 0 18px;
-  border-radius: 16px;
-  border: 1px solid var(--line);
-  background: var(--surface);
+  padding: 0 7px 0 20px;
+  min-width: 0;
 }
-.v-compose[hidden] {
+.g-compose[hidden],
+.app[data-compose] .g-pill {
   display: none;
 }
-.app[data-compose] :is(.v-state, .v-mic) {
-  display: none;
-}
-.v-input {
+.g-input {
   flex: 1;
   min-width: 0;
   height: 100%;
@@ -338,68 +516,80 @@
   -webkit-user-select: text;
   user-select: text;
 }
-.v-input::placeholder {
+.g-input::placeholder {
   color: var(--ink-2);
 }
-.v-send {
-  flex: none;
-  width: 46px;
-  height: 46px;
-  border-radius: 12px;
-  display: grid;
-  place-items: center;
-  background: var(--ink);
-  color: var(--bg);
+
+/* an answer flying up to the island */
+.g-ghost {
+  position: absolute;
+  z-index: 20;
+  font: 500 64px/1 'Manrope', sans-serif;
+  letter-spacing: -0.05em;
+  color: var(--ink);
+  pointer-events: none;
+  white-space: nowrap;
 }
 
-/* the finger: a small solid dot, nothing else */
+/* the finger: a white dot in a soft halo */
 .a-touch {
   position: absolute;
   z-index: 6;
-  width: 44px;
-  height: 44px;
+  width: 76px;
+  height: 76px;
   border-radius: 50%;
-  border: 1.5px solid var(--amber);
+  background: rgba(255, 255, 255, 0.18);
   opacity: 0;
   pointer-events: none;
   transform: translate(-50%, -50%);
 }
-
-/* keyboard open: only the conversation and the field */
-.app[data-kb] .v-band,
-.app[data-kb] .v-acts,
-.app[data-kb] .v-past {
-  display: none;
+.a-touch i {
+  position: absolute;
+  inset: 22px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 18px rgba(255, 255, 255, 0.8);
+}
+.app[data-theme='light'] .a-touch {
+  background: rgba(58, 47, 184, 0.14);
+}
+.app[data-theme='light'] .a-touch i {
+  background: #3a2fb8;
+  box-shadow: none;
 }
 
-/* ---------- landscape (phone across the dashboard): the answer left, the controls right */
+.app[data-kb] .g-sphere {
+  flex-basis: 0;
+  min-height: 0;
+}
+
+/* ---------- landscape: stage left, glass right */
 @media (orientation: landscape) and (max-height: 620px) {
   .app {
-    grid-template-columns: minmax(0, 1fr) minmax(260px, 40%);
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 46%);
     grid-template-rows: auto minmax(0, 1fr);
   }
-  .v-top {
+  .g-top {
     grid-column: 1 / -1;
   }
-  .v-main {
+  .g-stage {
     grid-column: 1;
-    width: 100%;
-    padding-left: max(env(safe-area-inset-left), 22px);
+    grid-row: 2;
   }
-  .v-foot {
+  .g-sphere {
+    width: min(40cqw, 280px);
+    max-height: min(40cqw, 280px);
+  }
+  .g-panel {
     grid-column: 2;
     grid-row: 2;
-    align-content: end;
-    padding-right: max(env(safe-area-inset-right), 0px);
+    width: auto;
+    height: auto;
+    align-self: stretch;
+    margin: 4px max(env(safe-area-inset-right), 10px) calc(max(env(safe-area-inset-bottom), 8px)) 0;
   }
-  .v-band {
-    height: clamp(80px, 30cqh, 140px);
-  }
-  .v-hi {
-    font-size: clamp(56px, 22cqh, 96px);
-  }
-  .v-head.num {
-    font-size: clamp(80px, 34cqh, 150px);
+  .g-head.num {
+    font-size: clamp(64px, 26cqh, 120px);
   }
 }
 
@@ -413,14 +603,13 @@
     width: 402px;
     height: min(874px, calc(100dvh - 48px));
     border-radius: 56px;
-    box-shadow: 0 0 0 10px #161615, 0 0 0 11px #2c2b29, 0 40px 80px -24px rgba(0, 0, 0, 0.45);
+    box-shadow: 0 0 0 10px #15161c, 0 0 0 11px #2c2d36, 0 40px 80px -20px rgba(0, 0, 0, 0.5);
   }
   body:has(.app) {
-    background: #d6d4cf;
+    background: #d9dae3;
   }
-  :is(.v-s, .v-act, .v-past):hover {
-    color: var(--ink);
-    background: color-mix(in srgb, var(--ink) 4%, transparent);
+  :is(.g-topic, .g-act, .g-pill, .g-round, .g-menu):hover {
+    filter: brightness(1.15);
   }
 }
 
@@ -431,16 +620,16 @@
   left: 50%;
   top: calc(max(env(safe-area-inset-top), 10px) + 58px);
   padding: 12px 16px;
-  border-radius: 12px;
-  background: var(--ink);
-  color: var(--bg);
+  border-radius: 16px;
+  background: var(--circle);
+  color: var(--circle-ink);
   font: 500 15px/1.3 'Manrope', sans-serif;
   width: max-content;
   max-width: min(320px, 86%);
   text-align: center;
 }
 
-/* ---------- settings sheet: a plain page from below */
+/* ---------- settings sheet */
 .a-sheet {
   position: absolute;
   inset: 0;
@@ -449,7 +638,7 @@
 .s-scrim {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.55);
   animation: fadein 200ms ease both;
 }
 .s-body {
@@ -462,17 +651,21 @@
   overflow: auto;
   overscroll-behavior: contain;
   padding: 10px 20px calc(env(safe-area-inset-bottom) + 20px);
-  border-radius: 20px 20px 0 0;
-  background: var(--bg);
-  color: var(--ink);
-  border-top: 1px solid var(--line);
+  border-radius: 28px 28px 0 0;
+  background: #0d0c18;
+  color: #ececf4;
+  box-shadow: inset 0 1px 0 rgba(175, 160, 255, 0.3);
   display: flex;
   flex-direction: column;
   gap: 12px;
   font-family: 'Manrope', sans-serif;
-  animation: sheetin 260ms var(--ease) both;
+  animation: sheetin 280ms var(--ease) both;
   -webkit-user-select: text;
   user-select: text;
+}
+.app[data-theme='light'] .s-body {
+  background: #ffffff;
+  color: #141633;
 }
 .a-sheet.closing .s-body {
   animation: sheetout 180ms var(--ease) forwards;
@@ -484,7 +677,7 @@
   width: 36px;
   height: 4px;
   border-radius: 2px;
-  background: var(--line);
+  background: rgba(128, 128, 160, 0.35);
   align-self: center;
 }
 .s-body h3 {
@@ -494,11 +687,14 @@
 .s-body p {
   margin: 0;
   font: 400 14px/1.45 'Manrope', sans-serif;
-  color: var(--ink-2);
+  color: #9d9db4;
+}
+.app[data-theme='light'] .s-body p {
+  color: #5b5d76;
 }
 .s-body code {
   font: 500 12px/1.4 ui-monospace, monospace;
-  color: var(--ink);
+  color: inherit;
   word-break: break-all;
 }
 .s-seg {
@@ -506,20 +702,19 @@
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
   gap: 2px;
-  padding: 2px;
-  border-radius: 12px;
-  background: var(--surface);
+  padding: 3px;
+  border-radius: 999px;
+  background: rgba(128, 128, 170, 0.14);
 }
 .s-seg button {
   height: 44px;
-  border-radius: 10px;
-  color: var(--ink-2);
+  border-radius: 999px;
+  color: inherit;
   font: 500 15px/1 'Manrope', sans-serif;
 }
 .s-seg button[aria-current] {
-  background: var(--bg);
-  color: var(--ink);
-  box-shadow: 0 0 0 1px var(--line);
+  background: var(--circle);
+  color: var(--circle-ink);
 }
 .s-row {
   display: flex;
@@ -527,8 +722,8 @@
   gap: 12px;
   min-height: 54px;
   padding: 0 4px;
-  border-bottom: 1px solid var(--line);
-  color: var(--ink);
+  border-bottom: 1px solid rgba(128, 128, 170, 0.2);
+  color: inherit;
   font: 500 15px/1.2 'Manrope', sans-serif;
   text-decoration: none;
 }
@@ -537,7 +732,7 @@
   text-align: left;
 }
 .s-row b {
-  color: var(--amber);
+  color: var(--you);
   font-weight: 600;
 }
 .s-grid {
@@ -548,9 +743,9 @@
 .s-grid button {
   min-height: 52px;
   padding: 10px 14px;
-  border-radius: 12px;
-  border: 1px solid var(--line);
-  color: var(--ink);
+  border-radius: 16px;
+  background: rgba(128, 128, 170, 0.12);
+  color: inherit;
   text-align: left;
   font: 500 15px/1.2 'Manrope', sans-serif;
 }
@@ -564,12 +759,13 @@
   font: 500 14px/1 'Manrope', sans-serif;
 }
 .s-links a {
-  color: var(--ink);
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  color: #a493ff;
+  text-decoration: none;
   padding: 6px 0;
 }
-.v-talk,
-.v-a {
-  min-width: 0;
+
+@media (prefers-reduced-motion: reduce) {
+  .g-steps li.now i {
+    animation: none;
+  }
 }
