@@ -501,6 +501,10 @@
   font-weight: 600;
   text-align: left;
 }
+a.gr-nav {
+  text-decoration: none;
+  color: inherit;
+}
 .gr-nav.is-accent {
   color: var(--bl) !important;
 }

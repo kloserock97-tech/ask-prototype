@@ -11,16 +11,17 @@ import './styles/pages.css'
 import './styles/app.css'
 import './styles/widget.css'
 import './styles/grif.css'
+import './styles/outside.css'
 import { AskApp } from './app/app'
 import { GrifApp } from './grif/grif'
 import { SCREENS } from './data/screens'
 import { flow, guide, home, island, leaveGuide } from './pages/pages'
-import { WidgetPage } from './pages/widget'
+import { OutsidePage } from './grif/outside'
 import { Player } from './player/player'
 
 let askApp: AskApp | null = null
 let grif: GrifApp | null = null
-let widget: WidgetPage | null = null
+let widget: OutsidePage | null = null
 
 const app = document.getElementById('app')!
 const go = (hash: string) => {
@@ -39,14 +40,14 @@ function route() {
   }
   widget?.destroy()
   widget = null
-  if (h.startsWith('#/widget')) {
+  if (h.startsWith('#/widget') || h.startsWith('#/outside')) {
     if (inPlayer) {
       player.unmount()
       inPlayer = false
     }
     askApp?.destroy()
     askApp = null
-    widget = new WidgetPage()
+    widget = new OutsidePage(h.startsWith('#/widget') ? 'home' : h.split('/')[2])
     app.replaceChildren(widget.root)
     return
   }
