@@ -1,19 +1,22 @@
 // «ась?» — one working scenario: the driver asks about the key rate.
-// Composition after the «Expiratory Volume» reference: a black field of dots,
-// a halftone sphere (ась), the answer under it and a glowing panel at the bottom
-// with a hint, a track and two controls. The whole screen is one tap target;
-// only the controls, the keyboard and the menu are not.
 //
-// An answer shows three layers (see script.ts): a title on top, one big «head»
-// and a short line under it. The full sentence is spoken and runs as captions
-// while it plays — the screen never has to be read, only glanced at.
+// «Light from below» (research/13): ась is a light rising from the bottom edge
+// through a grid of dots. Everything the driver deals with sits low, near the
+// thumb, as a stack growing up from the bottom (video 4): the question card, the
+// answer card above it — outline first, then the content, its figure built from
+// sparks out of the light — and two action cards. A previous answer folds up into
+// a strip at the top (video 1). The dock at the very bottom is a status capsule and
+// ась's own round button. The whole screen is one tap target except the controls.
+//
+// An answer shows three layers: a title, one big «head» and a short line. The full
+// sentence is spoken and runs as captions while it plays. Like Alice, an answer that
+// ends with a question keeps listening for a few seconds — «да» needs no tap.
 
 import { EASE_OUT, reduced, spring } from '../motion'
 import * as voice from '../voice'
-import * as ears from './ears'
 import { Cloud } from './cloud'
 import * as earcon from './earcon'
-import { DropFace } from './face'
+import * as ears from './ears'
 import { Field } from './field'
 import { understand, type Intent } from './intents'
 import { AUDIO_IDS, DATA_AS_OF, DEMO_QUESTIONS, REPLY, ROAD, type Reply, type Road } from './script'
@@ -21,8 +24,8 @@ import { canWake, startWake, stopWake } from './wake'
 
 type State = 'idle' | 'listening' | 'thinking' | 'speaking' | 'paused'
 type Input = 'voice' | 'tap' | 'demo'
-type Look = 'dots' | 'drop'
 export type Theme = 'night' | 'light'
+type Shown = { title: string; head: string; sub: string }
 
 const $ = <T extends Element = HTMLElement>(root: ParentNode, s: string) => root.querySelector(s) as T
 
@@ -44,32 +47,31 @@ const ICON: Record<string, string> = {
 export const icon = (k: string, size = 24) =>
   `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[k]}</svg>`
 
-// the little pyramid of dots above the hint (reference: «Empty your lungs»)
-const TRI = `<svg class="p-tri" viewBox="0 0 28 22" aria-hidden="true">${[[14, 3], [10.5, 8.5], [17.5, 8.5], [7, 14], [14, 14], [21, 14], [3.5, 19.5], [10.5, 19.5], [17.5, 19.5], [24.5, 19.5]]
-  .map(([x, y], i) => `<circle cx="${x}" cy="${y}" r="1.9" style="--i:${i}"/>`)
-  .join('')}</svg>`
+// the follow-up cards: what each one says, small print and icon (Alice's «suggests»)
+const ACT: Record<string, { t: string; s: string; i: string }> = {
+  more: { t: 'Подробнее', s: 'что ждут в декабре', i: 'arrow' },
+  save: { t: 'Сохранить', s: 'покажу на стоянке', i: 'bookmark' },
+  repeat: { t: 'Повторить', s: 'ещё раз голосом', i: 'repeat' },
+  listen: { t: 'Ещё вопрос', s: 'коснитесь и спросите', i: 'mic' },
+  rate: { t: 'Про ставку', s: 'ключевая ставка ЦБ', i: 'percent' },
+  advice: { t: 'Про вклады', s: 'без советов', i: 'wallet' },
+}
 
-const CHIP_ICON: Record<string, string> = { more: 'arrow', save: 'bookmark', repeat: 'repeat', listen: 'mic', rate: 'percent', advice: 'wallet' }
-const CHIP_TEXT: Record<string, string> = { more: 'Подробнее', save: 'Сохранить', repeat: 'Повторить', listen: 'Ещё вопрос', rate: 'Ставку ЦБ', advice: 'Вклады' }
-
-const WELCOME = { title: 'ась?', head: 'Спросите про ставку', sub: 'например: «какая ставка на месяц?»' }
 const isNumber = (s: string) => /^[\d\s.,%−-]+$/.test(s)
+const hhmm = () => new Date().toTimeString().slice(0, 5)
 
 export class AskApp {
   readonly root = document.createElement('div')
   private field: Field
-  private cloud: Cloud
-  private face: DropFace | null = null
-  private wave: number[] = new Array(44).fill(0) // the panel's voice line, newest on the right
-  private speakLv = 0
+  private sparks: Cloud
   private state: State = 'idle'
   private input: Input = ears.canHear ? 'voice' : 'tap'
-  private lookMode: Look = 'dots'
   private wakeOn = false
   private theme: Theme = 'night'
   private manualTheme = false
   private composing = false
   private last: Reply | null = null
+  private lastShown: Shown | null = null
   private lastIntent: Intent | null = null
   private road: Road | null = null
   private token = 0
@@ -78,10 +80,9 @@ export class AskApp {
   private demoStep = 0
   private progress = 0
   private progressTarget = 0
+  private speakLv = 0
   private caps: { words: string[]; starts: number[]; total: number } | null = null
   private capShown = -1
-  private aura = 0
-  private lastFrame = performance.now()
   private hold = { x: 0, y: 0, t: 0, down: false, id: -1 }
   private changedAt = 0 // taps right after a state change are ignored (bumps, double taps)
 
@@ -92,42 +93,37 @@ export class AskApp {
       <canvas class="c-canvas" aria-hidden="true"></canvas>
       <header class="a-top">
         <button class="a-keys press" aria-label="написать вопрос">${icon('keys', 22)}</button>
-        <h1 class="a-title">ась?</h1>
+        <p class="a-status"><b>ась</b><span class="a-clock"></span></p>
         <button class="a-menu press" aria-label="настройки и ситуации в дороге">${icon('menu', 22)}</button>
       </header>
-      <section class="a-stage">
-        <div class="f-sphere"><span class="a-face" aria-hidden="true" hidden></span></div>
-        <div class="f-digits"><p class="a-head" aria-live="polite"></p></div>
-        <p class="a-label"></p>
+      <section class="k-feed">
+        <div class="k-hello"><p class="k-hi"></p><p class="k-big">Спросите про&nbsp;ставку ЦБ</p></div>
+        <button class="k-past press" hidden></button>
+        <article class="k-answer" aria-live="polite" hidden>
+          <svg class="k-outline" aria-hidden="true"><rect x="1" y="1" rx="30" ry="30" pathLength="100"/></svg>
+          <p class="k-title"></p>
+          <p class="k-head"></p>
+          <p class="k-sub"></p>
+        </article>
+        <div class="k-acts"></div>
+        <div class="k-ask"><p class="k-q"></p><p class="k-meta"><span class="k-time"></span><span class="k-dots"><i></i><i></i><i></i><i></i><i></i></span></p></div>
       </section>
-      <section class="a-panel">
-        <span class="p-aura" aria-hidden="true"></span>
-        <span class="p-glow" aria-hidden="true"></span>
-        <div class="p-hint">${TRI}<span class="p-hint-t"></span></div>
-        <div class="p-track" aria-hidden="true"><i class="p-line"></i><canvas class="p-wave"></canvas><span class="p-ring"></span><span class="p-moon"></span></div>
-        <div class="p-ctl">
-          <button class="p-round press"></button>
-          <button class="p-pill press"><span class="p-pill-t"></span><i class="p-pill-i"></i></button>
-          <form class="p-compose" hidden>
-            <input class="p-input" type="text" enterkeyhint="send" autocomplete="off" placeholder="Спросите ась…" aria-label="вопрос" />
-            <button class="p-send press" type="submit" aria-label="отправить">${icon('up', 22)}</button>
-          </form>
-        </div>
-      </section>
+      <nav class="k-dock">
+        <div class="k-cap"><span class="k-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="k-cap-t"></span></div>
+        <button class="k-orb press" aria-label="спросить">${icon('mic', 26)}</button>
+        <form class="k-compose" hidden>
+          <input class="k-input" type="text" enterkeyhint="send" autocomplete="off" placeholder="Спросите ась…" aria-label="вопрос" />
+          <button class="k-send press" type="submit" aria-label="отправить">${icon('up', 22)}</button>
+        </form>
+      </nav>
       <span class="a-touch" aria-hidden="true"><i></i></span>
       <div class="a-sheet" hidden></div>`
-    this.field = new Field($(this.root, '.f-canvas'), {
-      sphere: $(this.root, '.f-sphere'),
-      digits: $(this.root, '.f-digits'),
-      trail: [$(this.root, '.a-label'), $(this.root, '.a-panel')],
-    })
-    // the halftone grid stays as the ground; ась itself is the particle cloud above it
-    this.field.sphereOn = false
-    this.cloud = new Cloud($(this.root, '.c-canvas'), { sphere: $(this.root, '.f-sphere'), text: $(this.root, '.f-digits') })
+    this.field = new Field($(this.root, '.f-canvas'))
+    this.sparks = new Cloud($(this.root, '.c-canvas'))
     voice.prepare(AUDIO_IDS)
     this.bind()
     this.applyTheme()
-    this.answer(WELCOME, false)
+    this.showWelcome()
     this.set('idle')
     this.loop()
     this.keepAwake()
@@ -136,8 +132,7 @@ export class AskApp {
     this.deepLink()
   }
 
-  /** where the browser exposes a light sensor (Chrome on Android), switch to the light theme by itself;
-   * slow hysteresis so a passing shadow doesn't make the screen blink */
+  /** where the browser exposes a light sensor (Chrome on Android), switch to the light theme by itself */
   private watchLight() {
     const S = (window as any).AmbientLightSensor
     if (!S) return
@@ -188,14 +183,9 @@ export class AskApp {
   /** a short vibration where the device supports it, and always a ring of dots from (x, y) */
   private buzz(pattern: number | number[], at?: { x: number; y: number }, strength = 1) {
     if (navigator.userActivation?.hasBeenActive) navigator.vibrate?.(pattern)
-    const p = at ?? this.cloud.centre
+    const p = at ?? this.field.source
     this.field.wave(p.x, p.y, strength)
-    this.cloud.kick(strength * 0.6)
-    // the panel feels it too: a quick squeeze, like the phone in the holder
-    if (!reduced() && strength >= 0.8) {
-      const s = spring(600, 18)
-      $(this.root, '.a-panel').animate([{ transform: 'scale(0.985)' }, { transform: 'none' }], { duration: s.duration, easing: s.easing })
-    }
+    this.sparks.kick(strength * 0.6)
   }
 
   // ---------------------------------------------------------------- state
@@ -204,129 +194,110 @@ export class AskApp {
     this.state = s
     this.root.dataset.state = s
     this.field.setState(s)
-    this.cloud.setState(s)
-    this.face?.setState(s)
+    this.sparks.setState(s)
     const waits = this.wakeOn && this.input === 'voice'
-    // the hint is a status, never a second call to action — the verb lives on the pill
-    const hint: Record<State, string> = {
-      idle: waits ? 'Жду слово «ась»' : this.last ? 'На связи' : greeting(),
-      listening: 'Слушаю',
-      thinking: 'Думаю',
-      speaking: 'Отвечаю',
-      paused: this.road ? ROAD[this.road].title : 'Пауза',
+    // the capsule is a status; the verb lives on ась's round button
+    const cap: Record<State, string> = {
+      idle: this.composing ? 'за рулём — лучше голосом' : waits ? 'жду слово «ась»' : this.last ? 'на связи' : 'коснитесь где угодно',
+      listening: 'слушаю',
+      thinking: 'думаю',
+      speaking: 'отвечаю',
+      paused: this.road ? ROAD[this.road].title : 'пауза',
     }
-    this.hint(this.composing ? 'За рулём — лучше голосом' : hint[s])
-    this.controls()
-    if (s === 'listening') this.progressTarget = 0.04
-    if (s === 'idle') this.progressTarget = this.last ? 1 : 0
+    this.capsule(cap[s])
+    const orb = $(this.root, '.k-orb')
+    const busy = s !== 'idle'
+    orb.innerHTML = icon(s === 'paused' ? 'play' : busy ? 'x' : 'mic', 26)
+    orb.setAttribute('aria-label', s === 'paused' ? 'продолжить' : busy ? 'стоп' : 'спросить')
+    // before the first question the top greets (video 3); after it, the answers own the screen
+    this.root.toggleAttribute('data-hello', !this.last && s === 'idle')
+    $(this.root, '.k-hi').textContent = greeting()
+    // the follow-ups hide while a new turn is under way (Alice's «hide» buttons)
+    this.root.toggleAttribute('data-acts', s === 'idle' && !!this.last?.chips?.length)
   }
 
-  private hint(t: string) {
-    const el = $(this.root, '.p-hint-t')
+  /** the dock's capsule: text swaps with a blur, the pill's width springs */
+  private capsule(t: string) {
+    const el = $(this.root, '.k-cap-t')
     if (el.textContent === t) return
+    const cap = $(this.root, '.k-cap')
+    const before = cap.getBoundingClientRect().width
     el.textContent = t
-    if (!reduced()) el.animate([{ opacity: 0, filter: 'blur(3px)', transform: 'translateY(4px)' }, { opacity: 1, filter: 'blur(0)', transform: 'none' }], { duration: 220, easing: EASE_OUT })
+    const after = cap.getBoundingClientRect().width
+    if (reduced() || !before || !after) return
+    const s = spring(420, 28)
+    cap.animate([{ transform: `scaleX(${before / after})` }, { transform: 'none' }], { duration: s.duration, easing: s.easing })
+    el.animate([{ opacity: 0, filter: 'blur(3px)' }, { opacity: 1, filter: 'blur(0)' }], { duration: 220, easing: EASE_OUT })
   }
 
-  /** the two controls: a round one and a pill with a white circle, as in the reference */
-  private controls() {
-    const round = $(this.root, '.p-round')
-    const pill = $(this.root, '.p-pill')
-    const busy = this.state === 'listening' || this.state === 'thinking' || this.state === 'speaking'
-    const chips = this.last?.chips ?? []
-    let pillText = 'Спросить', pillIcon = 'mic', pillAct = 'ask'
-    let roundIcon = 'repeat', roundAct = this.last ? 'repeat' : '', roundLabel = 'повторить'
-    if (this.composing) ((roundIcon = 'x'), (roundAct = 'compose-close'), (roundLabel = 'закрыть клавиатуру'))
-    else if (busy) {
-      pillText = this.state === 'listening' ? 'Готово' : 'Стоп'
-      pillIcon = this.state === 'listening' ? 'arrow' : 'x'
-      pillAct = this.state === 'listening' ? 'done' : 'stop'
-    } else if (this.state === 'paused') {
-      ;[pillText, pillIcon, pillAct] = ['Продолжить', 'play', 'resume']
-    } else if (chips.length) {
-      ;[pillText, pillIcon, pillAct] = [CHIP_TEXT[chips[0].intent] ?? chips[0].label, CHIP_ICON[chips[0].intent] ?? 'arrow', chips[0].intent]
-      if (chips[1]) ((roundIcon = CHIP_ICON[chips[1].intent] ?? 'repeat'), (roundAct = chips[1].intent), (roundLabel = CHIP_TEXT[chips[1].intent] ?? chips[1].label))
-    }
-    if (pill.dataset.act !== pillAct || $(this.root, '.p-pill-t').textContent !== pillText) {
-      pill.dataset.act = pillAct
-      pill.setAttribute('aria-label', pillText)
-      $(this.root, '.p-pill-t').textContent = pillText
-      $(this.root, '.p-pill-i').innerHTML = icon(pillIcon, 22)
-      if (!reduced()) $(this.root, '.p-pill-t').animate([{ opacity: 0, filter: 'blur(3px)' }, { opacity: 1, filter: 'blur(0)' }], { duration: 200, easing: EASE_OUT })
-    }
-    round.dataset.act = roundAct
-    round.toggleAttribute('disabled', !roundAct)
-    round.setAttribute('aria-label', roundLabel)
-    round.innerHTML = icon(roundIcon, 26)
+  // ---------------------------------------------------------------- the stack: question, answer, actions
+  private question(t: string, live = false) {
+    const q = $(this.root, '.k-q')
+    const ask = $(this.root, '.k-ask')
+    ask.toggleAttribute('data-empty', !t)
+    if (!t) return void (q.textContent = 'например: «какая ставка на месяц?»')
+    // your words: the newest in lime, the start of the phrase fades back
+    const w = t.split(/\s+/).filter(Boolean)
+    const cut = live ? Math.max(0, w.length - 3) : 0
+    q.innerHTML = `<span class="old">${w.slice(0, cut).join(' ')}</span> ${w.slice(cut).join(' ')}`
+    $(this.root, '.k-time').textContent = hhmm()
   }
 
-  // ---------------------------------------------------------------- the answer: title, head, line
-  private answer(a: { title: string; head: string; sub: string }, event: boolean) {
-    this.title(a.title)
-    const head = $(this.root, '.a-head')
-    const num = isNumber(a.head)
-    if (head.textContent !== a.head || event) {
-      head.textContent = a.head
-      head.classList.toggle('num', num)
-      this.fitHead()
+  /** the answer card: `draft` = outline only (ась is still looking) */
+  private answer(a: Shown, mode: 'draft' | 'event' | 'quiet') {
+    const card = $(this.root, '.k-answer')
+    const head = $(this.root, '.k-head')
+    const prev = this.lastShown
+    // a new answer over an old one: the old folds into a strip at the top (video 1)
+    if (mode === 'draft' && prev && prev.title !== a.title) this.foldPast(prev)
+    card.toggleAttribute('data-draft', mode === 'draft')
+    card.hidden = false
+    $(this.root, '.k-title').textContent = a.title
+    if (mode === 'draft') {
+      head.textContent = ''
+      this.sub(a.sub, 'think')
       if (!reduced()) {
-        if (num && event) {
-          // the answer is born from ась: particles fly out of the cloud and build the figure,
-          // then the solid type takes over (video 2: preparing → all set)
-          this.field.setText('', true)
-          this.cloud.buildText(a.head)
-          head.animate([{ opacity: 0, filter: 'blur(14px)', transform: 'scale(0.97)' }, { opacity: 1, filter: 'blur(0)', transform: 'none' }], { duration: 380, delay: 380, easing: EASE_OUT, fill: 'backwards' })
-        } else {
-          this.field.setText('', true)
-          head.animate([{ opacity: 0, filter: 'blur(8px)', transform: 'translateY(8px)' }, { opacity: 1, filter: 'blur(0)', transform: 'none' }], { duration: 380, delay: event ? 80 : 0, easing: EASE_OUT, fill: 'backwards' })
-        }
+        // the outline draws itself, then the card fills (video 4)
+        const r = card.querySelector('rect')!
+        r.animate([{ strokeDashoffset: 100 }, { strokeDashoffset: 0 }], { duration: 700, easing: EASE_OUT, fill: 'both' })
+        card.animate([{ opacity: 0, transform: 'translateY(14px)' }, { opacity: 1, transform: 'none' }], { duration: 320, easing: EASE_OUT })
+      }
+      return
+    }
+    const num = isNumber(a.head)
+    head.classList.toggle('num', num)
+    if (head.textContent !== a.head || mode === 'event') {
+      head.textContent = a.head
+      if (mode === 'event' && !reduced()) {
+        // the figure comes out of the light: sparks fly up into it, then the type turns solid
+        if (num) this.sparks.buildText(a.head, head)
+        head.animate([{ opacity: 0, filter: 'blur(12px)', transform: 'translateY(10px)' }, { opacity: 1, filter: 'blur(0)', transform: 'none' }], { duration: 420, delay: num ? 380 : 60, easing: EASE_OUT, fill: 'backwards' })
       }
     }
-    this.label(a.sub)
+    this.sub(a.sub)
+    this.lastShown = a
   }
 
-  /** numbers fill the box; phrases sit on up to two lines */
-  private fitHead() {
-    const head = $(this.root, '.a-head')
-    const box = $(this.root, '.f-digits')
-    head.style.fontSize = ''
-    if (!head.classList.contains('num')) return
-    const h = box.clientHeight
-    let fs = h * 1.18
-    head.style.fontSize = `${fs}px`
-    const w = head.scrollWidth
-    if (w > box.clientWidth) head.style.fontSize = `${(fs *= box.clientWidth / w)}px`
+  private foldPast(prev: Shown) {
+    const past = $(this.root, '.k-past')
+    past.hidden = false
+    past.innerHTML = `<b>${prev.head}</b><span>${prev.title}</span>${icon('arrow', 16)}`
+    past.setAttribute('aria-label', `${prev.title}: ${prev.head}. Показать`)
+    if (!reduced()) {
+      const s = spring(340, 30)
+      past.animate([{ opacity: 0, transform: 'translateY(40px) scale(0.96)' }, { opacity: 1, transform: 'none' }], { duration: s.duration, easing: s.easing })
+    }
   }
 
-  private title(t: string) {
-    const el = $(this.root, '.a-title')
-    if (el.textContent === t) return
-    el.textContent = t
-    if (!reduced()) el.animate([{ opacity: 0, filter: 'blur(6px)' }, { opacity: 1, filter: 'blur(0)' }], { duration: 320, easing: EASE_OUT })
-  }
-
-  private label(t: string, cls = '') {
-    const lab = $(this.root, '.a-label')
+  private sub(t: string, cls = '') {
+    const el = $(this.root, '.k-sub')
     this.caps = null
     this.capShown = -1
-    if (lab.textContent === t && lab.className === `a-label ${cls}`.trim()) return
-    lab.className = `a-label ${cls}`.trim()
-    lab.textContent = t
-    if (!reduced()) lab.animate([{ opacity: 0, filter: 'blur(4px)', transform: 'translateY(6px)' }, { opacity: 1, filter: 'blur(0)', transform: 'none' }], { duration: 300, easing: EASE_OUT })
+    el.className = `k-sub ${cls}`.trim()
+    el.textContent = t
   }
 
-  /** live subtitles of the driver: the newest words bright, the start of the phrase fades */
-  private caption(t: string) {
-    if (!t) return
-    const w = t.split(/\s+/).filter(Boolean)
-    const cut = Math.max(0, w.length - 3)
-    const lab = $(this.root, '.a-label')
-    lab.className = 'a-label you'
-    lab.innerHTML = `<span class="old">${w.slice(0, cut).join(' ')}</span> ${w.slice(cut).join(' ')}`
-    this.caps = null
-  }
-
-  /** ась's own subtitles: the sentence being spoken, word by word with the audio */
+  /** ась's subtitles: the words light up as the voice reaches them */
   private speakCaptions(text: string) {
     const words = text.split(/\s+/).filter(Boolean)
     const starts: number[] = []
@@ -340,18 +311,34 @@ export class AskApp {
     if (!this.caps) return
     const { words, starts, total } = this.caps
     const pos = this.progress * total
-    // show the sentence the voice is in, up to ~9 words at a time
     let i = starts.findIndex((s, k) => s <= pos && (starts[k + 1] ?? Infinity) > pos)
     if (i < 0) i = words.length - 1
     const from = Math.floor(i / 9) * 9
-    const lab = $(this.root, '.a-label')
+    const el = $(this.root, '.k-sub')
     if (from !== this.capShown) {
       this.capShown = from
-      lab.className = 'a-label caps'
-      lab.innerHTML = words.slice(from, from + 9).map((w) => `<span>${w}</span>`).join(' ')
-      if (!reduced()) lab.animate([{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }], { duration: 220, easing: EASE_OUT })
+      el.className = 'k-sub caps'
+      el.innerHTML = words.slice(from, from + 9).map((w) => `<span>${w}</span>`).join(' ')
     }
-    lab.querySelectorAll('span').forEach((s, k) => s.classList.toggle('on', from + k <= i))
+    el.querySelectorAll('span').forEach((s, k) => s.classList.toggle('on', from + k <= i))
+  }
+
+  /** two follow-up cards over the question (video 4) */
+  private acts(chips: { intent: string }[]) {
+    const box = $(this.root, '.k-acts')
+    box.innerHTML = chips
+      .slice(0, 2)
+      .map((c, k) => {
+        const a = ACT[c.intent] ?? { t: c.intent, s: '', i: 'arrow' }
+        return `<button class="k-act press${k === 0 ? ' first' : ''}" data-act="${c.intent}"><span class="ic">${icon(a.i, 22)}</span><b>${a.t}</b><span class="s">${a.s}</span></button>`
+      })
+      .join('')
+    if (!reduced()) [...box.children].forEach((c, k) => c.animate([{ opacity: 0, transform: 'translateY(16px) scale(0.97)' }, { opacity: 1, transform: 'none' }], { duration: 360, delay: 120 + k * 70, easing: EASE_OUT, fill: 'backwards' }))
+  }
+
+  private showWelcome() {
+    $(this.root, '.k-answer').hidden = true
+    this.question('')
   }
 
   // ---------------------------------------------------------------- the conversation
@@ -366,49 +353,51 @@ export class AskApp {
     const tk = ++this.token
     stopWake()
     this.set('listening')
-    this.title('Слушаю')
     if (voice.isOn()) earcon.listen()
     for (let i = 1; i <= q.length; i++) {
       if (tk !== this.token) return
-      this.caption(q.slice(0, i))
+      this.question(q.slice(0, i), true)
       this.speakLv = 0.35 + 0.4 * Math.abs(Math.sin(i * 0.9))
-      this.cloud.level(this.speakLv)
-      this.progressTarget = (i / q.length) * 0.92
+      this.field.level(this.speakLv)
+      this.sparks.level(this.speakLv)
       await wait(38)
     }
-    await wait(350)
+    this.question(q)
+    await wait(300)
     if (tk === this.token) this.handle(q)
   }
 
-  private async listen() {
+  /** `follow` = the answer ended with a question: listen a little, quietly, without a tap */
+  private async listen(follow = false) {
     const tk = ++this.token
     voice.stop()
     stopWake()
     this.set('listening')
-    this.title('Слушаю')
-    this.buzz(8, undefined, 0.6)
+    if (!follow) this.buzz(8, undefined, 0.6)
     if (voice.isOn()) earcon.listen()
-    this.label('говорите — я слушаю', 'you')
+    if (!follow) this.question('говорите — я слушаю')
     let heard = false
-    // no words in 7 s (no permission prompt answered, a silent recognizer): say so instead of hanging on «Слушаю»
+    // no words in 7 s (a hidden permission prompt, a silent recognizer) — say so instead of hanging;
+    // a follow-up window closes quietly after 5 s
     setTimeout(() => {
       if (tk !== this.token || heard || this.state !== 'listening') return
-      this.toast('не слышу — коснитесь и скажите ещё раз')
+      if (!follow) this.toast('не слышу — коснитесь и скажите ещё раз')
       if (voice.isOn()) earcon.stop()
       this.toIdle()
-    }, 7000)
+    }, follow ? 5000 : 7000)
     await ears.openMeter()
     if (tk !== this.token) return
     ears.listen({
-      onPartial: (t) => tk === this.token && ((heard = true), this.caption(t)),
+      onPartial: (t) => tk === this.token && ((heard = true), this.question(t, true)),
       onFinal: (t) => {
         if (tk !== this.token) return
-        this.caption(t)
+        heard = true
+        this.question(t)
         setTimeout(() => tk === this.token && this.handle(t), 250)
       },
       onSilence: () => {
         if (tk !== this.token || this.state !== 'listening') return
-        this.toast('не услышал — коснитесь и говорите')
+        if (!follow) this.toast('не услышал — коснитесь и говорите')
         this.toIdle()
       },
       onError: (k) => {
@@ -442,59 +431,45 @@ export class AskApp {
     stopWake()
     if (think) {
       this.set('thinking')
-      this.title(r.title)
-      this.fadeHead()
-      // the steps of the work, each with a light running through the words
+      // the outline of the answer-to-be, with the steps of the work running through it
+      this.answer({ title: r.title, head: '', sub: r.thinking?.[0] ?? 'думаю' }, 'draft')
       for (const step of r.thinking ?? ['думаю']) {
-        this.label(step, 'think')
-        await wait(700)
+        this.sub(step, 'think')
+        await wait(650)
         if (tk !== this.token) return
       }
-    }
+    } else if (this.lastShown && this.lastShown.title !== r.title) this.foldPast(this.lastShown)
     this.last = r
     this.set('speaking')
-    this.face?.setState(r.pose === 'unsure' ? 'unsure' : 'speaking')
-    this.answer(r, true)
+    this.answer(r, 'event')
+    this.acts(r.chips ?? [])
     this.buzz([12, 60, 12])
     if (voice.isOn()) earcon.ready()
-    this.controls()
     this.progress = this.progressTarget = 0
     const t0 = performance.now()
     const est = Math.min(9000, 900 + r.say.length * 58)
+    this.speakCaptions(r.say)
     if (voice.isOn()) {
-      this.speakCaptions(r.say)
-      // the recording drives everything: loudness lights the dots, position fills the line and the captions
       let timed = false
       const tick = setInterval(() => !timed && (this.progressTarget = Math.min(1, (performance.now() - t0) / est)), 120)
       await voice.speak(r.audio, r.say, {
-        onLevel: (lv) => ((this.speakLv = lv), this.cloud.level(lv * 0.8)),
-        onWord: () => this.cloud.pulse(),
+        onLevel: (lv) => ((this.speakLv = lv), this.field.level(lv * 0.8), this.sparks.level(lv * 0.8)),
+        onWord: () => this.field.pulse(),
         onProgress: (p) => ((timed = true), (this.progressTarget = p)),
       })
       clearInterval(tick)
     } else {
-      // no sound: the captions and the sphere still «speak» for as long as the line would take
-      this.speakCaptions(r.say)
       while (performance.now() - t0 < est && tk === this.token) {
         this.progressTarget = Math.min(1, (performance.now() - t0) / est)
-        this.cloud.pulse()
-        this.speakLv = 0.3 + 0.3 * Math.random()
+        this.field.pulse()
         await wait(260)
       }
     }
     if (tk !== this.token) return
     this.toIdle()
+    // Alice-style: an answer that asks something keeps the mic open for a moment
+    if (this.input === 'voice' && voice.isOn() && /\?\s*$/.test(r.say)) setTimeout(() => this.state === 'idle' && this.listen(true), 350)
     if (this.input === 'demo' && this.demoStep < DEMO_QUESTIONS.length) setTimeout(() => this.state === 'idle' && this.ask(), 1600)
-  }
-
-  private fadeHead() {
-    const head = $(this.root, '.a-head')
-    if (!head.textContent) return
-    if (reduced()) return void (head.textContent = '')
-    head.animate([{ opacity: 1 }, { opacity: 0, filter: 'blur(8px)', transform: 'scale(0.98)' }], { duration: 160, easing: EASE_OUT, fill: 'forwards' }).onfinish = (e) => {
-      head.textContent = ''
-      ;(e.target as Animation).cancel()
-    }
   }
 
   private toIdle() {
@@ -503,9 +478,8 @@ export class AskApp {
     voice.stop()
     this.road = null
     this.set('idle')
-    // the captions fold back into the short line
-    const a = this.last ?? WELCOME
-    this.answer(a, false)
+    if (this.last) this.answer(this.last, 'quiet')
+    else this.showWelcome()
     this.armWake()
   }
 
@@ -519,10 +493,9 @@ export class AskApp {
         (rest) => {
           if (this.state !== 'idle') return
           this.buzz(10)
-          // «ась, какая ставка?» in one breath — answer straight away
           if (rest && understand(rest) !== 'unknown') {
             this.set('listening')
-            this.caption(rest)
+            this.question(rest)
             setTimeout(() => this.handle(rest), 350)
           } else this.listen()
         },
@@ -545,11 +518,10 @@ export class AskApp {
     this.road = k
     this.set('paused')
     const r = ROAD[k]
-    this.answer(r, false)
+    this.answer(r, 'quiet')
     this.buzz(20, { x: this.root.clientWidth / 2, y: 0 }, 0.9)
-    if (r.say && voice.isOn()) voice.speak(k, r.say, { onWord: () => this.cloud.pulse() })
+    if (r.say && voice.isOn()) voice.speak(k, r.say, { onWord: () => this.field.pulse() })
     if (k === 'navigator' || k === 'toll' || k === 'call') {
-      // resume by itself, from the start of the phrase
       setTimeout(() => {
         if (tk !== this.token) return
         this.road = null
@@ -562,83 +534,68 @@ export class AskApp {
   // ---------------------------------------------------------------- keyboard: for a passenger or a stop
   private compose(open: boolean) {
     this.composing = open
-    const form = $<HTMLFormElement>(this.root, '.p-compose')
-    const pill = $(this.root, '.p-pill')
+    const form = $<HTMLFormElement>(this.root, '.k-compose')
     form.hidden = !open
-    pill.hidden = open
     this.root.toggleAttribute('data-compose', open)
     if (open) {
       if (this.state !== 'idle') this.toIdle()
-      const inp = $<HTMLInputElement>(this.root, '.p-input')
+      const inp = $<HTMLInputElement>(this.root, '.k-input')
       inp.value = ''
       inp.focus()
-      if (!reduced()) form.animate([{ opacity: 0, transform: 'translateY(8px) scale(0.98)' }, { opacity: 1, transform: 'none' }], { duration: 240, easing: EASE_OUT })
-    } else $<HTMLInputElement>(this.root, '.p-input').blur()
+      if (!reduced()) form.animate([{ opacity: 0, transform: 'scaleX(0.6)' }, { opacity: 1, transform: 'none' }], { duration: 260, easing: EASE_OUT })
+    } else $<HTMLInputElement>(this.root, '.k-input').blur()
     this.set(this.state)
   }
 
   private submit() {
-    const inp = $<HTMLInputElement>(this.root, '.p-input')
+    const inp = $<HTMLInputElement>(this.root, '.k-input')
     const q = inp.value.trim()
     if (!q) return
     if (!voice.isOn()) voice.setOn(true)
+    earcon.unlock()
     this.compose(false)
     this.buzz(8, undefined, 0.6)
-    this.caption(q)
-    this.title('Вы спросили')
-    setTimeout(() => this.handle(q), 300)
-  }
-
-  // ---------------------------------------------------------------- look: dots or the drop
-  private setLook(l: Look) {
-    this.lookMode = l
-    const host = $(this.root, '.a-face')
-    host.hidden = l !== 'drop'
-    this.cloud.visible = l === 'dots'
-    if (l === 'drop' && !this.face) {
-      this.face = new DropFace(host)
-      this.face.setTheme(this.theme)
-      this.face.setState(this.state)
-    } else if (l === 'dots') {
-      this.face?.destroy()
-      this.face = null
-    }
+    this.question(q)
+    setTimeout(() => this.handle(q), 250)
   }
 
   // ---------------------------------------------------------------- input
   private bind() {
     const app = this.root
     const isControl = (t: EventTarget | null) => !!(t as HTMLElement)?.closest?.('button, a, input, form, .a-sheet')
+    const local = (e: PointerEvent) => {
+      const r = app.getBoundingClientRect()
+      return { x: e.clientX - r.left, y: e.clientY - r.top }
+    }
     // the whole screen is the tap target, except the controls
     app.addEventListener('pointerdown', (e) => {
       if (isControl(e.target)) return
       if (this.hold.down) return void (this.hold.down = false) // a second finger cancels: palm or bump
       this.hold = { x: e.clientX, y: e.clientY, t: performance.now(), down: true, id: e.pointerId }
-      this.touchMark(e.clientX, e.clientY, true)
-      const r = app.getBoundingClientRect()
-      this.field.wave(e.clientX - r.left, e.clientY - r.top, 0.9)
+      const p = local(e)
+      this.touchMark(p.x, p.y, true)
+      this.field.touch(p.x, p.y, true)
+      this.field.wave(p.x, p.y, 0.9)
     })
-    app.addEventListener('pointercancel', () => ((this.hold.down = false), this.touchMark(0, 0, false)))
+    const release = () => (this.field.touch(0, 0, false), this.touchMark(0, 0, false))
+    app.addEventListener('pointercancel', () => ((this.hold.down = false), release()))
     app.addEventListener('pointerup', (e) => {
       if (!this.hold.down || e.pointerId !== this.hold.id) return
       this.hold.down = false
-      this.touchMark(0, 0, false)
+      release()
       const dy = e.clientY - this.hold.y
       const dx = e.clientX - this.hold.x
       const dt = performance.now() - this.hold.t
       if (dy > 70 && Math.abs(dx) < dy) return this.toIdle() // swipe down = stop
-      // a real tap: 60–700 ms, barely moved, not right after the screen changed
       if (dt < 60 || dt > 700 || Math.hypot(dx, dy) > 12) return
       if (performance.now() - this.changedAt < 300) return
-      // a finger that misses a control by a few px on a bumpy road still means that control —
-      // never «ask again»
+      // a finger that misses a control by a few px on a bumpy road still means that control
       const near = this.nearControl(e.clientX, e.clientY)
       if (near) return near.click()
       if (this.composing) return this.compose(false)
       if (!voice.isOn()) voice.setOn(true) // the first gesture unlocks speech, in every mode
       earcon.unlock()
-      const r = app.getBoundingClientRect()
-      this.buzz(6, { x: e.clientX - r.left, y: e.clientY - r.top }, 0.9)
+      this.buzz(6, local(e), 0.9)
       this.onTap()
     })
     app.addEventListener('keydown', (e) => {
@@ -648,7 +605,7 @@ export class AskApp {
       }
       if (e.key === 'Escape' && this.composing) this.compose(false)
     })
-    $(this.root, '.p-compose').addEventListener('submit', (e) => {
+    $(this.root, '.k-compose').addEventListener('submit', (e) => {
       e.preventDefault()
       this.submit()
     })
@@ -656,24 +613,43 @@ export class AskApp {
       const t = e.target as HTMLElement
       if (t.closest('.a-menu')) return this.sheet(true)
       if (t.closest('.a-keys')) return this.compose(!this.composing)
-      const ctl = t.closest<HTMLElement>('.p-pill, .p-round')
-      if (ctl?.dataset.act) {
-        if (!voice.isOn()) voice.setOn(true)
-        earcon.unlock()
-        return this.control(ctl.dataset.act, ctl)
+      const s = t.closest<HTMLElement>('[data-sheet]')
+      if (s) return this.act(s.dataset.sheet!, s.dataset.v)
+      if (!voice.isOn()) voice.setOn(true)
+      earcon.unlock()
+      const at = (el: Element) => {
+        const r = el.getBoundingClientRect(), h = app.getBoundingClientRect()
+        return { x: r.left - h.left + r.width / 2, y: r.top - h.top + r.height / 2 }
       }
-      const act = t.closest<HTMLElement>('[data-act]')
-      if (act) this.act(act.dataset.act!, act.dataset.v)
+      const orb = t.closest('.k-orb')
+      if (orb) return (this.buzz(6, at(orb), 0.8), this.onOrb())
+      if (t.closest('.k-past')) return this.unfoldPast()
+      const act = t.closest<HTMLElement>('.k-act')
+      if (act) {
+        this.buzz(act.dataset.act === 'save' ? [8, 30, 8] : 6, at(act), 0.8)
+        return this.control(act.dataset.act!)
+      }
     })
   }
 
-  /** the white dot with a halo under the finger (reference: «Activate Your Potential») */
+  /** controls grown by 16 px all round: the nearest one under a near-miss */
+  private nearControl(x: number, y: number): HTMLElement | null {
+    const cands = [...this.root.querySelectorAll<HTMLElement>('.k-act, .k-orb')].filter((el) => el.offsetParent)
+    let best: HTMLElement | null = null, bd = Infinity
+    for (const el of cands) {
+      const r = el.getBoundingClientRect()
+      const dx = Math.max(r.left - x, 0, x - r.right), dy = Math.max(r.top - y, 0, y - r.bottom)
+      const d = Math.hypot(dx, dy)
+      if (d <= 16 && d < bd) ((bd = d), (best = el))
+    }
+    return best
+  }
+
   private touchMark(x: number, y: number, on: boolean) {
     const m = $(this.root, '.a-touch')
     if (on) {
-      const r = this.root.getBoundingClientRect()
-      m.style.left = `${x - r.left}px`
-      m.style.top = `${y - r.top}px`
+      m.style.left = `${x}px`
+      m.style.top = `${y}px`
       m.getAnimations().forEach((a) => a.cancel())
       if (!reduced()) {
         const s = spring(420, 24)
@@ -683,17 +659,6 @@ export class AskApp {
       m.getAnimations().forEach((a) => a.cancel())
       m.animate([{ opacity: 1, transform: 'translate(-50%,-50%) scale(1)' }, { opacity: 0, transform: 'translate(-50%,-50%) scale(1.25)' }], { duration: 220, easing: EASE_OUT, fill: 'forwards' })
     }
-  }
-
-  /** the control row, grown by 16 px all round: the nearest control under a near-miss */
-  private nearControl(x: number, y: number): HTMLElement | null {
-    const row = $(this.root, '.p-ctl').getBoundingClientRect()
-    if (x < row.left - 16 || x > row.right + 16 || y < row.top - 16 || y > row.bottom + 16) return null
-    const round = $(this.root, '.p-round'), pill = this.composing ? null : $(this.root, '.p-pill')
-    if (!pill) return null
-    const split = (round.getBoundingClientRect().right + pill.getBoundingClientRect().left) / 2
-    const hit = x < split ? round : pill
-    return (hit as HTMLButtonElement).disabled ? null : hit
   }
 
   private onTap() {
@@ -710,14 +675,30 @@ export class AskApp {
     }
   }
 
-  private control(a: string, from: HTMLElement) {
-    const r = from.getBoundingClientRect(), h = this.root.getBoundingClientRect()
-    this.buzz(a === 'save' ? [8, 30, 8] : 6, { x: r.left - h.left + r.width / 2, y: r.top - h.top + r.height / 2 }, 0.8)
-    if (a === 'compose-close') return this.compose(false)
-    if (a === 'ask' || a === 'listen') return void this.ask()
-    if (a === 'stop') return void (voice.isOn() && earcon.stop(), this.toIdle())
-    if (a === 'done') return ears.stopListening()
-    if (a === 'resume') return this.onTap()
+  /** ась's own button: ask when quiet, stop when busy, go on after a pause */
+  private onOrb() {
+    if (this.state === 'idle') return void this.ask()
+    if (this.state === 'paused') return this.onTap()
+    if (this.state === 'listening' && this.input === 'voice') return ears.stopListening()
+    if (voice.isOn()) earcon.stop()
+    this.toIdle()
+  }
+
+  /** the folded strip: bring that answer back, fold the current one */
+  private unfoldPast() {
+    const prev = this.lastShown
+    const shown = $(this.root, '.k-past').querySelector('b')?.textContent
+    const back = Object.values(REPLY).find((r) => r.head === shown)
+    if (!back || !prev) return
+    this.foldPast(prev)
+    this.last = back
+    this.answer(back, 'event')
+    this.acts(back.chips ?? [])
+    this.set('idle')
+  }
+
+  private control(a: string) {
+    if (a === 'listen') return void this.ask()
     if (a === 'repeat') return this.last ? void this.reply(this.last, false) : undefined
     this.handle(({ rate: 'ставка цб', more: 'подробнее', save: 'сохрани', advice: 'вклад' } as any)[a] ?? a)
   }
@@ -739,10 +720,6 @@ export class AskApp {
       this.manualTheme = true
       this.theme = v as Theme
       this.applyTheme()
-      this.renderSheet()
-    }
-    if (a === 'look') {
-      this.setLook(v as Look)
       this.renderSheet()
     }
     if (a === 'sound') {
@@ -782,33 +759,30 @@ export class AskApp {
 
   private renderSheet() {
     const seg = (act: string, cur: string, opts: [string, string][]) =>
-      `<div class="s-seg">${opts.map(([v, l]) => `<button class="press" data-act="${act}" data-v="${v}" ${v === cur ? 'aria-current="true"' : ''}>${l}</button>`).join('')}</div>`
+      `<div class="s-seg">${opts.map(([v, l]) => `<button class="press" data-sheet="${act}" data-v="${v}" ${v === cur ? 'aria-current="true"' : ''}>${l}</button>`).join('')}</div>`
     const row = (act: string, ic: string, label: string, value = '') =>
-      `<button class="s-row press" data-act="${act}"><span class="ic">${icon(ic, 20)}</span><span class="t">${label}</span>${value ? `<b>${value}</b>` : icon('arrow', 18)}</button>`
+      `<button class="s-row press" data-sheet="${act}"><span class="ic">${icon(ic, 20)}</span><span class="t">${label}</span>${value ? `<b>${value}</b>` : icon('arrow', 18)}</button>`
     $(this.root, '.a-sheet').innerHTML = `
-      <div class="s-scrim" data-act="close"></div>
+      <div class="s-scrim" data-sheet="close"></div>
       <div class="s-body" role="dialog" aria-label="настройки">
         <div class="s-grab"></div>
         <h3>как спрашивать</h3>
         ${seg('input', this.input, [['voice', 'голосом'], ['tap', 'касанием'], ['demo', 'демо']])}
-        <p>${this.input === 'voice' ? (ears.canHear ? 'Коснитесь экрана где угодно и спросите про ставку ЦБ. Понимаю «подробнее», «сохрани», «повтори», «стоп». Написать текстом — кнопка клавиатуры слева вверху.' : 'Этот браузер не распознаёт речь — включите «касанием» или пишите текстом.') : this.input === 'tap' ? 'Без микрофона: касание задаёт вопрос за вас.' : 'Сценарий проигрывается сам: вопрос, ответ, подробности, сохранение.'}</p>
+        <p>${this.input === 'voice' ? (ears.canHear ? 'Коснитесь экрана где угодно и спросите про ставку ЦБ. Понимаю «подробнее», «сохрани», «повтори», «стоп». Если ась спросил что-то в ответ — просто ответьте, касаться не нужно.' : 'Этот браузер не распознаёт речь — включите «касанием» или пишите текстом.') : this.input === 'tap' ? 'Без микрофона: касание задаёт вопрос за вас.' : 'Сценарий проигрывается сам: вопрос, ответ, подробности, сохранение.'}</p>
         ${canWake ? row('wake', 'ear', 'слушать слово «ась»', this.wakeOn ? 'вкл' : 'выкл') : ''}
         ${row('sound', 'mic', 'голос ответа', voice.isOn() ? 'вкл' : 'выкл')}
-        <h3>как выглядит ась</h3>
-        ${seg('look', this.lookMode, [['dots', 'сфера из точек'], ['drop', 'капля с глазами']])}
         <h3>тема</h3>
         ${seg('theme', this.theme, [['night', 'тёмная'], ['light', 'светлая']])}
-        <p>Светлая — для яркого дня: под прямым солнцем тёмный экран превращается в зеркало.</p>
         <h3>ситуации в дороге</h3>
         <div class="s-grid">
-          <button class="press" data-act="road" data-v="navigator">навигатор говорит</button>
-          <button class="press" data-act="road" data-v="toll">шлагбаум</button>
-          <button class="press" data-act="road" data-v="offline">пропала сеть</button>
-          <button class="press" data-act="road" data-v="call">звонок</button>
+          <button class="press" data-sheet="road" data-v="navigator">навигатор говорит</button>
+          <button class="press" data-sheet="road" data-v="toll">шлагбаум</button>
+          <button class="press" data-sheet="road" data-v="offline">пропала сеть</button>
+          <button class="press" data-sheet="road" data-v="call">звонок</button>
         </div>
         <h3>не открывая приложение</h3>
         <a class="s-row press" href="#/widget"><span class="ic">${icon('percent', 20)}</span><span class="t">виджет и Dynamic Island</span>${icon('arrow', 18)}</a>
-        <p>На Android: «Добавить на главный экран», потом долгое нажатие на иконку — «Ставка ЦБ». На iPhone: «Команды» → «Открыть URL» с адресом <code>${location.origin}${location.pathname}?ask=rate</code> и фразой «ась» — дальше «Привет, Siri, ась».</p>
+        <p>На Android: «Добавить на главный экран», потом долгое нажатие на иконку — «Ставка ЦБ». На iPhone: «Команды» → «Открыть URL» с адресом <code>${location.origin}${location.pathname}?ask=rate</code> и фразой «ась».</p>
         <p class="s-note">Данные на ${DATA_AS_OF}. Экран не гаснет, пока приложение открыто.</p>
         <nav class="s-links"><a href="#/screens">все экраны концепта</a><a href="#/flow">user flow</a><a href="#/guide">гайд</a></nav>
       </div>`
@@ -819,8 +793,7 @@ export class AskApp {
     document.documentElement.dataset.mode = this.theme === 'night' ? 'night' : 'day'
     document.querySelector('meta[name=theme-color]')?.setAttribute('content', this.theme === 'night' ? '#000000' : '#f3f3f8')
     this.field.setTheme(this.theme)
-    this.cloud.setTheme(this.theme)
-    this.face?.setTheme(this.theme)
+    this.sparks.setTheme(this.theme)
   }
 
   private toast(t: string) {
@@ -832,68 +805,31 @@ export class AskApp {
     setTimeout(() => (el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180, fill: 'forwards' }).onfinish = () => el.remove()), 2600)
   }
 
-  // ---------------------------------------------------------------- frame loop: voice → dots, panel glow, track, captions
+  // ---------------------------------------------------------------- frame loop
+  private waveAt = 0
   private loop = () => {
     const now = performance.now()
-    const dt = Math.min(0.05, (now - this.lastFrame) / 1000)
-    this.lastFrame = now
     let lv = 0
     if (this.state === 'listening') {
       lv = this.input === 'voice' ? ears.level() : this.speakLv
-      this.cloud.level(lv)
+      this.field.level(lv)
+      this.sparks.level(lv)
     }
-    this.face?.level(lv)
-    // the moon is a small ась: it travels along the line only while the answer plays
-    if (this.state !== 'speaking') this.progressTarget = 0
-    // the panel's rim light drifts round — calmly; the cloud carries the «working» motion
-    const speed = { idle: 0.25, listening: 0.6, thinking: 1.1, speaking: 0.8, paused: 0 }[this.state]
-    if (!reduced()) this.aura = (this.aura + speed * dt * 60) % 360
-    const aura = $(this.root, '.p-aura')
-    aura.style.transform = `rotate(${this.aura.toFixed(1)}deg)`
-    aura.style.opacity = String(this.state === 'paused' ? 0.15 : this.state === 'thinking' ? 0.9 : this.state === 'listening' ? 0.6 + lv * 0.4 : 0.55)
-    const p = this.progress + (this.progressTarget - this.progress) * 0.12
-    if (Math.abs(p - this.progress) > 0.0005) {
-      this.progress = p
-      $(this.root, '.p-track').style.setProperty('--p', p.toFixed(4))
+    if (this.state !== 'speaking') this.progressTarget = this.state === 'idle' && this.last ? 1 : 0
+    this.progress += (this.progressTarget - this.progress) * 0.15
+    // the capsule's little equaliser: lime for you, lavender for ась
+    if (now - this.waveAt > 60) {
+      this.waveAt = now
+      const v = this.state === 'listening' ? lv : this.state === 'speaking' ? this.speakLv : 0
+      this.root.querySelectorAll<HTMLElement>('.k-wave i').forEach((b, k) => {
+        const s = reduced() ? 0.3 : 0.25 + Math.min(1, v * (0.6 + 0.6 * Math.abs(Math.sin(now / 140 + k * 1.3)))) * 0.75
+        b.style.transform = `scaleY(${s.toFixed(3)})`
+      })
+      if (this.state !== 'speaking') this.speakLv *= 0.6
+      $(this.root, '.a-clock').textContent = hhmm()
     }
-    this.drawWave(now, lv)
     if (this.state === 'speaking') this.renderCaptions()
     this.raf = requestAnimationFrame(this.loop)
-  }
-
-  /** the panel's line is a voice line: lime dots jump with your voice, lavender with ась's,
-   * a flat row of dots when nobody speaks */
-  private waveAt = 0
-  private drawWave(now: number, youLv: number) {
-    const cv = $<HTMLCanvasElement>(this.root, '.p-wave')
-    if (now - this.waveAt > 40) {
-      this.waveAt = now
-      const v = this.state === 'listening' ? youLv : this.state === 'speaking' ? this.speakLv : 0
-      this.wave.push(reduced() ? 0 : Math.min(1, v * 1.4))
-      this.wave.shift()
-      if (this.state !== 'speaking') this.speakLv *= 0.6
-    }
-    const w = cv.clientWidth, h = cv.clientHeight
-    if (!w) return
-    const dpr = Math.min(devicePixelRatio || 1, 2)
-    if (cv.width !== Math.round(w * dpr)) ((cv.width = Math.round(w * dpr)), (cv.height = Math.round(h * dpr)))
-    const ctx = cv.getContext('2d')!
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-    ctx.clearRect(0, 0, w, h)
-    const light = this.theme === 'light'
-    const you = this.state === 'listening'
-    const col = you ? (light ? '#2f3bff' : '#d8f26a') : this.state === 'speaking' ? (light ? '#5b55d9' : '#cbbfff') : light ? 'rgba(21,23,56,.32)' : 'rgba(255,255,255,.4)'
-    ctx.fillStyle = col
-    const n = this.wave.length, step = w / n, mid = h / 2
-    for (let i = 0; i < n; i++) {
-      const a = this.wave[i] * (h * 0.42) * (0.35 + 0.65 * (i / n)) // older values fade toward the left
-      const x = (i + 0.5) * step
-      const r = a > 1 ? 1.9 : 1.2
-      // each dot is its own path — one shared path would join them into lines
-      const dot = (y: number, rr: number) => (ctx.beginPath(), ctx.arc(x, y, rr, 0, 6.2832), ctx.fill())
-      dot(mid, r)
-      if (a > 1) (dot(mid - a, 1.9), dot(mid + a, 1.9))
-    }
   }
 
   private async keepAwake() {
@@ -915,15 +851,14 @@ export class AskApp {
     stopWake()
     voice.stop()
     this.field.destroy()
-    this.cloud.destroy()
-    this.face?.destroy()
+    this.sparks.destroy()
     this.wake?.release?.()
   }
 }
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
-/** the panel's resting status: a greeting by the time of day (video 3) */
+/** the dock's resting status before the first question: a greeting by the time of day */
 function greeting() {
   const h = new Date().getHours()
   return h >= 5 && h < 12 ? 'Доброе утро' : h >= 12 && h < 17 ? 'Добрый день' : h >= 17 && h < 23 ? 'Добрый вечер' : 'Доброй ночи'

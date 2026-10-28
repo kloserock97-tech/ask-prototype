@@ -17,12 +17,9 @@ Delivered through the `@fontsource/onest` package.
 ## three.js
 
 Copyright © 2010–2024 three.js authors (https://threejs.org). MIT License. Renders ась's particle cloud
-(`src/app/cloud.ts`). The MIT terms are the same as quoted below.
+(`src/app/cloud.ts`).
 
-## @usespaceui/squishmoji and @usespaceui/gradients
-
-Copyright (c) 2026 Space UI (https://www.spaceui.one). MIT License.
-Used for the optional «капля с глазами» look (`src/app/face.ts`).
+## MIT terms (three.js)
 
 > Permission is hereby granted, free of charge, to any person obtaining a copy of this
 > software and associated documentation files (the "Software"), to deal in the Software
@@ -40,7 +37,7 @@ Used for the optional «капля с глазами» look (`src/app/face.ts`).
 > OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 > DEALINGS IN THE SOFTWARE.
 
-Everything else — code, shaders, the dot field, sphere and figures, 3D models and
+Everything else — code, shaders, the dot field and its light, the sparks, 3D models and
 renders, texts, icons — is original work by Nikita Gorbachev and is covered by `LICENSE`.
 Build tools (Vite, TypeScript) are not shipped with the site.
 

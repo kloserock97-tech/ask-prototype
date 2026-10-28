@@ -1,34 +1,26 @@
-/* ---------- «ась?» — after the «Expiratory Volume» reference.
-   Black field of dots, a halftone sphere, the answer in solid type under it,
-   a navy panel whose lavender rim light slowly drifts round. Everything is sized
-   from the app's own box (container units): phones, tablets, landscape and the
-   desktop frame get the same composition. */
+/* ---------- «ась?» — «Light from below» (research/13).
+   A black screen; ась is a light rising from the bottom edge through a grid of dots.
+   The question, the answer and two actions stack up from the bottom like the cards
+   in video 4; a previous answer folds into a strip at the top (video 1); the dock is
+   a status capsule and ась's round button. Sized from the app's own box. */
 .app {
   --bg: #000000;
   --ink: #ffffff;
   --ink-2: #9d9db4;
-  --soft: #8e8ac6;
-  --accent: #d8f26a;
-  --you: #d8f26a; /* lime = the driver: your voice line, your words */
-  --panel: #04051a;
-  --rim-a: #a493ff;
-  --rim-b: #4b44d6;
-  --rim-c: #cbbfff;
-  --ctl: rgba(255, 255, 255, 0.075);
-  --ctl-ink: #ffffff;
-  --circle: #ffffff;
-  --circle-ink: #05060f;
-  --head-glow: 0 0 42px rgba(150, 140, 255, 0.35);
-  --knob: 15%;
-  --ring: 86%;
-  --radius: clamp(34px, 11cqmin, 54px);
+  --you: #d8f26a; /* lime is always the driver: your words, your voice */
+  --card: rgba(14, 14, 24, 0.72);
+  --card-edge-a: rgba(255, 255, 255, 0.22);
+  --card-edge-b: rgba(255, 255, 255, 0.04);
+  --ctl: rgba(255, 255, 255, 0.09);
+  --orb: #ffffff;
+  --orb-ink: #05060f;
+  --accent: #9fa6ff;
 
   position: fixed;
   inset: 0;
   container-type: size;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
-  grid-template-areas: 'top' 'stage' 'panel';
   background: var(--bg);
   color: var(--ink);
   font-family: 'Manrope', 'Onest', system-ui, sans-serif;
@@ -39,63 +31,57 @@
   -webkit-tap-highlight-color: transparent;
   transition: background-color 400ms ease, color 400ms ease;
 }
-/* light: pale lavender-grey, ink dots, a white panel lit by a soft violet rim — no hard outlines */
 .app[data-theme='light'] {
   --bg: #f3f3f8;
   --ink: #151738;
   --ink-2: #6b6d86;
-  --soft: #7a76a8;
-  --accent: #2f3bff;
   --you: #2f3bff;
-  --panel: #ffffff;
-  --rim-a: #b9adff;
-  --rim-b: #dcd6ff;
-  --rim-c: #8f86f0;
+  --card: rgba(255, 255, 255, 0.82);
+  --card-edge-a: rgba(21, 23, 56, 0.1);
+  --card-edge-b: rgba(21, 23, 56, 0.04);
   --ctl: rgba(21, 23, 56, 0.06);
-  --ctl-ink: #151738;
-  --circle: #151738;
-  --circle-ink: #ffffff;
-  --head-glow: none;
+  --orb: #151738;
+  --orb-ink: #ffffff;
+  --accent: #2f3bff;
 }
-
-.f-canvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 0;
-  display: block;
-}
-/* ась: the particle cloud, above the grid, under the text */
+.f-canvas,
 .c-canvas {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  z-index: 1;
   display: block;
   pointer-events: none;
 }
+.f-canvas {
+  z-index: 0;
+}
+.c-canvas {
+  z-index: 3;
+}
 
-/* ---------- top: keyboard · the answer's title · menu */
+/* ---------- top: keyboard · status · menu */
 .a-top {
-  grid-area: top;
   position: relative;
   z-index: 2;
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  grid-template-columns: 44px 1fr 44px;
   align-items: center;
   gap: 8px;
-  padding: calc(max(env(safe-area-inset-top), 10px) + 10px) 16px 0;
+  padding: calc(max(env(safe-area-inset-top), 10px) + 8px) 14px 6px;
 }
-.a-title {
+.a-status {
   margin: 0;
-  text-align: center;
-  font: 500 clamp(20px, 6.2cqmin, 30px) / 1.15 'Manrope', sans-serif;
-  letter-spacing: -0.015em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 8px;
+  font: 600 17px/1 'Manrope', sans-serif;
+}
+.a-status span {
+  font-weight: 400;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
 }
 .a-menu,
 .a-keys {
@@ -105,92 +91,147 @@
   display: grid;
   place-items: center;
   background: var(--ctl);
-  color: var(--ctl-ink);
+  color: var(--ink);
 }
 .app[data-compose] .a-keys {
-  background: var(--circle);
-  color: var(--circle-ink);
+  background: var(--orb);
+  color: var(--orb-ink);
 }
 
-/* ---------- stage: sphere, the answer, its line — placeholders the dot field follows */
-.a-stage {
-  grid-area: stage;
+/* ---------- the stack, growing up from the bottom */
+.k-feed {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   min-height: 0;
+  width: min(100%, 560px);
+  justify-self: center;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: clamp(6px, 2cqh, 20px);
-  padding: clamp(4px, 1.5cqh, 16px) 20px;
+  justify-content: flex-end;
+  gap: clamp(8px, 1.4cqh, 12px);
+  padding: 4px 12px clamp(8px, 1.6cqh, 14px);
 }
-/* the sphere takes whatever height is left; the field draws it at half the shorter side */
-.f-sphere {
-  position: relative;
-  flex: 1 1 0;
-  min-height: 48px;
-  width: min(68cqw, 360px);
-  max-height: min(68cqw, 360px);
+/* every card: big radius, a hairline that is lighter on top (video 4) */
+.k-past,
+.k-answer,
+.k-act,
+.k-ask {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--card), var(--card)) padding-box,
+    linear-gradient(180deg, var(--card-edge-a), var(--card-edge-b)) border-box;
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
 }
-.f-digits {
-  position: relative;
-  flex: none;
-  width: min(88cqw, 480px);
-  height: clamp(66px, 12cqh, 136px);
+.app[data-theme='light'] :is(.k-past, .k-answer, .k-act, .k-ask) {
+  box-shadow: 0 10px 30px -18px rgba(40, 40, 120, 0.35);
 }
-/* the answer in solid type: a number fills the box, a phrase sits on up to two lines */
-.a-head {
-  position: absolute;
-  inset: 0;
-  margin: 0;
+
+/* the previous answer, folded into a strip at the top (video 1) */
+.k-past {
+  margin-bottom: auto;
+  align-self: stretch;
   display: flex;
   align-items: center;
-  justify-content: center;
-  text-align: center;
-  font: 600 clamp(30px, 8.6cqmin, 46px) / 1.04 'Manrope', sans-serif;
+  gap: 10px;
+  height: 48px;
+  padding: 0 16px;
+  border-radius: 24px;
+  color: var(--ink);
+  font: 400 15px/1 'Manrope', sans-serif;
+}
+.k-past[hidden] {
+  display: none;
+}
+.k-past b {
+  font: 600 19px/1 'Manrope', sans-serif;
+  letter-spacing: -0.02em;
+}
+.k-past span {
+  flex: 1;
+  text-align: left;
+  color: var(--ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* the answer card: title · the one big thing · a line (captions while ась speaks) */
+.k-answer {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: clamp(14px, 2.4cqh, 22px) 22px clamp(16px, 2.6cqh, 24px);
+  border-radius: 32px;
+  min-height: clamp(150px, 26cqh, 240px);
+  justify-content: flex-end;
+}
+.k-answer[hidden] {
+  display: none;
+}
+.k-answer[data-draft] {
+  background: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  border-color: transparent;
+}
+.k-outline {
+  position: absolute;
+  inset: -1px;
+  width: calc(100% + 2px);
+  height: calc(100% + 2px);
+  overflow: visible;
+  pointer-events: none;
+}
+.k-outline rect {
+  width: calc(100% - 2px);
+  height: calc(100% - 2px);
+  fill: none;
+  stroke: transparent;
+  stroke-width: 1.5;
+  stroke-dasharray: 100;
+}
+.k-answer[data-draft] .k-outline rect {
+  stroke: color-mix(in srgb, var(--accent) 70%, transparent);
+}
+.k-title {
+  margin: 0;
+  font: 500 clamp(16px, 4.4cqmin, 20px) / 1.2 'Manrope', sans-serif;
+  color: var(--ink-2);
+}
+.k-head {
+  margin: 4px 0 2px;
+  min-height: 1em;
+  font: 600 clamp(32px, 9.4cqmin, 46px) / 1.05 'Manrope', sans-serif;
   letter-spacing: -0.025em;
   text-wrap: balance;
-  text-shadow: var(--head-glow);
 }
-.a-head.num {
-  font-weight: 500;
-  line-height: 1;
-  letter-spacing: -0.045em;
-  white-space: nowrap;
+.k-head.num {
+  font: 500 clamp(76px, 25cqmin, 132px) / 0.95 'Manrope', sans-serif;
+  letter-spacing: -0.05em;
   font-variant-numeric: tabular-nums;
 }
-.a-label {
-  flex: none;
+.k-answer[data-draft] .k-head {
+  display: none;
+}
+.k-sub {
   margin: 0;
-  max-width: min(88cqw, 460px);
-  min-height: 2.5em;
-  text-align: center;
-  font: 400 clamp(17px, 5cqmin, 24px) / 1.25 'Manrope', sans-serif;
-  letter-spacing: -0.01em;
+  min-height: 1.25em;
+  font: 400 clamp(17px, 4.8cqmin, 22px) / 1.25 'Manrope', sans-serif;
   color: var(--ink-2);
   text-wrap: balance;
 }
-/* your words: the newest in lime — lime is always you */
-.a-label.you {
-  color: var(--you);
+.k-sub.caps span {
+  opacity: 0.4;
+  transition: opacity 160ms ease, color 160ms ease;
 }
-.a-label .old {
-  color: var(--ink-2);
-  opacity: 0.7;
-}
-/* ась's captions: spoken words light up as the voice reaches them */
-.a-label.caps span {
-  color: var(--ink-2);
-  opacity: 0.45;
-  transition: opacity 180ms ease, color 180ms ease;
-}
-.a-label.caps span.on {
-  color: var(--ink);
+.k-sub.caps span.on {
   opacity: 1;
+  color: var(--ink);
 }
 /* «думаю»: a light runs through the step's words */
-.a-label.think {
+.k-sub.think {
   color: transparent;
   background: linear-gradient(100deg, var(--ink-2) 30%, var(--ink) 50%, var(--ink-2) 70%) 0 0 / 250% 100%;
   -webkit-background-clip: text;
@@ -205,264 +246,223 @@
     background-position: -150% 0;
   }
 }
-.a-face {
-  position: absolute;
-  inset: 12%;
-  will-change: transform;
-}
-.a-face svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
 
-/* ---------- panel: navy glass with a drifting lavender rim light */
-.a-panel {
-  grid-area: panel;
-  position: relative;
-  z-index: 2;
-  justify-self: center;
-  width: min(100% - 20px, 560px);
-  margin: 0 0 calc(max(env(safe-area-inset-bottom), 8px) + 2px);
+/* two follow-ups (video 4's small cards); they hide while a new turn is under way */
+.k-acts {
+  display: none;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.app[data-acts] .k-acts {
   display: grid;
-  grid-template-areas: 'hint' 'track' 'ctl';
-  row-gap: clamp(2px, 1.2cqh, 14px);
-  padding: clamp(14px, 2.4cqh, 26px) clamp(14px, 5cqmin, 26px) clamp(12px, 2cqh, 20px);
-  border-radius: var(--radius);
-  background: var(--rim-b);
-  overflow: hidden;
-  isolation: isolate;
 }
-.p-aura {
-  position: absolute;
-  z-index: -2;
-  left: 50%;
-  top: 50%;
-  width: 160%;
-  aspect-ratio: 1;
-  margin: -80% 0 0 -80%;
-  background: conic-gradient(from 0deg, var(--rim-a), var(--rim-b) 22%, var(--rim-c) 45%, var(--rim-b) 68%, var(--rim-a));
-  pointer-events: none;
-  will-change: transform;
-}
-/* the dark core: the rim light only shows round the edges, strongest at the corners */
-.p-glow {
-  position: absolute;
-  z-index: -1;
-  inset: 0;
-  border-radius: inherit;
-  background: radial-gradient(94% 76% at 50% 58%, var(--panel) 34%, color-mix(in srgb, var(--panel) 66%, transparent) 60%, transparent 90%);
-  box-shadow: inset 0 0 0 1px rgba(205, 195, 255, 0.35);
-  pointer-events: none;
-}
-.app[data-theme='light'] .p-glow {
-  box-shadow: inset 0 0 0 1px rgba(143, 134, 240, 0.25);
-}
-.app[data-theme='light'] .a-panel {
-  box-shadow: 0 20px 50px -24px rgba(60, 50, 160, 0.35);
-}
-.p-hint {
-  grid-area: hint;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding-top: 2px;
-  color: var(--ink);
-  text-align: center;
-}
-.app[data-theme='night'] .p-hint {
-  color: #ffffff;
-}
-.p-hint-t {
-  font: 400 clamp(17px, 5cqmin, 23px) / 1.15 'Manrope', sans-serif;
-  letter-spacing: -0.01em;
-  max-width: 15em;
-  min-height: 1.2em;
-  text-wrap: balance;
-}
-.p-tri {
-  width: 28px;
-  height: 22px;
-  fill: currentColor;
-}
-.p-tri circle {
-  animation: twinkle 3.2s ease-in-out infinite;
-  animation-delay: calc(var(--i) * -0.31s);
-}
-.app:is([data-state='listening'], [data-state='thinking'], [data-state='speaking']) .p-tri circle {
-  animation: tri 1s ease-in-out infinite;
-  animation-delay: calc(var(--i) * -0.08s);
-}
-@keyframes tri {
-  50% {
-    opacity: 0.2;
-    transform: translateY(1.5px);
-  }
-}
-@keyframes twinkle {
-  0%, 80%, 100% {
-    opacity: 1;
-  }
-  90% {
-    opacity: 0.35;
-  }
-}
-
-/* the track: thin line, the moon knob, a lime line to a lime dot, dots on to a dashed ring */
-.p-track {
-  --p: 0;
-  grid-area: track;
-  position: relative;
-  height: clamp(42px, 8cqh, 74px);
-  margin: 0 calc(clamp(14px, 5cqmin, 26px) * -1);
-}
-.p-line {
-  position: absolute;
-  left: 0;
-  width: var(--knob);
-  top: 50%;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--ink) 55%, transparent));
-}
-.app[data-theme='night'] .p-line {
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55));
-}
-/* the voice line: lime dots for you, lavender for ась, a flat row when nobody speaks */
-.p-wave {
-  position: absolute;
-  left: calc(var(--knob) + 30px);
-  width: calc(var(--ring) - var(--knob) - 64px); /* a canvas ignores left+right — it needs a width */
-  top: 0;
-  height: 100%;
-}
-.p-ring {
-  position: absolute;
-  left: var(--ring);
-  top: 50%;
-  width: clamp(44px, 13cqmin, 62px);
-  aspect-ratio: 1;
-  translate: -50% -50%;
-  border-radius: 50%;
-  border: 2px dotted rgba(255, 255, 255, 0.4);
-  animation: spin 18s linear infinite;
-}
-.app[data-theme='light'] .p-ring {
-  border-color: rgba(21, 23, 56, 0.28);
-}
-/* a small shaded moon in a slowly turning ring of dots — a little ась that rides the answer */
-.p-moon {
-  position: absolute;
-  left: calc(var(--knob) + (var(--ring) - var(--knob)) * var(--p));
-  top: 50%;
-  width: clamp(34px, 10.5cqmin, 48px);
-  aspect-ratio: 1;
-  translate: -50% -50%;
-  border-radius: 50%;
-  background: radial-gradient(circle at 68% 32%, #ffffff 0 22%, #e4e5ef 46%, #a8aac0 80%, #8e90a8 100%);
-  box-shadow: inset -2px -3px 6px rgba(0, 0, 0, 0.25);
-}
-.p-moon::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: linear-gradient(90deg, rgba(34, 36, 66, 0.95) 0 42%, rgba(34, 36, 66, 0.4) 50%, transparent 58%);
-}
-.p-moon::after {
-  content: '';
-  position: absolute;
-  inset: -9px;
-  border-radius: 50%;
-  border: 2px dotted rgba(255, 255, 255, 0.8);
-  animation: spin 14s linear infinite;
-}
-.app[data-theme='light'] .p-moon::after {
-  border-color: rgba(21, 23, 56, 0.5);
-}
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* the two controls — or, with the keyboard open, a field and a send button */
-.p-ctl {
-  grid-area: ctl;
+.k-act {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: clamp(8px, 2.6cqmin, 14px);
+  grid-template-rows: auto auto;
+  column-gap: 12px;
+  align-items: center;
+  min-height: clamp(72px, 11cqh, 92px);
+  padding: 12px 14px;
+  border-radius: 26px;
+  color: var(--ink);
+  text-align: left;
 }
-.p-round,
-.p-pill,
-.p-compose {
-  height: clamp(52px, 8.4cqh, 70px);
-  border-radius: 999px;
-  background: var(--ctl);
-  color: var(--ctl-ink);
-}
-.app[data-theme='night'] :is(.p-round, .p-pill, .p-compose) {
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
-}
-.p-round {
-  aspect-ratio: 1;
+.k-act .ic {
+  grid-row: 1 / 3;
   display: grid;
   place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--ctl);
 }
-.p-round:disabled {
-  opacity: 0.35;
+.k-act.first .ic {
+  background: var(--orb);
+  color: var(--orb-ink);
 }
-.p-pill {
+.k-act b {
+  align-self: end;
+  font: 600 clamp(17px, 4.8cqmin, 20px) / 1.1 'Manrope', sans-serif;
+}
+.k-act .s {
+  align-self: start;
+  font: 400 13px/1.25 'Manrope', sans-serif;
+  color: var(--ink-2);
+}
+
+/* your question (video 4's bottom card): lime words, the time, «думаю» dots */
+.k-ask {
+  padding: 14px 18px;
+  border-radius: 26px;
+}
+.k-q {
+  margin: 0;
+  font: 500 clamp(18px, 5cqmin, 22px) / 1.25 'Manrope', sans-serif;
+  color: var(--you);
+}
+.k-q .old {
+  color: var(--ink-2);
+}
+.k-ask[data-empty] .k-q {
+  color: var(--ink-2);
+  font-weight: 400;
+}
+.k-meta {
+  margin: 6px 0 0;
   display: flex;
   align-items: center;
-  padding: 0 7px 0 20px;
-  min-width: 0;
+  gap: 10px;
+  font: 400 13px/1 'Manrope', sans-serif;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
 }
-.p-pill[hidden],
-.p-compose[hidden] {
+.k-ask[data-empty] .k-meta {
   display: none;
 }
-.p-pill-t {
+.k-dots {
+  display: none;
+  gap: 4px;
+}
+.app[data-state='thinking'] .k-dots {
+  display: inline-flex;
+}
+.k-dots i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: wave 1.1s ease-in-out infinite;
+}
+.k-dots i:nth-child(2) { animation-delay: 0.11s; }
+.k-dots i:nth-child(3) { animation-delay: 0.22s; }
+.k-dots i:nth-child(4) { animation-delay: 0.33s; }
+.k-dots i:nth-child(5) { animation-delay: 0.44s; }
+@keyframes wave {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-3px); opacity: 1; }
+}
+
+/* ---------- the dock: a status capsule and ась's own round button (video 4) */
+.k-dock {
+  position: relative;
+  z-index: 2;
+  width: min(100% - 24px, 536px);
+  justify-self: center;
+  display: flex;
+  gap: 10px;
+  margin-bottom: calc(max(env(safe-area-inset-bottom), 8px) + 4px);
+}
+.k-cap {
   flex: 1;
-  text-align: center;
-  font: 400 clamp(18px, 5.2cqmin, 23px) / 1 'Manrope', sans-serif;
-  letter-spacing: -0.01em;
+  min-width: 0;
+  height: clamp(58px, 8.6cqh, 68px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 0 20px;
+  border-radius: 999px;
+  background: rgba(10, 10, 18, 0.62);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  transform-origin: left center;
+}
+.app[data-theme='light'] .k-cap {
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: inset 0 0 0 1px rgba(21, 23, 56, 0.08);
+}
+.app[data-compose] .k-cap {
+  display: none;
+}
+.k-cap-t {
+  font: 500 clamp(17px, 4.8cqmin, 20px) / 1 'Manrope', sans-serif;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.p-pill-i,
-.p-send {
+.k-wave {
+  display: none;
+  align-items: center;
+  gap: 3px;
+  height: 22px;
+}
+.app:is([data-state='listening'], [data-state='speaking']) .k-wave {
+  display: inline-flex;
+}
+.k-wave i {
+  width: 4px;
+  height: 22px;
+  border-radius: 2px;
+  background: var(--accent);
+  transform: scaleY(0.25);
+}
+.app[data-state='listening'] .k-wave i {
+  background: var(--you);
+}
+.k-orb {
   flex: none;
-  display: grid;
-  place-items: center;
-  width: clamp(44px, 7cqh, 56px);
+  width: clamp(58px, 8.6cqh, 68px);
   aspect-ratio: 1;
   border-radius: 50%;
-  background: var(--circle);
-  color: var(--circle-ink);
+  display: grid;
+  place-items: center;
+  background: var(--orb);
+  color: var(--orb-ink);
+  transition: background-color 200ms ease, box-shadow 300ms ease;
 }
-.p-compose {
+.app[data-state='listening'] .k-orb {
+  background: var(--you);
+  color: #05060f;
+  box-shadow: 0 0 0 8px color-mix(in srgb, var(--you) 22%, transparent);
+}
+.app[data-theme='light'][data-state='listening'] .k-orb {
+  color: #ffffff;
+}
+.k-compose {
+  flex: 1;
+  min-width: 0;
+  height: clamp(58px, 8.6cqh, 68px);
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 0 7px 0 20px;
-  min-width: 0;
+  border-radius: 999px;
+  background: var(--card);
+  box-shadow: inset 0 0 0 1px var(--card-edge-a);
+  transform-origin: right center;
 }
-.p-input {
+.k-compose[hidden] {
+  display: none;
+}
+.k-input {
   flex: 1;
   min-width: 0;
   height: 100%;
   border: 0;
   outline: 0;
   background: none;
-  color: var(--ctl-ink);
-  font: 400 clamp(17px, 5cqmin, 21px) / 1 'Manrope', sans-serif;
+  color: var(--ink);
+  font: 400 clamp(17px, 4.8cqmin, 20px) / 1 'Manrope', sans-serif;
   -webkit-user-select: text;
   user-select: text;
 }
-.p-input::placeholder {
+.k-input::placeholder {
   color: var(--ink-2);
+}
+.k-send {
+  flex: none;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--orb);
+  color: var(--orb-ink);
+}
+.app[data-compose] .k-orb {
+  display: none;
 }
 
 /* the touch mark: a white dot in a soft halo under the finger */
@@ -472,72 +472,54 @@
   width: 76px;
   height: 76px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.22);
-  box-shadow: 0 0 30px rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.18);
   opacity: 0;
   pointer-events: none;
   transform: translate(-50%, -50%);
 }
 .a-touch i {
   position: absolute;
-  inset: 20px;
+  inset: 22px;
   border-radius: 50%;
   background: #ffffff;
   box-shadow: 0 0 18px rgba(255, 255, 255, 0.8);
 }
 .app[data-theme='light'] .a-touch {
   background: rgba(47, 59, 255, 0.14);
-  box-shadow: none;
 }
 .app[data-theme='light'] .a-touch i {
   background: #2f3bff;
   box-shadow: 0 0 14px rgba(47, 59, 255, 0.4);
 }
 
-/* keyboard open: the stage shrinks to the answer, the sphere steps aside */
-.app[data-kb] .f-sphere {
-  min-height: 0;
-  flex-basis: 0;
-}
-.app[data-kb] .p-track {
+/* keyboard open: the stack keeps only the answer and the question */
+.app[data-kb] .k-acts,
+.app[data-kb] .k-past {
   display: none;
 }
 
-/* ---------- landscape (phone across the dashboard): stage left, panel right */
+/* ---------- landscape (phone across the dashboard): the answer left, the rest right */
 @media (orientation: landscape) and (max-height: 620px) {
-  .app {
-    grid-template-columns: minmax(0, 1fr) minmax(300px, 46%);
-    grid-template-rows: auto minmax(0, 1fr);
-    grid-template-areas: 'top panel' 'stage panel';
+  .k-feed {
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    grid-template-rows: auto 1fr auto auto;
+    grid-template-areas: 'past past' 'answer .' 'answer acts' 'answer ask';
+    column-gap: 12px;
+    align-items: end;
+    padding-left: max(env(safe-area-inset-left), 12px);
+    padding-right: max(env(safe-area-inset-right), 12px);
   }
-  .a-top {
-    padding-left: max(env(safe-area-inset-left), 16px);
+  .k-past { grid-area: past; }
+  .k-answer { grid-area: answer; min-height: 0; height: 100%; }
+  .k-acts { grid-area: acts; }
+  .k-ask { grid-area: ask; }
+  .k-head.num {
+    font-size: clamp(64px, 24cqh, 120px);
   }
-  .a-panel {
-    width: auto;
-    align-self: stretch;
-    align-content: space-between;
-    margin: calc(max(env(safe-area-inset-top), 8px)) max(env(safe-area-inset-right), 10px) calc(max(env(safe-area-inset-bottom), 8px)) 0;
-  }
-  .f-sphere {
-    width: min(40cqw, 300px);
-    max-height: min(40cqw, 300px);
-  }
-  .f-digits {
-    width: min(50cqw, 440px);
-    height: clamp(62px, 19cqh, 104px);
-  }
-  .a-label {
-    max-width: 48cqw;
-    min-height: 1.3em;
-  }
-  .p-track {
-    height: clamp(44px, 14cqh, 70px);
-  }
-  .p-round,
-  .p-pill,
-  .p-compose {
-    height: clamp(52px, 15cqh, 66px);
+  .k-dock {
+    width: min(100% - 24px, 760px);
   }
 }
 
@@ -556,8 +538,8 @@
   body:has(.app) {
     background: #d9dae3;
   }
-  :is(.p-round, .p-pill, .a-menu, .a-keys):hover {
-    filter: brightness(1.15);
+  :is(.k-act, .k-orb, .k-past, .a-menu, .a-keys):hover {
+    filter: brightness(1.12);
   }
 }
 
@@ -566,18 +548,18 @@
   position: absolute;
   z-index: 20;
   left: 50%;
-  top: calc(max(env(safe-area-inset-top), 10px) + 64px);
+  top: calc(max(env(safe-area-inset-top), 10px) + 60px);
   padding: 12px 18px;
   border-radius: 18px;
-  background: var(--circle);
-  color: var(--circle-ink);
+  background: var(--orb);
+  color: var(--orb-ink);
   font: 500 16px/1.3 'Manrope', sans-serif;
   width: max-content;
   max-width: min(320px, 86%);
   text-align: center;
 }
 
-/* ---------- settings sheet — the panel's navy, white round icons like the controls */
+/* ---------- settings sheet */
 .a-sheet {
   position: absolute;
   inset: 0;
@@ -600,9 +582,9 @@
   overscroll-behavior: contain;
   padding: 10px 18px calc(env(safe-area-inset-bottom) + 18px);
   border-radius: 32px 32px 0 0;
-  background: #070820;
+  background: #0b0b14;
   color: #ececf4;
-  box-shadow: inset 0 1px 0 rgba(196, 186, 255, 0.25), inset 0 30px 60px -30px rgba(118, 106, 236, 0.6);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -614,7 +596,6 @@
 .app[data-theme='light'] .s-body {
   background: #ffffff;
   color: #151738;
-  box-shadow: inset 0 30px 60px -30px rgba(143, 134, 240, 0.35);
 }
 .a-sheet.closing .s-body {
   animation: sheetout 200ms var(--ease-out) forwards;
@@ -663,8 +644,8 @@
   font: 500 15px/1 'Manrope', sans-serif;
 }
 .s-seg button[aria-current] {
-  background: var(--circle);
-  color: var(--circle-ink);
+  background: var(--orb);
+  color: var(--orb-ink);
 }
 .s-row {
   display: flex;
@@ -684,15 +665,15 @@
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  background: var(--circle);
-  color: var(--circle-ink);
+  background: var(--orb);
+  color: var(--orb-ink);
 }
 .s-row .t {
   flex: 1;
   text-align: left;
 }
 .s-row b {
-  color: var(--accent);
+  color: var(--you);
   font-weight: 600;
 }
 .s-grid {
@@ -725,10 +706,29 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .p-tri circle,
-  .p-ring,
-  .p-moon::after,
-  .a-label.think {
+  .k-dots i,
+  .k-sub.think {
     animation: none !important;
   }
+}
+
+/* before the first question: a greeting fills the top (video 3) */
+.k-hello {
+  display: none;
+  margin-bottom: auto;
+  padding: clamp(8px, 4cqh, 40px) 8px 0;
+}
+.app[data-hello] .k-hello {
+  display: block;
+}
+.k-hi {
+  margin: 0 0 8px;
+  font: 500 clamp(17px, 4.6cqmin, 20px) / 1.2 'Manrope', sans-serif;
+  color: var(--ink-2);
+}
+.k-big {
+  margin: 0;
+  font: 600 clamp(38px, 11cqmin, 56px) / 1.02 'Manrope', sans-serif;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
 }

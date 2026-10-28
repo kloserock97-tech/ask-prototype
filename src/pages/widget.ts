@@ -61,7 +61,7 @@ export class WidgetPage {
           <div class="w-sheet">
             <canvas class="w-canvas" aria-hidden="true"></canvas>
             <span class="w-glow" aria-hidden="true"></span>
-            <div class="w-sphere"></div>
+            
             <div class="w-digits"><b class="w-head"></b></div>
             <p class="w-cap"></p>
           </div>
@@ -90,9 +90,8 @@ export class WidgetPage {
     cap.textContent = ''
     over.hidden = false
     if (!this.field)
-      this.field = new Field(sheet.querySelector('.w-canvas')!, { sphere: sheet.querySelector<HTMLElement>('.w-sphere')!, digits: sheet.querySelector<HTMLElement>('.w-digits')! })
+      this.field = new Field(sheet.querySelector('.w-canvas')!)
     const f = this.field
-    f.setText('', true)
     sheet.querySelector<HTMLElement>('.w-head')!.textContent = ''
     // the sheet grows out of the widget; the home screen steps back
     const r = sheet.getBoundingClientRect()
@@ -123,12 +122,12 @@ export class WidgetPage {
     cap.className = 'w-cap'
     f.setState('speaking')
     // the dots land into the figure, then the solid type takes over
-    f.setText('14%')
+
     const head = sheet.querySelector<HTMLElement>('.w-head')!
     head.textContent = '14%'
     if (!reduced()) head.animate([{ opacity: 0, filter: 'blur(12px)', transform: 'scale(0.96)' }, { opacity: 1, filter: 'blur(0)', transform: 'none' }], { duration: 520, delay: 520, easing: EASE_OUT, fill: 'backwards' })
     if (navigator.userActivation?.hasBeenActive) navigator.vibrate?.([12, 60, 12])
-    f.wave(f.sphereCentre.x, f.sphereCentre.y, 1)
+    f.wave(f.source.x, f.source.y, 1)
     cap.textContent = 'до 18 декабря — следующего решения'
     const line = 'Четырнадцать процентов — до восемнадцатого декабря, тогда следующее решение ЦБ.'
     const t0 = performance.now()
