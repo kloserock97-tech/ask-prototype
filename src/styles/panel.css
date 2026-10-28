@@ -197,7 +197,7 @@
   position: fixed;
   z-index: 40;
   left: 50%;
-  bottom: calc(env(safe-area-inset-bottom) + 150px);
+  top: calc(env(safe-area-inset-top) + 92px);
   translate: -50% 0;
   padding: 12px 18px;
   border-radius: 20px;
