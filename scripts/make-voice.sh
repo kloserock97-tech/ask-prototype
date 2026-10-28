@@ -14,3 +14,6 @@ while IFS=$'\t' read -r id text; do
   echo "voice/$id.mp3"
 done < voice-src/lines.tsv
 rm -rf "$tmp"
+# the app reads this list to know which lines have a recording
+cut -f1 voice-src/lines.tsv | grep -v '^
+ | sed 's/.*/"&"/' | paste -sd, - | sed 's/.*/[&]/' > public/voice/index.json

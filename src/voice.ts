@@ -29,12 +29,12 @@ const missing = new Set<string>()
 const present = new Set<string>()
 
 /** find out up front which recordings exist — a fallback started after a failed load
- * runs outside the tap, and iOS keeps it silent */
+ * runs outside the tap, and iOS keeps it silent. One list, written by scripts/make-voice.sh */
 export function prepare(ids: string[]) {
-  for (const id of ids)
-    fetch(`./voice/${id}.mp3`, { method: 'HEAD' })
-      .then((r) => (r.ok && (r.headers.get('content-type') ?? '').includes('audio') ? present.add(id) : missing.add(id)))
-      .catch(() => missing.add(id))
+  fetch('./voice/index.json')
+    .then((r) => (r.ok ? r.json() : []))
+    .then((list: string[]) => ids.forEach((id) => (list.includes(id) ? present.add(id) : missing.add(id))))
+    .catch(() => ids.forEach((id) => missing.add(id)))
 }
 
 export function isOn() {
