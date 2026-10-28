@@ -1,0 +1,33 @@
+{
+  "name": "ась? — ИИ-ассистент за рулём",
+  "short_name": "ась?",
+  "description": "Голосовой ИИ-ассистент для поездки: спросите про ставку ЦБ.",
+  "lang": "ru",
+  "start_url": "./#/",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f5f5f8",
+  "theme_color": "#f5f5f8",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Ставка ЦБ",
+      "short_name": "Ставка",
+      "description": "Сразу спросить про ключевую ставку",
+      "url": "./?ask=rate#/",
+      "icons": [{ "src": "icons/shortcut-rate.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "Спросить голосом",
+      "short_name": "Спросить",
+      "description": "Открыть и сразу слушать",
+      "url": "./?ask=listen#/",
+      "icons": [{ "src": "icons/shortcut-listen.png", "sizes": "96x96", "type": "image/png" }]
+    }
+  ]
+}

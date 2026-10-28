@@ -94,11 +94,12 @@ export class Aurora {
   setState(s: S) {
     this.state = s
     this.target = {
-      idle: { height: 0.24, energy: 0.1, band: 0, speed: 0.35 },
-      listening: { height: 0.4, energy: 0.55, band: 0, speed: 0.7 },
-      thinking: { height: 0.32, energy: 0.35, band: 1, speed: 0.6 },
-      speaking: { height: 0.44, energy: 0.6, band: 0, speed: 0.6 },
-      paused: { height: 0.2, energy: 0, band: 0, speed: 0 },
+      // kept below the dot sphere: the light marks the zone, the dots carry the state
+      idle: { height: 0.2, energy: 0.1, band: 0, speed: 0.35 },
+      listening: { height: 0.3, energy: 0.55, band: 0, speed: 0.7 },
+      thinking: { height: 0.25, energy: 0.35, band: 1, speed: 0.6 },
+      speaking: { height: 0.3, energy: 0.6, band: 0, speed: 0.6 },
+      paused: { height: 0.17, energy: 0, band: 0, speed: 0 },
     }[s]
   }
 
@@ -193,7 +194,7 @@ export class Aurora {
     gl.uniform3fv(this.u.cA, c.a)
     gl.uniform3fv(this.u.cB, c.b)
     gl.uniform3fv(this.u.cCore, c.core)
-    gl.uniform1f(this.u.height, Math.min(0.9, c.height + live + breath))
+    gl.uniform1f(this.u.height, Math.min(0.46, c.height + live * 0.6 + breath))
     // brightness stays within ±8 % of the state's level: syllables come 4–5 times a second,
     // faster than the 3 flashes/s that WCAG 2.3.1 allows
     gl.uniform1f(this.u.energy, Math.min(1, c.energy + Math.min(0.08, live * 0.1)))

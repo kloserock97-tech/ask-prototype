@@ -1,0 +1,324 @@
+/* ---------- #/widget — ась outside the app: home-screen widget + Dynamic Island */
+.w-page {
+  --card: #2f3bff;
+  --card-ink: #ffffff;
+  --card-chip: rgba(255, 255, 255, 0.18);
+  --accent: #9fa6ff;
+  --ink-2: #b4b7c8;
+  --ph-edge: rgba(159, 166, 255, 0.5);
+  --fig-h: 84px;
+
+  position: fixed;
+  inset: 0;
+  background: #0b0c1a;
+  color: #f2f2f6;
+}
+.w-phone {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  isolation: isolate;
+  background: #0b0c1a;
+}
+@media (min-width: 900px) and (min-height: 760px) {
+  .w-page {
+    background: #e2e3ec;
+  }
+  .w-phone {
+    inset: auto;
+    left: 50%;
+    top: 50%;
+    translate: -50% -50%;
+    width: 402px;
+    height: min(874px, calc(100dvh - 48px));
+    border-radius: 56px;
+    box-shadow: 0 0 0 10px #101225, 0 0 0 11px #2a2d4d, 0 40px 80px -20px rgba(16, 18, 60, 0.45);
+  }
+}
+
+/* the home screen: a dusk wallpaper, generic apps, our widget first */
+.w-home {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: calc(var(--safe-t) + 4px) 22px calc(var(--safe-b) + 6px);
+  background:
+    radial-gradient(120% 60% at 50% 100%, #3a1f8f 0%, transparent 60%),
+    radial-gradient(90% 50% at 10% 0%, #1b2a8a 0%, transparent 70%),
+    linear-gradient(#0e1035, #1a1250);
+  transform-origin: 50% 40%;
+}
+.w-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 36px;
+  padding: 0 10px 0 16px;
+  font: 600 16px/1 'Onest';
+}
+.w-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 22px 14px;
+  margin-top: 26px;
+}
+.w-widget {
+  grid-column: span 2;
+  grid-row: span 2;
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 14px 14px 12px 16px;
+  border-radius: 24px;
+  background: #f5f5f8;
+  color: #0d0f1f;
+  text-align: left;
+  box-shadow: 0 12px 30px -12px rgba(0, 0, 0, 0.5);
+}
+.w-wtop {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: 700 15px/1 'Onest';
+}
+.w-worb {
+  width: 30px;
+  height: 30px;
+  margin: -2px 0 -2px -4px;
+}
+.w-wlabel {
+  margin-top: auto;
+  font: 500 14px/1 'Onest';
+  color: #545869;
+}
+.w-wfig {
+  margin: 6px 0 6px;
+  color: #2f3bff;
+}
+.w-wfig .dotfig {
+  height: 40px;
+}
+.w-wfoot {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font: 600 15px/1 'Onest';
+}
+.w-wmic {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #2f3bff;
+  color: #fff;
+}
+.w-cal {
+  grid-column: span 2;
+  grid-row: span 2;
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 16px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.12);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}
+.w-cal span {
+  font: 600 14px/1 'Onest';
+  color: #ff8a6b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.w-cal b {
+  font: 600 56px/1 'Onest';
+  letter-spacing: -0.03em;
+  margin-top: 6px;
+}
+.w-cal i {
+  margin-top: auto;
+  font: 500 13px/1.25 'Onest';
+  font-style: normal;
+  color: rgba(255, 255, 255, 0.7);
+}
+.w-app {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  font: 500 11px/1 'Onest';
+  color: rgba(255, 255, 255, 0.85);
+}
+.w-app i,
+.w-dock i {
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+.w-note {
+  margin: auto 0 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+  font: 500 13px/1.3 'Onest';
+  color: rgba(255, 255, 255, 0.6);
+}
+.w-note a {
+  padding: 10px 16px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+}
+.w-dock {
+  display: flex;
+  justify-content: space-around;
+  padding: 12px 10px;
+  border-radius: 32px;
+  background: rgba(255, 255, 255, 0.12);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}
+
+/* the island: bare, compact («•  14%») or expanded */
+.w-island {
+  position: absolute;
+  z-index: 10;
+  left: 50%;
+  top: 11px;
+  translate: -50% 0;
+  min-width: 124px;
+  height: 36px;
+  border-radius: 20px;
+  background: #000;
+  color: #fff;
+  transform-origin: 50% 0;
+}
+.w-island[data-mode='compact'] {
+  min-width: 200px;
+}
+.w-island[data-mode='expanded'] {
+  width: calc(100% - 22px);
+  max-width: 380px;
+  height: auto;
+  border-radius: 40px;
+}
+.w-iin {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+  padding: 0 16px 0 12px;
+  font: 700 17px/1 'Onest';
+}
+.w-island[data-mode='expanded'] .w-iin {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 18px 22px 20px;
+}
+.w-idot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #6f78ff;
+  box-shadow: 0 0 0 3px rgba(111, 120, 255, 0.3);
+}
+.w-ihead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 600 15px/1 'Onest';
+  color: rgba(255, 255, 255, 0.75);
+}
+.w-ibig {
+  color: #9fa6ff;
+}
+.w-ibig .dotfig {
+  height: 64px;
+}
+.w-isub {
+  font: 500 18px/1.2 'Onest';
+}
+
+/* the answer over the home screen */
+.w-over {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: flex-end;
+  padding: 0 10px calc(var(--safe-b) + 10px);
+}
+.w-over[hidden] {
+  display: none;
+}
+.w-sheet {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 16px 16px;
+  border-radius: 40px;
+  background: #14162a;
+  box-shadow: inset 0 0 0 1px rgba(159, 166, 255, 0.18), 0 30px 60px -20px rgba(0, 0, 0, 0.6);
+  transform-origin: 0 0;
+}
+.w-orb {
+  align-self: center;
+  width: 140px;
+  height: 140px;
+}
+.w-cap {
+  margin: 0;
+  min-height: 1.15em;
+  text-align: center;
+  font: 600 26px/1.15 'Onest';
+  letter-spacing: -0.02em;
+}
+.w-ans .ph-box {
+  min-height: calc(var(--fig-h) + 110px);
+}
+.w-ghost {
+  position: absolute;
+  z-index: 20;
+  margin: 0;
+  pointer-events: none;
+}
+
+.w-back {
+  position: fixed;
+  z-index: 30;
+  display: none;
+  align-items: center;
+  gap: 8px;
+  align-items: center;
+  height: 40px;
+  padding: 0 16px 0 12px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #0d0f1f;
+  font: 500 15px/1 'Onest';
+  text-decoration: none;
+}
+.w-back svg {
+  rotate: 180deg;
+}
+@media (min-width: 900px) and (min-height: 760px) {
+  .w-back {
+    display: inline-flex;
+    left: 24px;
+    top: 24px;
+  }
+}

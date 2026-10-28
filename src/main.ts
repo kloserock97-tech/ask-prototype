@@ -4,12 +4,15 @@ import './styles/park.css'
 import './styles/panel.css'
 import './styles/pages.css'
 import './styles/app.css'
+import './styles/widget.css'
 import { AskApp } from './app/app'
 import { SCREENS } from './data/screens'
 import { flow, guide, home, island, leaveGuide } from './pages/pages'
+import { WidgetPage } from './pages/widget'
 import { Player } from './player/player'
 
 let askApp: AskApp | null = null
+let widget: WidgetPage | null = null
 
 const app = document.getElementById('app')!
 const go = (hash: string) => {
@@ -22,6 +25,19 @@ function route() {
   const h = location.hash || '#/'
   const m = h.match(/^#\/p\/(\w+)/)
   leaveGuide()
+  widget?.destroy()
+  widget = null
+  if (h.startsWith('#/widget')) {
+    if (inPlayer) {
+      player.unmount()
+      inPlayer = false
+    }
+    askApp?.destroy()
+    askApp = null
+    widget = new WidgetPage()
+    app.replaceChildren(widget.root)
+    return
+  }
   // the working app lives at the root; the concept (all screens, flow, guide) behind it
   if (h === '#/' || h === '#') {
     if (inPlayer) {
