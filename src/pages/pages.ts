@@ -65,7 +65,7 @@ export function flow(): HTMLElement {
   document.documentElement.dataset.mode = 'day'
   const p = el('main', 'page flow')
   p.innerHTML = `
-    <a class="back press" href="#/">${icon.prev} главная</a>
+    <a class="back press" href="#/screens">${icon.prev} концепт</a>
     <h1 class="h1">user flow</h1>
     <p class="sub">Ядро — цикл «жду → слушаю → думаю → говорю». Всё, что приходит снаружи — навигатор, шлагбаум, звонок, сеть, усталость, — врезается в цикл и возвращает в него, не теряя разговор. Нажмите на узел — откроется экран.</p>
     <h4 class="sec">основной путь</h4>
@@ -102,7 +102,7 @@ export function island(): HTMLElement {
   document.documentElement.dataset.mode = 'day'
   const p = el('main', 'page island-page')
   p.innerHTML = `
-    <a class="back press" href="#/">${icon.prev} главная</a>
+    <a class="back press" href="#/screens">${icon.prev} концепт</a>
     <h1 class="h1">вне приложения</h1>
     <p class="sub">Телефон на торпедо чаще показывает навигатор, а не ась. Поэтому ась живёт в Dynamic Island: пиксельная мордочка показывает состояние, не закрывая карту. Приём — из Live Activity Дринкита, где этапы заказа нарисованы пиксельными символами их шрифта.</p>
     <div class="pix-row">${['idle', 'listen', 'think', 'speak', 'unsure', 'pause', 'sos'].map((s) => `<figure>${pixelFace(s, 6)}<figcaption>${{ idle: 'жду', listen: 'слушаю', think: 'думаю', speak: 'говорю', unsure: 'не уверен', pause: 'пауза', sos: 'SOS' }[s]}</figcaption></figure>`).join('')}</div>
@@ -174,7 +174,7 @@ export function guide(): HTMLElement {
     ['честно о неуверенности', 'Факт, прогноз и слух выглядят и звучат по‑разному.'],
   ]
   p.innerHTML = `
-    <a class="back press" href="#/">${icon.prev} главная</a>
+    <a class="back press" href="#/screens">${icon.prev} концепт</a>
     <h1 class="h1">гайд</h1>
     <p class="sub">Визуальный язык — по мотивам Додо и Дринкита: тихий светлый интерфейс, один громкий кобальт, вся эмоция — в тактильном 3D. Паттерны — из ИИ‑ассистентов. Правила — из исследований вождения.</p>
 

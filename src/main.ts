@@ -3,9 +3,13 @@ import './styles/player.css'
 import './styles/park.css'
 import './styles/panel.css'
 import './styles/pages.css'
+import './styles/app.css'
+import { AskApp } from './app/app'
 import { SCREENS } from './data/screens'
 import { flow, guide, home, island, leaveGuide } from './pages/pages'
 import { Player } from './player/player'
+
+let askApp: AskApp | null = null
 
 const app = document.getElementById('app')!
 const go = (hash: string) => {
@@ -18,6 +22,19 @@ function route() {
   const h = location.hash || '#/'
   const m = h.match(/^#\/p\/(\w+)/)
   leaveGuide()
+  // the working app lives at the root; the concept (all screens, flow, guide) behind it
+  if (h === '#/' || h === '#') {
+    if (inPlayer) {
+      player.unmount()
+      inPlayer = false
+    }
+    askApp?.destroy()
+    askApp = new AskApp()
+    app.replaceChildren(askApp.root)
+    return
+  }
+  askApp?.destroy()
+  askApp = null
   if (m && SCREENS[m[1]]) {
     if (!inPlayer) {
       player.mount(app, m[1])
@@ -43,7 +60,7 @@ function hintOnce() {
   } catch {
     /* storage may be unavailable — just show the hint */
   }
-  if (seen) return
+  if (seen || !inPlayer) return
   const t = document.createElement('div')
   t.className = 'hint'
   t.textContent = 'Свайп — следующий экран. Кнопки работают. Меню справа сверху — сценарии и голос.'

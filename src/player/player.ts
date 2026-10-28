@@ -154,7 +154,7 @@ export class Player {
   private resolve(go: string) {
     if (go === 'next') return this.step(1)
     if (go === 'prev') return this.step(-1)
-    if (go === 'home') return this.go('#/')
+    if (go === 'home') return this.go('#/screens')
     if (go.startsWith('#')) return this.go(go)
     const from = scenarioOf(this.current!.id).screens.indexOf(this.current!.id)
     const to = scenarioOf(go).screens.indexOf(go)
@@ -270,7 +270,7 @@ export class Player {
       </div>
       ${compact ? '' : `<div class="steps">${steps}</div>`}
       <nav class="links">
-        <a href="#/">главная</a><a href="#/flow">user flow</a><a href="#/island">вне приложения</a><a href="#/guide">гайд</a>
+        <a href="#/">приложение</a><a href="#/screens">концепт</a><a href="#/flow">user flow</a><a href="#/island">вне приложения</a><a href="#/guide">гайд</a>
       </nav>`
   }
 
