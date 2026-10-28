@@ -1,28 +1,22 @@
 /* ---------- #/widget — ась outside the app: home-screen widget + Dynamic Island */
 .w-page {
-  --card: #2f3bff;
-  --card-ink: #ffffff;
-  --card-chip: rgba(255, 255, 255, 0.18);
-  --accent: #9fa6ff;
-  --ink-2: #b4b7c8;
-  --ph-edge: rgba(159, 166, 255, 0.5);
-  --fig-h: 84px;
-
   position: fixed;
   inset: 0;
-  background: #0b0c1a;
+  background: #000;
   color: #f2f2f6;
+  font-family: 'Manrope', sans-serif;
 }
 .w-phone {
   position: absolute;
   inset: 0;
   overflow: hidden;
   isolation: isolate;
-  background: #0b0c1a;
+  container-type: size;
+  background: #000;
 }
-@media (min-width: 900px) and (min-height: 760px) {
+@media (hover: hover) and (pointer: fine) and (min-width: 900px) and (min-height: 700px) {
   .w-page {
-    background: #e2e3ec;
+    background: #d9dae3;
   }
   .w-phone {
     inset: auto;
@@ -32,7 +26,7 @@
     width: 402px;
     height: min(874px, calc(100dvh - 48px));
     border-radius: 56px;
-    box-shadow: 0 0 0 10px #101225, 0 0 0 11px #2a2d4d, 0 40px 80px -20px rgba(16, 18, 60, 0.45);
+    box-shadow: 0 0 0 10px #15161c, 0 0 0 11px #2c2d36, 0 40px 80px -20px rgba(0, 0, 0, 0.5);
   }
 }
 
@@ -42,7 +36,7 @@
   inset: 0;
   display: flex;
   flex-direction: column;
-  padding: calc(var(--safe-t) + 4px) 22px calc(var(--safe-b) + 6px);
+  padding: calc(var(--safe-t) + 4px) clamp(16px, 5.5cqw, 26px) calc(var(--safe-b) + 6px);
   background:
     radial-gradient(120% 60% at 50% 100%, #3a1f8f 0%, transparent 60%),
     radial-gradient(90% 50% at 10% 0%, #1b2a8a 0%, transparent 70%),
@@ -55,57 +49,53 @@
   align-items: center;
   height: 36px;
   padding: 0 10px 0 16px;
-  font: 600 16px/1 'Onest';
+  font: 600 16px/1 'Manrope', sans-serif;
 }
 .w-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 22px 14px;
-  margin-top: 26px;
+  gap: clamp(14px, 5cqw, 22px) clamp(10px, 3.5cqw, 16px);
+  margin-top: clamp(14px, 3cqh, 28px);
+  width: min(100%, 460px);
+  align-self: center;
 }
+/* our widget: the app's own black, grid of dots, a dotted figure */
 .w-widget {
   grid-column: span 2;
   grid-row: span 2;
   aspect-ratio: 1;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: stretch;
   padding: 14px 14px 12px 16px;
   border-radius: 24px;
-  background: #f5f5f8;
-  color: #0d0f1f;
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.13) 0.9px, transparent 1.3px) 0 0 / 7px 7px,
+    #000;
+  color: #fff;
   text-align: left;
-  box-shadow: 0 12px 30px -12px rgba(0, 0, 0, 0.5);
+  box-shadow: inset 0 0 0 1px rgba(196, 186, 255, 0.25), inset 0 0 26px 4px rgba(118, 106, 236, 0.55), 0 12px 30px -12px rgba(0, 0, 0, 0.6);
 }
 .w-wtop {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font: 700 15px/1 'Onest';
-}
-.w-worb {
-  width: 30px;
-  height: 30px;
-  margin: -2px 0 -2px -4px;
-}
-.w-wlabel {
-  margin-top: auto;
-  font: 500 14px/1 'Onest';
-  color: #545869;
+  font: 600 15px/1 'Manrope', sans-serif;
 }
 .w-wfig {
-  margin: 6px 0 6px;
-  color: #2f3bff;
-}
-.w-wfig .dotfig {
-  height: 40px;
+  display: block;
+  width: 100%;
+  height: 44%;
+  margin: auto 0 6px;
 }
 .w-wfoot {
-  width: 100%;
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  font: 600 15px/1 'Onest';
+  align-items: flex-end;
+  font: 400 12px/1.25 'Manrope', sans-serif;
+  color: #a7a3d6;
+}
+.w-wfoot b {
+  font-weight: 600;
+  font-size: 14px;
+  color: #fff;
 }
 .w-wmic {
   display: grid;
@@ -113,8 +103,8 @@
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  background: #2f3bff;
-  color: #fff;
+  background: #fff;
+  color: #05060f;
 }
 .w-cal {
   grid-column: span 2;
@@ -129,19 +119,19 @@
   backdrop-filter: blur(16px);
 }
 .w-cal span {
-  font: 600 14px/1 'Onest';
+  font: 600 13px/1 'Manrope', sans-serif;
   color: #ff8a6b;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 .w-cal b {
-  font: 600 56px/1 'Onest';
+  font: 500 clamp(44px, 14cqw, 58px) / 1 'Manrope', sans-serif;
   letter-spacing: -0.03em;
   margin-top: 6px;
 }
 .w-cal i {
   margin-top: auto;
-  font: 500 13px/1.25 'Onest';
+  font: 500 13px/1.25 'Manrope', sans-serif;
   font-style: normal;
   color: rgba(255, 255, 255, 0.7);
 }
@@ -150,15 +140,15 @@
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  font: 500 11px/1 'Onest';
+  font: 500 11px/1 'Manrope', sans-serif;
   color: rgba(255, 255, 255, 0.85);
 }
 .w-app i,
 .w-dock i {
   display: grid;
   place-items: center;
-  width: 60px;
-  height: 60px;
+  width: clamp(48px, 15cqw, 62px);
+  aspect-ratio: 1;
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.14);
   color: #fff;
@@ -170,7 +160,7 @@
   align-items: center;
   gap: 10px;
   text-align: center;
-  font: 500 13px/1.3 'Onest';
+  font: 500 13px/1.3 'Manrope', sans-serif;
   color: rgba(255, 255, 255, 0.6);
 }
 .w-note a {
@@ -184,11 +174,22 @@
 .w-dock {
   display: flex;
   justify-content: space-around;
+  width: min(100%, 460px);
+  align-self: center;
   padding: 12px 10px;
   border-radius: 32px;
   background: rgba(255, 255, 255, 0.12);
   -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
+}
+@media (orientation: landscape) and (max-height: 620px) {
+  .w-grid {
+    grid-template-columns: repeat(8, 1fr);
+    width: min(100%, 760px);
+  }
+  .w-note {
+    margin-bottom: 8px;
+  }
 }
 
 /* the island: bare, compact («•  14%») or expanded */
@@ -213,6 +214,7 @@
   max-width: 380px;
   height: auto;
   border-radius: 40px;
+  box-shadow: inset 0 0 0 1px rgba(196, 186, 255, 0.2);
 }
 .w-iin {
   display: flex;
@@ -220,7 +222,7 @@
   justify-content: space-between;
   height: 100%;
   padding: 0 16px 0 12px;
-  font: 700 17px/1 'Onest';
+  font: 600 17px/1 'Manrope', sans-serif;
 }
 .w-island[data-mode='expanded'] .w-iin {
   flex-direction: column;
@@ -232,69 +234,87 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #6f78ff;
-  box-shadow: 0 0 0 3px rgba(111, 120, 255, 0.3);
+  background: var(--lime, #d8f26a);
+  box-shadow: 0 0 10px rgba(216, 242, 106, 0.6);
 }
 .w-ihead {
   display: flex;
   align-items: center;
   gap: 8px;
-  font: 600 15px/1 'Onest';
+  font: 500 15px/1 'Manrope', sans-serif;
   color: rgba(255, 255, 255, 0.75);
 }
 .w-ibig {
-  color: #9fa6ff;
-}
-.w-ibig .dotfig {
-  height: 64px;
+  width: 160px;
+  height: 60px;
 }
 .w-isub {
-  font: 500 18px/1.2 'Onest';
+  font: 400 18px/1.2 'Manrope', sans-serif;
 }
 
-/* the answer over the home screen */
+/* the answer over the home screen: the app's panel, with its own dot field */
 .w-over {
   position: absolute;
   inset: 0;
   z-index: 5;
   display: flex;
   align-items: flex-end;
+  justify-content: center;
   padding: 0 10px calc(var(--safe-b) + 10px);
 }
 .w-over[hidden] {
   display: none;
 }
 .w-sheet {
-  width: 100%;
+  position: relative;
+  width: min(100%, 520px);
+  height: min(62cqh, 560px);
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 18px 16px 16px;
-  border-radius: 40px;
-  background: #14162a;
-  box-shadow: inset 0 0 0 1px rgba(159, 166, 255, 0.18), 0 30px 60px -20px rgba(0, 0, 0, 0.6);
+  align-items: center;
+  justify-content: center;
+  gap: 2.4cqh;
+  padding: 24px 20px;
+  border-radius: 44px;
+  background: #000;
+  overflow: hidden;
+  isolation: isolate;
   transform-origin: 0 0;
 }
-.w-orb {
-  align-self: center;
-  width: 140px;
-  height: 140px;
+@media (orientation: landscape) and (max-height: 620px) {
+  .w-sheet {
+    height: calc(100cqh - 20px);
+  }
+}
+.w-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -2;
+}
+.w-glow {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1px rgba(196, 186, 255, 0.3), inset 0 0 46px 12px rgba(118, 106, 236, 0.85);
+}
+.w-sphere {
+  width: min(50cqw, 28cqh, 240px);
+  aspect-ratio: 1;
+}
+.w-digits {
+  width: min(70cqw, 360px);
+  height: clamp(44px, 8cqh, 84px);
 }
 .w-cap {
   margin: 0;
-  min-height: 1.15em;
+  min-height: 2.4em;
+  max-width: 18em;
   text-align: center;
-  font: 600 26px/1.15 'Onest';
-  letter-spacing: -0.02em;
-}
-.w-ans .ph-box {
-  min-height: calc(var(--fig-h) + 110px);
-}
-.w-ghost {
-  position: absolute;
-  z-index: 20;
-  margin: 0;
-  pointer-events: none;
+  font: 400 clamp(18px, 5cqw, 24px) / 1.2 'Manrope', sans-serif;
 }
 
 .w-back {
@@ -303,19 +323,18 @@
   display: none;
   align-items: center;
   gap: 8px;
-  align-items: center;
   height: 40px;
   padding: 0 16px 0 12px;
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.92);
-  color: #0d0f1f;
-  font: 500 15px/1 'Onest';
+  background: #fff;
+  color: #05060f;
+  font: 500 15px/1 'Manrope', sans-serif;
   text-decoration: none;
 }
 .w-back svg {
   rotate: 180deg;
 }
-@media (min-width: 900px) and (min-height: 760px) {
+@media (hover: hover) and (pointer: fine) and (min-width: 900px) and (min-height: 700px) {
   .w-back {
     display: inline-flex;
     left: 24px;

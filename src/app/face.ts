@@ -15,16 +15,15 @@ const EXPR: Record<S, SquishExpression> = {
   paused: 'sleepy',
 }
 const BODY: Record<Theme, { body: string; eye: string }> = {
-  day: { body: '#2f3bff', eye: '#ffffff' },
   sun: { body: '#1f28d6', eye: '#ffffff' },
-  night: { body: '#6f78ff', eye: '#0b0c1a' },
+  night: { body: '#ffffff', eye: '#000000' },
 }
 const SEED = 'ась'
 
 export class DropFace {
   private engine = new SquishEngine(SEED, { shape: 'drop', expression: 'attentive' })
   private raf = 0
-  private theme: Theme = 'day'
+  private theme: Theme = 'night'
   private lv = 0
   private lastDraw = 0
   private reduced = matchMedia('(prefers-reduced-motion: reduce)').matches
