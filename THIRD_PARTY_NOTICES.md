@@ -14,6 +14,11 @@ Copyright 2021 The Onest Project Authors (https://github.com/simpals/onest).
 Licensed under the SIL Open Font License, Version 1.1 — https://openfontlicense.org.
 Delivered through the `@fontsource/onest` package.
 
+## three.js
+
+Copyright © 2010–2024 three.js authors (https://threejs.org). MIT License. Renders ась's particle cloud
+(`src/app/cloud.ts`). The MIT terms are the same as quoted below.
+
 ## @usespaceui/squishmoji and @usespaceui/gradients
 
 Copyright (c) 2026 Space UI (https://www.spaceui.one). MIT License.

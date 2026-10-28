@@ -130,7 +130,7 @@ export class WidgetPage {
     if (navigator.userActivation?.hasBeenActive) navigator.vibrate?.([12, 60, 12])
     f.wave(f.sphereCentre.x, f.sphereCentre.y, 1)
     cap.textContent = 'до 18 декабря — следующего решения'
-    const line = REPLY.rate.say.split('. ').slice(0, 2).join('. ') + '.'
+    const line = 'Четырнадцать процентов — до восемнадцатого декабря, тогда следующее решение ЦБ.'
     const t0 = performance.now()
     await voice.speak('rate-short', line, { onLevel: (lv) => f.level(lv * 0.8), onWord: () => f.pulse() })
     // no voice in this browser: hold the answer as long as it would take to say it

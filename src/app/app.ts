@@ -11,6 +11,8 @@
 import { EASE_OUT, reduced, spring } from '../motion'
 import * as voice from '../voice'
 import * as ears from './ears'
+import { Cloud } from './cloud'
+import * as earcon from './earcon'
 import { DropFace } from './face'
 import { Field } from './field'
 import { understand, type Intent } from './intents'
@@ -50,13 +52,16 @@ const TRI = `<svg class="p-tri" viewBox="0 0 28 22" aria-hidden="true">${[[14, 3
 const CHIP_ICON: Record<string, string> = { more: 'arrow', save: 'bookmark', repeat: 'repeat', listen: 'mic', rate: 'percent', advice: 'wallet' }
 const CHIP_TEXT: Record<string, string> = { more: 'Подробнее', save: 'Сохранить', repeat: 'Повторить', listen: 'Ещё вопрос', rate: 'Ставку ЦБ', advice: 'Вклады' }
 
-const WELCOME = { title: 'ась?', head: 'Спросите про ставку', sub: 'коснитесь экрана где угодно' }
+const WELCOME = { title: 'ась?', head: 'Спросите про ставку', sub: 'например: «какая ставка на месяц?»' }
 const isNumber = (s: string) => /^[\d\s.,%−-]+$/.test(s)
 
 export class AskApp {
   readonly root = document.createElement('div')
   private field: Field
+  private cloud: Cloud
   private face: DropFace | null = null
+  private wave: number[] = new Array(44).fill(0) // the panel's voice line, newest on the right
+  private speakLv = 0
   private state: State = 'idle'
   private input: Input = ears.canHear ? 'voice' : 'tap'
   private lookMode: Look = 'dots'
@@ -84,6 +89,7 @@ export class AskApp {
     this.root.className = 'app'
     this.root.innerHTML = `
       <canvas class="f-canvas" aria-hidden="true"></canvas>
+      <canvas class="c-canvas" aria-hidden="true"></canvas>
       <header class="a-top">
         <button class="a-keys press" aria-label="написать вопрос">${icon('keys', 22)}</button>
         <h1 class="a-title">ась?</h1>
@@ -98,7 +104,7 @@ export class AskApp {
         <span class="p-aura" aria-hidden="true"></span>
         <span class="p-glow" aria-hidden="true"></span>
         <div class="p-hint">${TRI}<span class="p-hint-t"></span></div>
-        <div class="p-track" aria-hidden="true"><i class="p-line"></i><i class="p-dash"></i><span class="p-ring"></span><i class="p-lime"></i><i class="p-dot"></i><span class="p-moon"></span></div>
+        <div class="p-track" aria-hidden="true"><i class="p-line"></i><canvas class="p-wave"></canvas><span class="p-ring"></span><span class="p-moon"></span></div>
         <div class="p-ctl">
           <button class="p-round press"></button>
           <button class="p-pill press"><span class="p-pill-t"></span><i class="p-pill-i"></i></button>
@@ -115,6 +121,9 @@ export class AskApp {
       digits: $(this.root, '.f-digits'),
       trail: [$(this.root, '.a-label'), $(this.root, '.a-panel')],
     })
+    // the halftone grid stays as the ground; ась itself is the particle cloud above it
+    this.field.sphereOn = false
+    this.cloud = new Cloud($(this.root, '.c-canvas'), { sphere: $(this.root, '.f-sphere'), text: $(this.root, '.f-digits') })
     voice.prepare(AUDIO_IDS)
     this.bind()
     this.applyTheme()
@@ -179,8 +188,9 @@ export class AskApp {
   /** a short vibration where the device supports it, and always a ring of dots from (x, y) */
   private buzz(pattern: number | number[], at?: { x: number; y: number }, strength = 1) {
     if (navigator.userActivation?.hasBeenActive) navigator.vibrate?.(pattern)
-    const p = at ?? this.field.sphereCentre
+    const p = at ?? this.cloud.centre
     this.field.wave(p.x, p.y, strength)
+    this.cloud.kick(strength * 0.6)
     // the panel feels it too: a quick squeeze, like the phone in the holder
     if (!reduced() && strength >= 0.8) {
       const s = spring(600, 18)
@@ -194,13 +204,15 @@ export class AskApp {
     this.state = s
     this.root.dataset.state = s
     this.field.setState(s)
+    this.cloud.setState(s)
     this.face?.setState(s)
     const waits = this.wakeOn && this.input === 'voice'
+    // the hint is a status, never a second call to action — the verb lives on the pill
     const hint: Record<State, string> = {
-      idle: waits ? 'Скажите «ась» или коснитесь' : this.input === 'voice' ? 'Коснитесь и спросите' : 'Коснитесь — спрошу за вас',
+      idle: waits ? 'Жду слово «ась»' : this.last ? 'На связи' : greeting(),
       listening: 'Слушаю',
       thinking: 'Думаю',
-      speaking: 'Коснитесь — перебить',
+      speaking: 'Отвечаю',
       paused: this.road ? ROAD[this.road].title : 'Пауза',
     }
     this.hint(this.composing ? 'За рулём — лучше голосом' : hint[s])
@@ -259,9 +271,11 @@ export class AskApp {
       this.fitHead()
       if (!reduced()) {
         if (num && event) {
-          // the dots land into the figure, then the solid type takes over (video 2: preparing → all set)
-          this.field.setText(a.head)
-          head.animate([{ opacity: 0, filter: 'blur(12px)', transform: 'scale(0.96)' }, { opacity: 1, filter: 'blur(0)', transform: 'none' }], { duration: 520, delay: 520, easing: EASE_OUT, fill: 'backwards' })
+          // the answer is born from ась: particles fly out of the cloud and build the figure,
+          // then the solid type takes over (video 2: preparing → all set)
+          this.field.setText('', true)
+          this.cloud.buildText(a.head)
+          head.animate([{ opacity: 0, filter: 'blur(14px)', transform: 'scale(0.97)' }, { opacity: 1, filter: 'blur(0)', transform: 'none' }], { duration: 380, delay: 380, easing: EASE_OUT, fill: 'backwards' })
         } else {
           this.field.setText('', true)
           head.animate([{ opacity: 0, filter: 'blur(8px)', transform: 'translateY(8px)' }, { opacity: 1, filter: 'blur(0)', transform: 'none' }], { duration: 380, delay: event ? 80 : 0, easing: EASE_OUT, fill: 'backwards' })
@@ -353,10 +367,12 @@ export class AskApp {
     stopWake()
     this.set('listening')
     this.title('Слушаю')
+    if (voice.isOn()) earcon.listen()
     for (let i = 1; i <= q.length; i++) {
       if (tk !== this.token) return
       this.caption(q.slice(0, i))
-      this.field.level(0.35 + 0.4 * Math.abs(Math.sin(i * 0.9)))
+      this.speakLv = 0.35 + 0.4 * Math.abs(Math.sin(i * 0.9))
+      this.cloud.level(this.speakLv)
       this.progressTarget = (i / q.length) * 0.92
       await wait(38)
     }
@@ -371,10 +387,20 @@ export class AskApp {
     this.set('listening')
     this.title('Слушаю')
     this.buzz(8, undefined, 0.6)
+    if (voice.isOn()) earcon.listen()
+    this.label('говорите — я слушаю', 'you')
+    let heard = false
+    // no words in 7 s (no permission prompt answered, a silent recognizer): say so instead of hanging on «Слушаю»
+    setTimeout(() => {
+      if (tk !== this.token || heard || this.state !== 'listening') return
+      this.toast('не слышу — коснитесь и скажите ещё раз')
+      if (voice.isOn()) earcon.stop()
+      this.toIdle()
+    }, 7000)
     await ears.openMeter()
     if (tk !== this.token) return
     ears.listen({
-      onPartial: (t) => tk === this.token && this.caption(t),
+      onPartial: (t) => tk === this.token && ((heard = true), this.caption(t)),
       onFinal: (t) => {
         if (tk !== this.token) return
         this.caption(t)
@@ -430,6 +456,7 @@ export class AskApp {
     this.face?.setState(r.pose === 'unsure' ? 'unsure' : 'speaking')
     this.answer(r, true)
     this.buzz([12, 60, 12])
+    if (voice.isOn()) earcon.ready()
     this.controls()
     this.progress = this.progressTarget = 0
     const t0 = performance.now()
@@ -440,8 +467,8 @@ export class AskApp {
       let timed = false
       const tick = setInterval(() => !timed && (this.progressTarget = Math.min(1, (performance.now() - t0) / est)), 120)
       await voice.speak(r.audio, r.say, {
-        onLevel: (lv) => this.field.level(lv * 0.8),
-        onWord: () => this.field.pulse(),
+        onLevel: (lv) => ((this.speakLv = lv), this.cloud.level(lv * 0.8)),
+        onWord: () => this.cloud.pulse(),
         onProgress: (p) => ((timed = true), (this.progressTarget = p)),
       })
       clearInterval(tick)
@@ -450,7 +477,8 @@ export class AskApp {
       this.speakCaptions(r.say)
       while (performance.now() - t0 < est && tk === this.token) {
         this.progressTarget = Math.min(1, (performance.now() - t0) / est)
-        this.field.pulse()
+        this.cloud.pulse()
+        this.speakLv = 0.3 + 0.3 * Math.random()
         await wait(260)
       }
     }
@@ -519,7 +547,7 @@ export class AskApp {
     const r = ROAD[k]
     this.answer(r, false)
     this.buzz(20, { x: this.root.clientWidth / 2, y: 0 }, 0.9)
-    if (r.say && voice.isOn()) voice.speak(k, r.say, { onWord: () => this.field.pulse() })
+    if (r.say && voice.isOn()) voice.speak(k, r.say, { onWord: () => this.cloud.pulse() })
     if (k === 'navigator' || k === 'toll' || k === 'call') {
       // resume by itself, from the start of the phrase
       setTimeout(() => {
@@ -566,7 +594,7 @@ export class AskApp {
     this.lookMode = l
     const host = $(this.root, '.a-face')
     host.hidden = l !== 'drop'
-    this.field.sphereOn = l === 'dots'
+    this.cloud.visible = l === 'dots'
     if (l === 'drop' && !this.face) {
       this.face = new DropFace(host)
       this.face.setTheme(this.theme)
@@ -602,8 +630,13 @@ export class AskApp {
       // a real tap: 60–700 ms, barely moved, not right after the screen changed
       if (dt < 60 || dt > 700 || Math.hypot(dx, dy) > 12) return
       if (performance.now() - this.changedAt < 300) return
+      // a finger that misses a control by a few px on a bumpy road still means that control —
+      // never «ask again»
+      const near = this.nearControl(e.clientX, e.clientY)
+      if (near) return near.click()
       if (this.composing) return this.compose(false)
       if (!voice.isOn()) voice.setOn(true) // the first gesture unlocks speech, in every mode
+      earcon.unlock()
       const r = app.getBoundingClientRect()
       this.buzz(6, { x: e.clientX - r.left, y: e.clientY - r.top }, 0.9)
       this.onTap()
@@ -626,6 +659,7 @@ export class AskApp {
       const ctl = t.closest<HTMLElement>('.p-pill, .p-round')
       if (ctl?.dataset.act) {
         if (!voice.isOn()) voice.setOn(true)
+        earcon.unlock()
         return this.control(ctl.dataset.act, ctl)
       }
       const act = t.closest<HTMLElement>('[data-act]')
@@ -651,6 +685,17 @@ export class AskApp {
     }
   }
 
+  /** the control row, grown by 16 px all round: the nearest control under a near-miss */
+  private nearControl(x: number, y: number): HTMLElement | null {
+    const row = $(this.root, '.p-ctl').getBoundingClientRect()
+    if (x < row.left - 16 || x > row.right + 16 || y < row.top - 16 || y > row.bottom + 16) return null
+    const round = $(this.root, '.p-round'), pill = this.composing ? null : $(this.root, '.p-pill')
+    if (!pill) return null
+    const split = (round.getBoundingClientRect().right + pill.getBoundingClientRect().left) / 2
+    const hit = x < split ? round : pill
+    return (hit as HTMLButtonElement).disabled ? null : hit
+  }
+
   private onTap() {
     switch (this.state) {
       case 'idle': return void this.ask()
@@ -670,7 +715,7 @@ export class AskApp {
     this.buzz(a === 'save' ? [8, 30, 8] : 6, { x: r.left - h.left + r.width / 2, y: r.top - h.top + r.height / 2 }, 0.8)
     if (a === 'compose-close') return this.compose(false)
     if (a === 'ask' || a === 'listen') return void this.ask()
-    if (a === 'stop') return this.toIdle()
+    if (a === 'stop') return void (voice.isOn() && earcon.stop(), this.toIdle())
     if (a === 'done') return ears.stopListening()
     if (a === 'resume') return this.onTap()
     if (a === 'repeat') return this.last ? void this.reply(this.last, false) : undefined
@@ -774,6 +819,7 @@ export class AskApp {
     document.documentElement.dataset.mode = this.theme === 'night' ? 'night' : 'day'
     document.querySelector('meta[name=theme-color]')?.setAttribute('content', this.theme === 'night' ? '#000000' : '#f3f3f8')
     this.field.setTheme(this.theme)
+    this.cloud.setTheme(this.theme)
     this.face?.setTheme(this.theme)
   }
 
@@ -792,28 +838,62 @@ export class AskApp {
     const dt = Math.min(0.05, (now - this.lastFrame) / 1000)
     this.lastFrame = now
     let lv = 0
-    if (this.state === 'listening' && this.input === 'voice') {
-      lv = ears.level()
-      this.field.level(lv)
-      // the track fills as you talk, like the exhale in the reference
-      this.progressTarget = Math.min(0.92, this.progressTarget + lv * 0.006)
+    if (this.state === 'listening') {
+      lv = this.input === 'voice' ? ears.level() : this.speakLv
+      this.cloud.level(lv)
     }
     this.face?.level(lv)
-    // «думаю»: the lime line scans back and forth — work in progress, not a fake percentage
-    if (this.state === 'thinking' && !reduced()) this.progressTarget = 0.5 - 0.46 * Math.cos(now / 480)
-    // the panel's rim light drifts round, faster while ась works
-    const speed = { idle: 0.25, listening: 0.6, thinking: 2.2, speaking: 0.9, paused: 0 }[this.state]
+    // the moon is a small ась: it travels along the line only while the answer plays
+    if (this.state !== 'speaking') this.progressTarget = 0
+    // the panel's rim light drifts round — calmly; the cloud carries the «working» motion
+    const speed = { idle: 0.25, listening: 0.6, thinking: 1.1, speaking: 0.8, paused: 0 }[this.state]
     if (!reduced()) this.aura = (this.aura + speed * dt * 60) % 360
     const aura = $(this.root, '.p-aura')
     aura.style.transform = `rotate(${this.aura.toFixed(1)}deg)`
-    aura.style.opacity = String(this.state === 'paused' ? 0.15 : this.state === 'thinking' ? 1 : this.state === 'listening' ? 0.6 + lv * 0.4 : 0.55)
-    const p = this.state === 'thinking' ? this.progressTarget : this.progress + (this.progressTarget - this.progress) * 0.12
+    aura.style.opacity = String(this.state === 'paused' ? 0.15 : this.state === 'thinking' ? 0.9 : this.state === 'listening' ? 0.6 + lv * 0.4 : 0.55)
+    const p = this.progress + (this.progressTarget - this.progress) * 0.12
     if (Math.abs(p - this.progress) > 0.0005) {
       this.progress = p
       $(this.root, '.p-track').style.setProperty('--p', p.toFixed(4))
     }
+    this.drawWave(now, lv)
     if (this.state === 'speaking') this.renderCaptions()
     this.raf = requestAnimationFrame(this.loop)
+  }
+
+  /** the panel's line is a voice line: lime dots jump with your voice, lavender with ась's,
+   * a flat row of dots when nobody speaks */
+  private waveAt = 0
+  private drawWave(now: number, youLv: number) {
+    const cv = $<HTMLCanvasElement>(this.root, '.p-wave')
+    if (now - this.waveAt > 40) {
+      this.waveAt = now
+      const v = this.state === 'listening' ? youLv : this.state === 'speaking' ? this.speakLv : 0
+      this.wave.push(reduced() ? 0 : Math.min(1, v * 1.4))
+      this.wave.shift()
+      if (this.state !== 'speaking') this.speakLv *= 0.6
+    }
+    const w = cv.clientWidth, h = cv.clientHeight
+    if (!w) return
+    const dpr = Math.min(devicePixelRatio || 1, 2)
+    if (cv.width !== Math.round(w * dpr)) ((cv.width = Math.round(w * dpr)), (cv.height = Math.round(h * dpr)))
+    const ctx = cv.getContext('2d')!
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+    ctx.clearRect(0, 0, w, h)
+    const light = this.theme === 'light'
+    const you = this.state === 'listening'
+    const col = you ? (light ? '#2f3bff' : '#d8f26a') : this.state === 'speaking' ? (light ? '#5b55d9' : '#cbbfff') : light ? 'rgba(21,23,56,.32)' : 'rgba(255,255,255,.4)'
+    ctx.fillStyle = col
+    const n = this.wave.length, step = w / n, mid = h / 2
+    for (let i = 0; i < n; i++) {
+      const a = this.wave[i] * (h * 0.42) * (0.35 + 0.65 * (i / n)) // older values fade toward the left
+      const x = (i + 0.5) * step
+      const r = a > 1 ? 1.9 : 1.2
+      // each dot is its own path — one shared path would join them into lines
+      const dot = (y: number, rr: number) => (ctx.beginPath(), ctx.arc(x, y, rr, 0, 6.2832), ctx.fill())
+      dot(mid, r)
+      if (a > 1) (dot(mid - a, 1.9), dot(mid + a, 1.9))
+    }
   }
 
   private async keepAwake() {
@@ -835,9 +915,16 @@ export class AskApp {
     stopWake()
     voice.stop()
     this.field.destroy()
+    this.cloud.destroy()
     this.face?.destroy()
     this.wake?.release?.()
   }
 }
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+/** the panel's resting status: a greeting by the time of day (video 3) */
+function greeting() {
+  const h = new Date().getHours()
+  return h >= 5 && h < 12 ? 'Доброе утро' : h >= 12 && h < 17 ? 'Добрый день' : h >= 17 && h < 23 ? 'Добрый вечер' : 'Доброй ночи'
+}

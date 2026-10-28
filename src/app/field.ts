@@ -107,7 +107,7 @@ void main(){
 
   // ---- the background breathes: a few grid dots glint now and then
   float gl = step(.992, h21(cell + floor(uT*.6 + h21(cell)*7.)));
-  v = max(v, gl*.35);
+  v = max(v, gl*.35*uSpot); // only while ась thinks — at rest nothing blinks at the edge of vision
 
   float rad = uPitch*(uBase + (uMaxR - uBase)*v + .07*min(push, 1.));
   float dist = length(px - c);

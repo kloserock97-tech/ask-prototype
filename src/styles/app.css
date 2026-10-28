@@ -9,6 +9,7 @@
   --ink-2: #9d9db4;
   --soft: #8e8ac6;
   --accent: #d8f26a;
+  --you: #d8f26a; /* lime = the driver: your voice line, your words */
   --panel: #04051a;
   --rim-a: #a493ff;
   --rim-b: #4b44d6;
@@ -19,7 +20,7 @@
   --circle-ink: #05060f;
   --head-glow: 0 0 42px rgba(150, 140, 255, 0.35);
   --knob: 15%;
-  --ring: 66%;
+  --ring: 86%;
   --radius: clamp(34px, 11cqmin, 54px);
 
   position: fixed;
@@ -45,6 +46,7 @@
   --ink-2: #6b6d86;
   --soft: #7a76a8;
   --accent: #2f3bff;
+  --you: #2f3bff;
   --panel: #ffffff;
   --rim-a: #b9adff;
   --rim-b: #dcd6ff;
@@ -63,6 +65,16 @@
   height: 100%;
   z-index: 0;
   display: block;
+}
+/* ась: the particle cloud, above the grid, under the text */
+.c-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  display: block;
+  pointer-events: none;
 }
 
 /* ---------- top: keyboard · the answer's title · menu */
@@ -159,8 +171,9 @@
   color: var(--ink-2);
   text-wrap: balance;
 }
+/* your words: the newest in lime — lime is always you */
 .a-label.you {
-  color: var(--ink);
+  color: var(--you);
 }
 .a-label .old {
   color: var(--ink-2);
@@ -315,19 +328,13 @@
 .app[data-theme='night'] .p-line {
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55));
 }
-.p-dash {
+/* the voice line: lime dots for you, lavender for ась, a flat row when nobody speaks */
+.p-wave {
   position: absolute;
-  left: var(--knob);
-  right: 0;
-  top: 50%;
-  height: 2px;
-  margin-top: -1px;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.45) 0.9px, transparent 1.3px) 0 50% / 8px 2px repeat-x;
-  -webkit-mask-image: linear-gradient(90deg, #000 70%, transparent);
-  mask-image: linear-gradient(90deg, #000 70%, transparent);
-}
-.app[data-theme='light'] .p-dash {
-  background-image: radial-gradient(circle, rgba(21, 23, 56, 0.35) 0.9px, transparent 1.3px);
+  left: calc(var(--knob) + 30px);
+  width: calc(var(--ring) - var(--knob) - 64px); /* a canvas ignores left+right — it needs a width */
+  top: 0;
+  height: 100%;
 }
 .p-ring {
   position: absolute;
@@ -343,33 +350,10 @@
 .app[data-theme='light'] .p-ring {
   border-color: rgba(21, 23, 56, 0.28);
 }
-.p-lime {
-  position: absolute;
-  left: var(--knob);
-  width: calc(var(--ring) - var(--knob));
-  top: 50%;
-  height: 2px;
-  margin-top: -1px;
-  background: var(--accent);
-  transform: scaleX(var(--p));
-  transform-origin: 0 50%;
-  border-radius: 1px;
-}
-.p-dot {
-  position: absolute;
-  left: calc(var(--knob) + (var(--ring) - var(--knob)) * var(--p));
-  top: 50%;
-  width: 10px;
-  height: 10px;
-  translate: -50% -50%;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 65%, transparent);
-}
-/* a small shaded moon in a slowly turning ring of dots */
+/* a small shaded moon in a slowly turning ring of dots — a little ась that rides the answer */
 .p-moon {
   position: absolute;
-  left: var(--knob);
+  left: calc(var(--knob) + (var(--ring) - var(--knob)) * var(--p));
   top: 50%;
   width: clamp(34px, 10.5cqmin, 48px);
   aspect-ratio: 1;
@@ -396,19 +380,10 @@
 .app[data-theme='light'] .p-moon::after {
   border-color: rgba(21, 23, 56, 0.5);
 }
-.app[data-state='thinking'] .p-moon::after,
-.app[data-state='thinking'] .p-ring {
-  animation-duration: 2.4s;
-}
 @keyframes spin {
   to {
     transform: rotate(360deg);
   }
-}
-.app[data-state='paused'] .p-lime,
-.app[data-state='paused'] .p-dot {
-  background: #6b6d84;
-  box-shadow: none;
 }
 
 /* the two controls — or, with the keyboard open, a field and a send button */
