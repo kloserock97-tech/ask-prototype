@@ -110,8 +110,7 @@
   flex-direction: column;
 }
 .gr[data-view='chat'] .gr-chat,
-.gr[data-view='drive'] .gr-drive,
-.gr[data-view='summary'] .gr-sum {
+.gr[data-view='drive'] .gr-drive {
   display: flex;
 }
 
@@ -256,24 +255,7 @@
   gap: 2px;
   margin-top: 8px;
 }
-.gr-later {
-  margin-left: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  border-radius: 999px;
-  background: var(--l2) !important;
-  font-size: 14px !important;
-  font-weight: 500;
-}
-.gr-later .gr-i {
-  width: 16px;
-  height: 16px;
-}
-.gr-later.is-on {
-  color: var(--bl) !important;
-}
+
 .gr-presence {
   display: flex;
   align-items: center;
@@ -392,52 +374,6 @@
   transform: scale(0.94);
 }
 
-.gr-banner {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 0 12px 8px;
-  padding: 14px;
-  border-radius: 22px;
-  background: var(--tint);
-  border: 1px solid rgba(79, 99, 216, 0.7);
-  animation: gr-in 320ms var(--ease);
-}
-.gr-banner > .gr-i {
-  color: var(--bl);
-}
-.gr-banner span {
-  flex: 1;
-  min-width: 0;
-}
-.gr-banner b {
-  display: block;
-  font-size: 15px;
-  line-height: 1.3;
-}
-.gr-banner small {
-  font-size: 13px;
-  color: var(--t2);
-}
-.gr-count {
-  width: 40px;
-  height: 40px;
-  flex: none;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  border: 3px solid var(--bl);
-  font-size: 17px;
-  font-weight: 700;
-  font-style: normal;
-}
-.gr-banner button {
-  padding: 9px 14px;
-  border-radius: 999px;
-  background: var(--l3) !important;
-  font-size: 14px;
-  font-weight: 600;
-}
 @keyframes gr-in {
   from {
     opacity: 0;
@@ -560,17 +496,9 @@ a.gr-nav {
 .gr-row.is-open b {
   color: var(--t1);
 }
-.gr-row.is-trip {
-  background: var(--tint) !important;
-  box-shadow: inset 0 0 0 1px rgba(79, 99, 216, 0.5);
-}
-.gr-row.is-trip b {
-  color: var(--t1);
-}
-.gr-row.is-trip small,
-.gr-row.is-trip > .gr-i {
-  color: var(--bl);
-}
+
+
+
 .gr-none {
   margin: 4px 12px;
   font-size: 14px;
@@ -796,8 +724,7 @@ a.gr-nav {
 
 /* ───────── «В дороге» */
 
-.gr-drive,
-.gr-sum {
+.gr-drive {
   background: var(--bg2);
   user-select: none;
   -webkit-user-select: none;
@@ -843,15 +770,8 @@ a.gr-nav {
   box-shadow: inset 0 0 0 1px rgba(79, 99, 216, 0.7);
   color: var(--bl);
 }
-.gr-clock {
-  margin-left: auto;
-  font-size: 14px;
-  color: var(--t3);
-  white-space: nowrap;
-}
-.gr-top:has(.gr-status:not([hidden])) .gr-clock {
-  display: none;
-}
+
+
 .gr-status {
   margin-left: auto;
   white-space: nowrap;
@@ -897,8 +817,7 @@ a.gr-nav {
   animation: gr-breathe 4s ease-in-out infinite;
 }
 .gr-mid .gr-label,
-.gr-first .gr-label,
-.gr-sum .gr-label {
+.gr-first .gr-label {
   align-self: center;
   margin-bottom: 2.4cqh;
   font-size: 13px;
@@ -969,13 +888,8 @@ a.gr-nav {
 .gr-phrase.is-dim {
   color: var(--t2);
 }
-.gr-phrase.is-k span {
-  color: var(--t4);
-  transition: color 180ms ease-out;
-}
-.gr-phrase.is-k span.on {
-  color: var(--t1);
-}
+
+
 .gr-ask {
   margin: 1.6cqh 0 0;
   font-size: 18px;
@@ -1021,66 +935,6 @@ a.gr-nav {
 .gr-btn.is-primary {
   background: var(--br) !important;
   color: #fff !important;
-}
-
-.gr-call {
-  position: absolute;
-  top: calc(env(safe-area-inset-top) + 8px);
-  left: 8px;
-  right: 8px;
-  z-index: 6;
-  animation: gr-in 320ms var(--ease);
-}
-.gr-call-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
-  border-radius: 30px;
-  background: #2c2c31;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
-}
-.gr-call-av {
-  width: 52px;
-  height: 52px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--l4);
-  font-size: 20px;
-  font-weight: 700;
-}
-.gr-call-who {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-.gr-call-who b {
-  font-size: 17px;
-}
-.gr-call-who small {
-  font-size: 14px;
-  color: var(--t2);
-}
-.gr-call-b {
-  width: 52px;
-  height: 52px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  color: #fff !important;
-}
-.gr-call-b.is-no {
-  background: #ef4444 !important;
-}
-.gr-call-b.is-no .gr-i {
-  transform: rotate(135deg);
-}
-.gr-call-b.is-yes {
-  background: #22c55e !important;
-}
-.gr-drive.is-talking .gr-call-b.is-yes {
-  display: none;
 }
 
 .gr-first {
@@ -1168,60 +1022,9 @@ a.gr-nav {
   margin-top: 2.4cqh;
 }
 
-/* ───────── on a stop */
-
-.gr-sum .gr-char {
-  margin-top: 4cqh;
-}
-.gr-sum-h {
-  margin: 0 32px 2.6cqh;
-  font-size: clamp(28px, 8.8cqw, 34px);
-  font-weight: 700;
-  line-height: 1.15;
-  letter-spacing: -0.03em;
-}
-.gr-sum-p {
-  margin: 0 32px;
-  font-size: 15px;
-  line-height: 1.5;
-  color: var(--t2);
-}
-.gr-card {
-  display: grid !important;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  margin: 0 16px 10px;
-  padding: 16px 18px !important;
-  border-radius: 20px;
-  background: var(--l1) !important;
-  border: 1px solid var(--line) !important;
-  text-align: left;
-}
-.gr-card b {
-  font-size: 17px;
-  font-weight: 600;
-}
-.gr-card small {
-  grid-row: 2;
-  font-size: 14px;
-  color: var(--t3);
-}
-.gr-card .gr-i {
-  grid-row: 1 / 3;
-  grid-column: 2;
-  width: 20px;
-  height: 20px;
-  color: var(--t3);
-}
-.gr-sum-foot {
-  margin-top: auto;
-  padding: 0 16px calc(env(safe-area-inset-bottom) + 3cqh);
-}
-
 /* a phone on its side: text on the left, the button on the right */
 @container (orientation: landscape) {
-  .gr-drive .gr-char,
-  .gr-sum .gr-char {
+  .gr-drive .gr-char {
     display: none;
   }
   .gr-mid {
@@ -1264,4 +1067,124 @@ a.gr-nav {
   .gr-sug b {
     font-size: 14px;
   }
+}
+
+/* ───────── v2 after the roast (research/20) */
+
+/* a trip chat is an ordinary conversation; only the car icon tells it apart */
+.gr-row.is-trip > .gr-i {
+  color: var(--bl);
+}
+
+/* a system-style notification: the same surface Android and iOS give an app over the navigator */
+.gr-note {
+  position: absolute;
+  top: calc(env(safe-area-inset-top) + 8px);
+  left: 8px;
+  right: 8px;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px 16px;
+  border-radius: 24px;
+  background: #2c2f37;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55);
+  animation: gr-note-in 320ms var(--ease);
+}
+.gr-note[hidden] {
+  display: none;
+}
+.gr-note header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.gr-note header img {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  object-fit: cover;
+  background: var(--tint);
+}
+.gr-note header small {
+  font-size: 13px;
+  color: var(--t2);
+}
+.gr-note > b {
+  font-size: 17px;
+  font-weight: 600;
+}
+.gr-note > span {
+  font-size: 14px;
+  line-height: 1.45;
+  color: #d4d4d8;
+}
+.gr-note-b {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.gr-note-b button {
+  flex: 1;
+  min-height: 44px;
+  border-radius: 999px;
+  background: #3f434c !important;
+  font-size: 15px !important;
+  font-weight: 600;
+}
+.gr-note-b button.is-primary {
+  background: var(--br) !important;
+  color: #fff !important;
+}
+@keyframes gr-note-in {
+  from {
+    opacity: 0;
+    transform: translateY(-16px) scale(0.98);
+  }
+}
+
+/* the mode chip is also the way out: «✕» is always there */
+.gr-chip-x {
+  width: 16px !important;
+  height: 16px !important;
+  margin-left: 2px;
+  color: var(--t2) !important;
+}
+.gr-notdriver {
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--l2) !important;
+  font-size: 14px !important;
+  font-weight: 500;
+  white-space: nowrap;
+}
+/* the first visible thing after the chip takes the free space */
+.gr-top .gr-more {
+  margin-left: auto;
+}
+.gr-top :is(.gr-notdriver, .gr-status):not([hidden]) {
+  margin-left: auto;
+}
+.gr-top :is(.gr-notdriver, .gr-status):not([hidden]) ~ .gr-more,
+.gr-top .gr-notdriver:not([hidden]) ~ .gr-status {
+  margin-left: 0;
+}
+
+/* one anchor on screen; lines may break where the text says so */
+.gr-phrase {
+  white-space: pre-line;
+}
+.gr-phrase:empty {
+  display: none;
+}
+.gr-big:not([hidden]) ~ .gr-cap {
+  font-size: clamp(17px, 5cqw, 20px);
+  font-weight: 500;
+}
+/* a state badge and «Я не за рулём» never crowd the bar: the badge wins */
+.gr-top:has(.gr-status:not([hidden])) .gr-notdriver {
+  display: none;
 }

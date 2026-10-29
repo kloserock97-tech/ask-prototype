@@ -1,23 +1,26 @@
 // Ась: a chat-only AI companion (ChatGPT / Grok layout) with a «В дороге» mode.
-// research/16 and research/17 describe the flow; Figma page «08 · Компаньон».
-//   chat     — empty state, answers with fact / forecast / rumour labels, ≡ menu, «+» sheet
-//   entry    — Bluetooth sheet, «you are moving» banner with a 3 s cancel, manual «В дорогу»
-//   drive    — one screen: anchor + the sentence that plays; the horizon light carries the state
-//   summary  — on a stop; the trip chat pins itself in the menu
-// Rule: Ась may simplify the screen on its own, but never opens the microphone without consent.
+// Flow v2 after the roast (research/20, Figma page «08 · Компаньон», rows V2 A–E):
+//   chat   — answers with fact / forecast / rumour labels, ≡ menu of conversations only;
+//            the only manual way in is the «В дорогу» tile, shown when a car signal is on
+//   entry  — two signals: car stereo (parked → a system-style notification) and motion
+//            (app open → switch at once, no countdown, no question on the move)
+//   drive  — one screen, one anchor (a number or a word); everything else is spoken.
+//            A tap anywhere only silences; asking is the button or «Ась» after consent
+//   after  — parking (stereo off, route done, «приехали») → one notification → the trip chat
+// Rules: on the move nothing asks to read or choose; «Ась» is heard only after consent given
+// while parked; the navigator, a call and the system come first.
 
 import * as voice from '../voice'
 import * as ears from '../app/ears'
 import * as earcon from '../app/earcon'
 import { canWake, startWake, stopWake } from '../app/wake'
 import { Horizon, type Glow } from './horizon'
-import { CHAIN, DATA_AS_OF, DEMO, FULL, LINE, SOURCES, TOPIC_TITLE, VOICE_IDS, understand, type Chunk, type Intent, type Tag, type Topic } from './talk'
+import { CHAIN, DATA_AS_OF, DEMO, FULL, LINE, SOURCES, VOICE_IDS, understand, type Chunk, type Intent, type Tag, type Topic } from './talk'
 
 type Msg = { who: 'me' | 'ai'; text?: string; topic?: Topic; voice?: boolean; time: string; saved?: string; tag?: Tag }
 type Chat = { id: number; title: string; when: string; pinned?: boolean; trip?: boolean; voice?: boolean; msgs: Msg[] }
-type Mode = 'ready' | 'listen' | 'think' | 'speak' | 'pause' | 'quiet' | 'offline' | 'denied' | 'call'
-type View = 'chat' | 'drive' | 'summary'
-type Auto = 'ask' | 'always' | 'never'
+type Mode = 'ready' | 'listen' | 'think' | 'speak' | 'pause' | 'offline' | 'denied' | 'call' | 'nav'
+type View = 'chat' | 'drive'
 
 const IC: Record<string, string> = {
   menu: 'M4 8h16M4 16h11',
@@ -123,15 +126,15 @@ const TAG_CLS: Record<Tag['kind'], string> = { fact: 'is-fact', forecast: 'is-fo
 const SEED: Chat[] = [
   {
     id: 1,
-    title: 'Подарок маме к 14 апреля',
+    title: 'Подарок маме к 14 ноября',
     when: 'вчера',
     pinned: true,
     msgs: [
       { who: 'me', text: 'Подбери подарок маме до 3000 ₽, она любит сад', time: '18:20' },
-      { who: 'ai', text: 'Три варианта до 3000 ₽ с доставкой до 13 апреля: садовые ножницы, семена редких томатов с книгой про рассаду, коленная подушка с перчатками. Заказать первый? Без вашего «да» ничего не оплачу.', time: '18:20' },
+      { who: 'ai', text: 'Три варианта до 3000 ₽ с доставкой до 13 ноября: садовые ножницы, семена редких томатов с книгой про рассаду, коленная подушка с перчатками. Ссылки на магазины — в источниках.', time: '18:20' },
     ],
   },
-  { id: 2, title: 'Анализ встречи с Сергеем', when: 'сегодня, 12:04', msgs: [{ who: 'me', text: 'Разбери встречу с Сергеем', time: '12:04' }, { who: 'ai', text: 'Сергей хочет пилот на 2 недели, запуск — до конца квартала. Черновик письма готов, отправлю только после вашего «да».', time: '12:04' }] },
+  { id: 2, title: 'Анализ встречи с Сергеем', when: 'сегодня, 12:04', msgs: [{ who: 'me', text: 'Разбери встречу с Сергеем', time: '12:04' }, { who: 'ai', text: 'Сергей хочет пилот на 2 недели, запуск — до конца квартала. Черновик письма ниже — скопируйте и отправьте.', time: '12:04' }] },
   { id: 3, title: 'Напомнить Сергею про пилот', when: 'сегодня, 09:15', voice: true, msgs: [{ who: 'me', text: 'Напомни завтра позвонить Сергею про пилот', voice: true, time: '09:15' }, { who: 'ai', text: 'Напомню завтра в 10:00.', time: '09:15' }] },
   { id: 4, title: 'Тарифы на интернет', when: 'вчера', msgs: [{ who: 'me', text: 'Сравни тарифы на домашний интернет', time: '11:02' }, { who: 'ai', text: 'Нашёл три тарифа дешевле вашего на 200–350 ₽ при той же скорости. Показать?', time: '11:02' }] },
 ]
@@ -146,14 +149,12 @@ export class GrifApp {
   private open: Chat | null = null // the chat on screen; null = new empty chat
   private conv: Chat | null = null // where the drive conversation is written
   private trip: Chat | null = null
-  private tripStart = 0
-  private clock = 0
   private md: Mode = 'ready'
   private tok = 0 // bumps on every interruption; stale async steps check it
   private topic: Topic | null = null
   private idx = 0
   private last: Chunk | null = null // the last answer chunk, for «повтори»
-  private pending: null | 'next' | 'save' | 'clarify' | 'resume' = null
+  private pending: null | 'next' | 'save' | 'resume' | 'queued' = null
   private saved = new Set<Topic>()
   private demo = 0
   private micOK = false
@@ -164,13 +165,14 @@ export class GrifApp {
   private changedAt = 0
   private down: { x: number; y: number; t: number; id: number } | null = null
   private meterRaf = 0
-  private auto: Auto = (store.get('gr-auto') as Auto) || 'ask'
-  private signals: Record<string, boolean> = JSON.parse(store.get('gr-signals') || '{"bt":true,"motion":true,"focus":false,"nfc":true,"charge":false}')
+  private autoOn = store.get('gr-auto-on') !== '0' // switch on by itself (motion, car stereo)
+  private wakeOn = store.get('gr-wake') === '1' // answer to «Ась»: consent given once, while parked
+  private inCar = false // a car signal is on: the «В дорогу» tile shows in the new chat
   private geoWatch = 0
   private fastSince = 0
-  private stillSince = 0
-  private declined = false
-  private bannerTimer = 0
+  private declined = false // «Я пассажир» / «Я не за рулём»: not again this trip
+  private autoEntered = false // the mode switched on by itself: offer «Я не за рулём» once
+  private noteTimer = 0
   private firstDone = store.get('gr-first') === '1'
   private soundOn = true
 
@@ -211,7 +213,6 @@ export class GrifApp {
       <div class="gr-title"></div>
       <button class="gr-ib" data-act="new" aria-label="Новый чат">${ic('edit')}</button>
     </header>
-    <div class="gr-banner" hidden></div>
     <div class="gr-thread"></div>
     <div class="gr-sugs"></div>
     <form class="gr-comp" autocomplete="off">
@@ -229,12 +230,10 @@ export class GrifApp {
   <section class="gr-drive" aria-label="В дороге">
     <canvas class="gr-hz" aria-hidden="true"></canvas>
     <header class="gr-top">
-      <button class="gr-chip" data-act="chip">${ic('car')}<span class="gr-chip-t">В дороге</span></button>
-      <span class="gr-clock"></span>
+      <button class="gr-chip" data-act="exit" aria-label="Выйти из режима">${ic('car')}<span class="gr-chip-t">В дороге</span>${ic('x', 'gr-chip-x')}</button>
+      <button class="gr-notdriver" data-act="notdriver" hidden>Я не за рулём</button>
       <span class="gr-status" hidden></span>
-      <button class="gr-ib gr-tb" data-act="cc" aria-label="Субтитры" aria-pressed="true">${ic('cc')}</button>
-      <button class="gr-ib gr-tb is-blue" data-act="voice-sheet" aria-label="Голос и скорость">${ic('sliders')}</button>
-      <button class="gr-ib gr-more" data-act="road" aria-label="Что может случиться в дороге">${ic('more')}</button>
+      <button class="gr-ib gr-more" data-act="road" aria-label="Демо: что может случиться в дороге">${ic('more')}</button>
     </header>
     <div class="gr-mid" aria-live="polite">
       <img class="gr-char" alt="" src="${CHAR('neutral')}">
@@ -252,29 +251,22 @@ export class GrifApp {
       <p class="gr-ring-l">АСЬ СЛУШАЕТ…</p>
       <button class="gr-ring" data-act="main" aria-label="Стоп">${RING}<span class="gr-ring-core">${ic('mic')}</span></button>
     </div>
-    <div class="gr-call" hidden>
-      <div class="gr-call-card">
-        <span class="gr-call-av">М</span>
-        <span class="gr-call-who"><b>Мама</b><small class="gr-call-st">мобильный</small></span>
-        <button class="gr-call-b is-no" data-act="call-end" aria-label="Отклонить">${ic('phone')}</button>
-        <button class="gr-call-b is-yes" data-act="call-take" aria-label="Ответить">${ic('phone')}</button>
-      </div>
-    </div>
     <div class="gr-first" hidden>
       <img class="gr-first-char" alt="" src="${CHAR('happy')}">
-      <div class="gr-label">ПЕРЕД ДОРОГОЙ</div>
+      <div class="gr-label">ПЕРВЫЙ РАЗ · МАШИНА СТОИТ</div>
       <h2 class="gr-first-h">Три слова —<br>и руки на руле</h2>
       <ul class="gr-rules">
-        <li>${ic('hand')}<b>«Ась» или касание</b><span>в любом месте экрана — спросить</span></li>
-        <li>${ic('stop')}<b>«Стоп»</b><span>замолчать сразу, даже на полуслове</span></li>
-        <li>${ic('bookmark')}<b>«Сохрани»</b><span>прочитаете в чате поездки на остановке</span></li>
+        <li>${ic('mic')}<b>«Ась» или кнопка</b><span>спросить</span></li>
+        <li>${ic('stop')}<b>«Стоп»</b><span>или касание где угодно — тишина</span></li>
+        <li>${ic('bookmark')}<b>«Сохрани»</b><span>отмечу в чате поездки</span></li>
       </ul>
+      <button class="gr-li gr-tg gr-first-wake is-on" data-act="first-wake">${ic('mic')}<span><b>Отзываться на «Ась»</b><small>слушаю только это слово, на телефоне</small></span><i></i></button>
       <div class="gr-checks"></div>
-      <button class="gr-btn is-primary" data-act="go">${ic('car')}<span class="gr-btn-t">Поехали</span></button>
+      <button class="gr-btn is-primary" data-act="go"><span class="gr-btn-t">Понятно</span></button>
     </div>
   </section>
 
-  <section class="gr-sum" aria-label="Остановка"></section>
+  <div class="gr-note" role="alert" hidden></div>
 
   <div class="gr-scrim" data-act="close" hidden></div>
   <aside class="gr-drawer" aria-label="Меню"></aside>
@@ -337,7 +329,7 @@ export class GrifApp {
       if (e.key === 'Escape') this.closeAll()
       if (this.view === 'drive' && (e.key === ' ' || e.key === 'Enter') && !(e.target as HTMLElement).closest('button,input')) {
         e.preventDefault()
-        this.tap()
+        this.mainButton()
       }
     })
   }
@@ -364,24 +356,16 @@ export class GrifApp {
       case 'dictate': return this.dictate()
       case 'sug': return el.dataset.drive ? this.enterDrive('drive') : this.ask(el.dataset.q!)
       case 'chat': this.closeAll(); return this.openChat(this.chats.find((c) => c.id === Number(el.dataset.id)) ?? null)
-      case 'to-drive': this.closeAll(); return this.enterDrive('drive')
       case 'signals': return this.sheetSignals()
       case 'settings': return this.sheetSettings()
       case 'modes': return this.sheet(`<h2 class="gr-sh-h">Режим</h2>
-        <button class="gr-li" data-act="close">${ic('edit')}<span><b>Чат</b><small>текстом и голосом, ответы полные</small></span>${ic('check')}</button>
-        <button class="gr-li is-accent" data-act="to-drive">${ic('car')}<span><b>В дороге</b><small>голосом, коротко, крупно</small></span></button>`)
+        <button class="gr-li" data-act="close">${ic('edit')}<span><b>Чат</b><small>текстом, ответы полные</small></span>${ic('check')}</button>
+        <button class="gr-li" data-act="voice">${ic('wave')}<span><b>Голосом</b><small>в машине сам станет «В дороге»</small></span></button>`)
       case 'deep': {
         const on = el.getAttribute('aria-pressed') !== 'true'
         el.setAttribute('aria-pressed', String(on))
         return this.toast(on ? 'Подумаю дольше над следующим вопросом' : 'Обычный режим')
       }
-      case 'cc': {
-        this.subs = !this.subs
-        el.setAttribute('aria-pressed', String(this.subs))
-        this.q('.gr-drive').classList.toggle('no-subs', !this.subs)
-        return this.toast(this.subs ? 'Фраза на экране — включена' : 'Только голос и опорная цифра')
-      }
-      case 'voice-sheet': return this.sheetVoice()
       case 'vpick':
         this.pick = el.dataset.v as VoicePick
         this.root.querySelectorAll('.gr-vcard').forEach((c) => c.classList.toggle('is-on', c === el))
@@ -389,28 +373,25 @@ export class GrifApp {
       case 'vplay': return this.previewVoice()
       case 'vapply': return this.applyVoice()
       case 'signal': return this.signal(el.dataset.sig!)
-      case 'auto': this.auto = el.dataset.v as Auto; store.set('gr-auto', this.auto); return this.sheetSettings()
-      case 'toggle': return this.toggleSignal(el.dataset.sig!)
+      case 'toggle': return this.toggleSetting(el.dataset.k!)
       case 'sound': return this.sheetVoice()
-      case 'bt-yes': this.closeAll(); return this.enterDrive('drive')
-      case 'bt-no': this.declined = true; return this.closeAll()
-      case 'banner-cancel': return this.cancelBanner()
+      case 'note-yes': this.hideNote(); return this.enterDrive('drive')
+      case 'note-no': this.declined = true; this.hideNote(); return this.toast('Понял. До конца поездки не спрашиваю')
+      case 'note-trip': this.hideNote(); return this.openTripChat()
       case 'demo-tile': return this.toast('В прототипе этого нет')
       case 'copy': return this.copyMsg(Number(el.dataset.i))
       case 'listen-msg': return this.readMsg(Number(el.dataset.i))
-      case 'later': return this.laterMsg(Number(el.dataset.i))
       // drive
-      case 'chip': return this.flavor === 'voice' ? this.toDriveFlavor() : undefined
+      case 'exit': return this.exitDrive()
+      case 'notdriver':
+        this.declined = true
+        this.exitDrive()
+        return this.toast('Понял, вы не за рулём. В этой поездке не включаюсь сам')
       case 'road': return this.sheetRoad()
       case 'main': return this.mainButton()
+      case 'first-wake': return void el.classList.toggle('is-on')
       case 'go': return this.firstGo()
       case 'road-ev': this.closeAll(); return this.road(el.dataset.ev!)
-      case 'call-end': return this.endCall()
-      case 'call-take': return this.takeCall()
-      // summary
-      case 'trip-chat': return this.openTripChat()
-      case 'continue': return this.enterDrive('drive')
-      case 'sum-topic': return this.openTripChat()
     }
   }
 
@@ -447,7 +428,9 @@ export class GrifApp {
         ]
           .map((s) => `<button class="gr-tile" data-act="sug" data-q="${esc(s[2])}">${ic(s[0])}<b>${s[1]}</b></button>`)
           .join('') +
-        `<button class="gr-tile is-drive" data-act="sug" data-drive="1">${ic('car')}<b>В дорогу</b></button><button class="gr-tile" data-act="voice">${ic('wave')}<b>Голосом</b></button>`
+        // the only manual way into the mode inside the app — and only when the phone is in a car
+        (this.inCar ? `<button class="gr-tile is-drive" data-act="sug" data-drive="1">${ic('car')}<b>В дорогу</b></button>` : '') +
+        `<button class="gr-tile" data-act="voice">${ic('wave')}<b>Голосом</b></button>`
       sugs.hidden = false
       return
     }
@@ -463,11 +446,10 @@ export class GrifApp {
       ? FULL[m.topic].map((p) => `<p><b class="${TAG_CLS[p.kind]}">${p.label}</b> ${esc(p.text)}</p>`).join('') +
         `<div class="gr-srcs">${SOURCES[m.topic].map((s) => `<a href="${s.url}" target="_blank" rel="noopener">${ic('link')}${s.name}</a>`).join('')}</div><small class="gr-asof">Данные на ${DATA_AS_OF}</small>`
       : `<p>${esc(m.text ?? '')}</p>`
-    const mark = m.saved ? `<div class="gr-mark">${ic('bookmark')} Сохранено в дороге · ${m.saved}</div>` : ''
+    const mark = m.saved ? `<div class="gr-mark">${ic('bookmark')} Отмечено «сохрани» · ${m.saved}</div>` : ''
     const acts = `<div class="gr-acts">
       <button class="gr-ib is-s" data-act="copy" data-i="${i}" aria-label="Копировать">${ic('copy')}</button>
-      <button class="gr-ib is-s" data-act="listen-msg" data-i="${i}" aria-label="Озвучить">${ic('speaker')}</button>
-      <button class="gr-later${m.saved ? ' is-on' : ''}" data-act="later" data-i="${i}">${ic('bookmark')}${m.saved ? 'Сохранено' : 'На потом'}</button></div>`
+      <button class="gr-ib is-s" data-act="listen-msg" data-i="${i}" aria-label="Озвучить">${ic('speaker')}</button></div>`
     const presence = lastMsg ? `<div class="gr-presence"><img src="${CHAR('happy')}" alt="">Готово — ваш ход</div>` : ''
     return `<div class="gr-ai">${mark}${body}${acts}${presence}</div>`
   }
@@ -488,9 +470,11 @@ export class GrifApp {
     await wait(700)
     const it = understand(text)
     const t: Topic | null = it === 'rate' ? 'rate' : it === 'hl3' ? 'hl3' : null
-    if (t) c.msgs.push({ who: 'ai', topic: t, time: hhmm() })
+    // «что со ставкой?» — answer the likely meaning and leave a way to correct, instead of asking back
+    if (it === 'ambiguous') c.msgs.push({ who: 'ai', text: LINE.assume.text, time: hhmm() }, { who: 'ai', topic: 'rate', time: hhmm() })
+    else if (t) c.msgs.push({ who: 'ai', topic: t, time: hhmm() })
     else {
-      const l = it === 'ambiguous' ? LINE.clarify : it === 'deposits' ? LINE.deposits : it === 'thanks' ? LINE.thanks : LINE.unknown
+      const l = it === 'deposits' ? LINE.deposits : it === 'thanks' ? LINE.thanks : LINE.unknown
       c.msgs.push({ who: 'ai', text: l.text, time: hhmm() })
     }
     this.renderChat()
@@ -534,37 +518,27 @@ export class GrifApp {
     else voice.speak('-', m.text ?? '')
   }
 
-  private laterMsg(i: number) {
-    const c = this.open
-    const m = c?.msgs[i]
-    if (!c || !m) return
-    m.saved = m.saved ? undefined : hhmm()
-    if (m.saved) c.pinned = true
-    this.toast(m.saved ? 'Отмечено, разговор закреплён в меню' : 'Отметка снята')
-    this.renderChat()
-    this.renderDrawer()
-  }
-
   // ───────────────────────── menu, sheets
 
   private renderDrawer(filter = '') {
     const f = filter.toLowerCase()
     const list = this.chats.filter((c) => c.msgs.length && (!f || c.title.toLowerCase().includes(f)))
+    // a trip chat is an ordinary fresh conversation with a car icon; nothing pins itself
     const row = (c: Chat) => {
       const n = c.msgs.filter((m) => m.saved).length
-      const sub = c.trip ? `${n ? `${n} сохранено · ` : ''}${c.when}` : c.when
-      return `<button class="gr-row${c === this.open ? ' is-open' : ''}${c.trip && c.pinned ? ' is-trip' : ''}" data-act="chat" data-id="${c.id}">
-        ${c.voice || c.trip ? ic('wave') : c.pinned ? ic('pin') : '<i></i>'}<span><b>${esc(c.title)}</b><small>${esc(sub)}</small></span></button>`
+      const sub = c.trip && n ? `${n} отмечено · ${c.when}` : c.when
+      return `<button class="gr-row${c === this.open ? ' is-open' : ''}${c.trip ? ' is-trip' : ''}" data-act="chat" data-id="${c.id}">
+        ${c.trip ? ic('car') : c.voice ? ic('wave') : c.pinned ? ic('pin') : '<i></i>'}<span><b>${esc(c.title)}</b><small>${esc(sub)}</small></span></button>`
     }
-    const pinned = list.filter((c) => c.pinned).sort((a, b) => Number(!!b.trip) - Number(!!a.trip))
+    const pinned = list.filter((c) => c.pinned)
     const rest = list.filter((c) => !c.pinned)
     this.q('.gr-drawer').innerHTML = `
       <label class="gr-search">${ic('search')}<input placeholder="Поиск по разговорам" value="${esc(filter)}" aria-label="Поиск по разговорам"></label>
       <button class="gr-nav" data-act="new">${ic('edit')}Новый чат</button>
-      <button class="gr-nav is-accent" data-act="to-drive">${ic('car')}В дорогу</button>
-      <button class="gr-nav is-dim" data-act="signals">${ic('bt')}Сигналы машины · демо</button>
+      <h3>Демо прототипа</h3>
+      <button class="gr-nav is-dim" data-act="signals">${ic('bt')}Сигналы машины</button>
       <a class="gr-nav is-dim" href="#/outside">${ic('car')}Поверх навигатора и виджет</a>
-      <a class="gr-nav is-dim" href="#/visions">${ic('sliders')}Три варианта визуала</a>
+      <a class="gr-nav is-dim" href="#/visions">${ic('sliders')}Варианты визуала</a>
       ${pinned.length ? `<h3>Закреплённые</h3>${pinned.map(row).join('')}` : ''}
       <h3>Разговоры</h3>${rest.map(row).join('') || '<p class="gr-none">Ничего не нашлось</p>'}
       <div class="gr-me-row"><span class="gr-av">НГ</span><b>Никита Горбачев</b><button class="gr-ib" data-act="settings" aria-label="Настройки">${ic('gear')}</button></div>`
@@ -613,38 +587,34 @@ export class GrifApp {
         <button data-act="demo-tile">${ic('camera')}Камера</button><button data-act="demo-tile">${ic('image')}Фото</button><button data-act="demo-tile">${ic('file')}Файл</button>
       </div>
       <button class="gr-li" data-act="demo-tile">${ic('globe')}<span><b>Поиск в сети</b><small>Свежие новости и цифры</small></span></button>
-      <button class="gr-li" data-act="demo-tile">${ic('bulb')}<span><b>Подумать дольше</b><small>Для сложных задач</small></span></button>
-      <button class="gr-li is-accent" data-act="to-drive">${ic('car')}<span><b>В дорогу</b><small>Голосом, коротко, крупно</small></span></button>`)
+      <button class="gr-li" data-act="demo-tile">${ic('bulb')}<span><b>Подумать дольше</b><small>Для сложных задач</small></span></button>`)
   }
 
+  /** demo only: the browser cannot see the car, so the two signals are played by hand */
   private sheetSignals() {
     const gps = this.geoWatch ? 'вкл' : 'выкл'
+    const inDrive = this.view === 'drive' && this.flavor === 'drive'
     this.sheet(`
       <h2 class="gr-sh-h">Сигналы машины</h2>
-      <p class="gr-sh-p">Браузер их не видит, поэтому здесь их можно изобразить. В приложении их ловит телефон: Bluetooth, датчики движения и GPS, фокус «Вождение», NFC-метка.</p>
-      <button class="gr-li" data-act="signal" data-sig="bt">${ic('bt')}<span><b>Подключился к «LADA»</b><small>Bluetooth магнитолы, машина стоит</small></span></button>
-      <button class="gr-li" data-act="signal" data-sig="motion">${ic('car')}<span><b>Поехали: больше 20 км/ч</b><small>датчики движения и GPS, приложение открыто</small></span></button>
-      <button class="gr-li" data-act="signal" data-sig="focus">${ic('moon')}<span><b>Включился фокус «Вождение»</b><small>iPhone, автоматизация «Команд»</small></span></button>
-      <button class="gr-li" data-act="signal" data-sig="nfc">${ic('nfc')}<span><b>Телефон в держателе с NFC-меткой</b><small>метка на держателе</small></span></button>
-      <button class="gr-li" data-act="toggle" data-sig="gps">${ic('globe')}<span><b>Настоящий GPS: ${gps}</b><small>включится сам, если поедете быстрее 20 км/ч</small></span></button>`)
+      <p class="gr-sh-p">Сигналов два: магнитола и движение. Браузер их не видит, поэтому здесь их можно изобразить.</p>
+      <button class="gr-li" data-act="signal" data-sig="bt">${ic('bt')}<span><b>Подключился к «LADA»</b><small>магнитола, машина ещё стоит</small></span></button>
+      <button class="gr-li" data-act="signal" data-sig="motion">${ic('car')}<span><b>Поехали: больше 20 км/ч</b><small>датчики и GPS, Ась открыт</small></span></button>
+      ${inDrive ? `<button class="gr-li" data-act="signal" data-sig="park">${ic('bt')}<span><b>Магнитола отключилась</b><small>припарковались — конец поездки</small></span></button>` : ''}
+      <button class="gr-li" data-act="toggle" data-k="gps">${ic('globe')}<span><b>Настоящий GPS: ${gps}</b><small>включится сам, если поедете быстрее 20 км/ч</small></span></button>`)
   }
 
+  /** two decisions instead of five switches; the signals stay under the hood */
   private sheetSettings() {
-    const seg = (['ask', 'always', 'never'] as Auto[])
-      .map((v) => `<button class="${this.auto === v ? 'is-on' : ''}" data-act="auto" data-v="${v}">${{ ask: 'Спрашивать', always: 'Всегда', never: 'Никогда' }[v]}</button>`)
-      .join('')
-    const tg = (k: string, icon: string, label: string) =>
-      `<button class="gr-li gr-tg${this.signals[k] ? ' is-on' : ''}" data-act="toggle" data-sig="${k}">${ic(icon)}<span><b>${label}</b></span><i></i></button>`
+    const tg = (k: string, on: boolean, icon: string, label: string, sub: string) =>
+      `<button class="gr-li gr-tg${on ? ' is-on' : ''}" data-act="toggle" data-k="${k}">${ic(icon)}<span><b>${label}</b><small>${sub}</small></span><i></i></button>`
     this.sheet(`
       <h2 class="gr-sh-h">В дороге</h2>
-      <h3>Включаться сам</h3><div class="gr-seg">${seg}</div>
-      <h3>Когда замечать</h3>
-      ${tg('bt', 'bt', 'Bluetooth «LADA»')}${tg('motion', 'car', 'Едем больше 20 км/ч')}${tg('focus', 'moon', 'Фокус «Вождение»')}${tg('nfc', 'nfc', 'Метка на держателе')}${tg('charge', 'bulb', 'Зарядка в машине')}
+      ${tg('auto', this.autoOn, 'car', 'Включаться самому', 'по движению и магнитоле')}
+      ${tg('wake', this.wakeOn, 'mic', 'Отзываться на «Ась»', 'слушаю только это слово, на телефоне')}
       <button class="gr-li" data-act="sound">${ic('speaker')}<span><b>Голос и скорость</b><small>${this.soundOn ? { dmitri: 'Дмитрий', denis: 'Денис', system: 'голос браузера' }[voice.getVoice()] : 'без голоса'} · ${voice.getRate().toFixed(1).replace('.', ',')}×</small></span>${ic('chev')}</button>
-      <p class="gr-sh-p">Выход: стоим 3 минуты или «приехали» → сводка и чат поездки.</p>`)
+      <p class="gr-sh-p">Конец поездки — магнитола отключилась, маршрут закончен или «Ась, приехали».</p>`)
   }
 
-  private subs = true
   private pick: VoicePick = 'dmitri'
   private vol = 1
 
@@ -722,7 +692,7 @@ export class GrifApp {
     }
   }
 
-  private toggleSignal(k: string) {
+  private toggleSetting(k: string) {
     if (k === 'gps') {
       if (this.geoWatch) {
         navigator.geolocation.clearWatch(this.geoWatch)
@@ -731,12 +701,16 @@ export class GrifApp {
       } else this.watchGps()
       return this.closeAll()
     }
-    this.signals[k] = !this.signals[k]
-    store.set('gr-signals', JSON.stringify(this.signals))
+    if (k === 'auto') store.set('gr-auto-on', (this.autoOn = !this.autoOn) ? '1' : '0')
+    if (k === 'wake') {
+      store.set('gr-wake', (this.wakeOn = !this.wakeOn) ? '1' : '0')
+      if (!this.wakeOn) stopWake()
+    }
     this.sheetSettings()
   }
 
-  /** real speed from GPS: > 20 km/h for 20 s → moving; ~0 for 3 min → a stop */
+  /** real speed from GPS: > 20 km/h for 20 s → moving. A standstill is NOT the end of the trip —
+   *  on the M-11 it is a jam or a toll gate; the end is the stereo off, the route done or «приехали» */
   private watchGps() {
     if (!navigator.geolocation) return this.toast('Нет геолокации')
     this.geoWatch = navigator.geolocation.watchPosition(
@@ -744,20 +718,12 @@ export class GrifApp {
         const v = (p.coords.speed ?? 0) * 3.6
         const now = Date.now()
         if (v > 20) {
-          this.stillSince = 0
           this.fastSince ||= now
-          if (now - this.fastSince > 20000 && this.view === 'chat') {
+          if (now - this.fastSince > 20000 && !(this.view === 'drive' && this.flavor === 'drive')) {
             this.fastSince = now + 600000 // once per ten minutes
             this.signal('motion')
           }
-        } else if (v < 2) {
-          this.fastSince = 0
-          this.stillSince ||= now
-          if (now - this.stillSince > 180000 && this.view === 'drive' && this.flavor === 'drive') {
-            this.stillSince = now + 600000
-            this.arrive()
-          }
-        }
+        } else if (v < 2) this.fastSince = 0
       },
       () => this.toast('Нет доступа к геолокации'),
       { enableHighAccuracy: true, maximumAge: 2000 },
@@ -765,50 +731,37 @@ export class GrifApp {
     this.toast('GPS включён: заметит, когда поедете')
   }
 
-  /** a car signal. Simplifying the screen is safe to do alone; the microphone waits for consent */
+  /** a car signal. Parked: a question is fine. Moving: no questions — switch at once, or stay silent */
   private signal(s: string) {
     this.closeAll()
-    const key = s === 'focus' ? 'focus' : s
-    if (key !== 'motion' && this.signals[key] === false) return this.toast('Этот сигнал выключен в настройках «В дороге»')
-    if (this.auto === 'never') return this.toast('В настройках: не включаться самому')
-    if (this.view !== 'chat') return this.toast('Режим уже включён')
-    if (s === 'nfc' || this.auto === 'always') return this.enterDrive('drive')
+    if (s === 'park') return this.arrive()
+    this.inCar = true
+    if (this.view === 'chat') this.renderChat()
+    if (!this.autoOn) return this.toast('В настройках: не включаться самому. Вход — плитка «В дорогу»')
+    if (this.declined) return this.toast('Вы сказали, что не за рулём, — в этой поездке не включаюсь')
+    if (this.view === 'drive' && this.flavor === 'drive') return this.toast('Режим уже включён')
     if (s === 'bt') {
-      if (this.declined) return this.toast('В этой поездке больше не спрашиваю')
-      return this.sheet(`
-        <div class="gr-sh-ic">${ic('bt')}</div>
-        <h2 class="gr-sh-h">Вы в машине?</h2>
-        <p class="gr-sh-p">Телефон подключился к «LADA». В режиме «В дороге» Ась говорит коротко, а длинное откладывает на потом.</p>
-        <button class="gr-wide is-primary" data-act="bt-yes">Включить</button>
-        <button class="gr-wide" data-act="bt-no">Не сейчас</button>
-        <p class="gr-sh-note">Включаться без вопроса — в настройках.</p>`)
+      // parked: reading is safe — a system notification over whatever is on screen (the navigator)
+      if (this.view === 'drive') return this.toast('Подключился к «LADA»')
+      return this.note(`<b>Похоже, вы в машине</b><span>Включу короткие ответы голосом. Карта останется на экране.</span>
+        <div class="gr-note-b"><button class="is-primary" data-act="note-yes">Включить</button><button data-act="note-no">Я пассажир</button></div>`)
     }
-    this.banner()
+    // moving with Ась open: simplifying the screen is safe, so no countdown and no «Отмена» to aim at
+    if (this.view === 'drive' && this.flavor === 'voice') return this.toDriveFlavor()
+    this.enterDrive('drive', true)
   }
 
-  private banner() {
-    const b = this.q('.gr-banner')
-    b.innerHTML = `${ic('car')}<span><b>Вы едете — включаю «В дороге»</b><small>Чат сохранится</small></span><i class="gr-count">3</i><button data-act="banner-cancel">Отмена</button>`
-    b.hidden = false
-    let n = 3
-    clearInterval(this.bannerTimer)
-    this.bannerTimer = window.setInterval(() => {
-      n--
-      const c = b.querySelector('.gr-count')
-      if (c) c.textContent = String(n)
-      if (n <= 0) {
-        clearInterval(this.bannerTimer)
-        b.hidden = true
-        this.enterDrive('drive')
-      }
-    }, 1000)
+  /** a system-style notification at the top: the same surface as on Android / iOS */
+  private note(html: string, ms = 0) {
+    const n = this.q('.gr-note')
+    n.innerHTML = `<header><img src="${CHAR('neutral')}" alt=""><small>Ась · сейчас</small></header>${html}`
+    n.hidden = false
+    clearTimeout(this.noteTimer)
+    if (ms) this.noteTimer = window.setTimeout(() => this.hideNote(), ms)
   }
-
-  private cancelBanner() {
-    clearInterval(this.bannerTimer)
-    this.q('.gr-banner').hidden = true
-    this.declined = true
-    this.toast('Остаёмся в чате. В этой поездке больше не спрашиваю')
+  private hideNote() {
+    clearTimeout(this.noteTimer)
+    this.q('.gr-note').hidden = true
   }
 
   private sheetRoad() {
@@ -816,10 +769,10 @@ export class GrifApp {
     this.sheet(`
       <h2 class="gr-sh-h">${v ? 'Голосовой разговор' : 'Что может случиться в дороге'}</h2>
       <p class="gr-sh-p">Демо: так ведёт себя Ась, когда что-то идёт не по плану.</p>
-      ${v ? `<button class="gr-li" data-act="road-ev" data-ev="end">${ic('x')}<span><b>Завершить разговор</b><small>вернуться в чат</small></span></button>` : `<button class="gr-li is-accent" data-act="road-ev" data-ev="arrive">${ic('car')}<span><b>Приехали</b><small>или «Ась, приехали», или стоим 3 минуты</small></span></button>`}
+      ${v ? `<button class="gr-li" data-act="road-ev" data-ev="end">${ic('x')}<span><b>Завершить разговор</b><small>вернуться в чат</small></span></button>` : `<button class="gr-li is-accent" data-act="road-ev" data-ev="arrive">${ic('car')}<span><b>Приехали</b><small>магнитола отключилась, маршрут закончен или «Ась, приехали»</small></span></button>`}
+      <button class="gr-li" data-act="road-ev" data-ev="nav">${ic('speaker')}<span><b>Навигатор говорит</b><small>Ась ждёт и продолжает с начала фразы</small></span></button>
       <button class="gr-li" data-act="road-ev" data-ev="net">${ic('wifioff')}<span><b>${this.offline ? 'Связь вернулась' : 'Пропала связь'}</b><small>трасса, тоннель</small></span></button>
-      <button class="gr-li" data-act="road-ev" data-ev="call">${ic('phone')}<span><b>Входящий звонок</b><small>Ась замолкает сразу</small></span></button>
-      <button class="gr-li" data-act="road-ev" data-ev="quiet">${ic('moon')}<span><b>«Помолчи»</b><small>на дороге сложно — тишина до «ась»</small></span></button>
+      <button class="gr-li" data-act="road-ev" data-ev="call">${ic('phone')}<span><b>${this.md === 'call' ? 'Звонок закончился' : 'Входящий звонок'}</b><small>экран звонка — системный, Ась только замолкает</small></span></button>
       <button class="gr-li" data-act="road-ev" data-ev="mic">${ic('micoff')}<span><b>${this.denied ? 'Микрофон снова доступен' : 'Нет доступа к микрофону'}</b><small>разрешение отозвано</small></span></button>`)
   }
 
@@ -836,10 +789,10 @@ export class GrifApp {
     }
   }
 
-  private enterDrive(flavor: 'drive' | 'voice') {
+  /** auto = switched on by itself on the move: no first-run screen, no questions, «Я не за рулём» once */
+  private enterDrive(flavor: 'drive' | 'voice', auto = false) {
     this.closeAll()
-    clearInterval(this.bannerTimer)
-    this.q('.gr-banner').hidden = true
+    this.hideNote()
     this.flavor = flavor
     if (flavor === 'drive') {
       if (!this.trip || this.tripEnded) {
@@ -850,10 +803,12 @@ export class GrifApp {
         this.idx = 0
         this.last = null
         this.pending = null
-        this.tripStart = Date.now()
         this.tripEnded = false
+        this.autoEntered = false
       }
       this.conv = this.trip
+      if (auto) this.autoEntered = true
+      this.inCar = true
     } else {
       if (!this.open) {
         this.open = { id: Date.now(), title: 'Голосовой разговор', when: hhmm(), voice: true, msgs: [] }
@@ -861,48 +816,58 @@ export class GrifApp {
       }
       this.conv = this.open
     }
-    this.q('.gr-drive').classList.toggle('is-voice', flavor === 'voice')
-    this.q('.gr-chip-t').textContent = flavor === 'voice' ? 'В машине? «В дороге»' : 'В дороге'
+    this.syncTop()
     this.setView('drive')
-    this.tick()
-    clearInterval(this.clock)
-    this.clock = window.setInterval(() => this.tick(), 15000)
-    if (flavor === 'drive' && !this.firstDone) return this.showFirst()
+    if (auto) earcon.ready() // a short sound instead of a banner to read
+    if (flavor === 'drive' && !this.firstDone) {
+      // first time: the screen only while parked; on the move the three words are spoken
+      if (!auto) return this.showFirst()
+      this.toReady()
+      if (this.soundOn) this.play(LINE.hello, { keep: false, quietUi: true })
+      return
+    }
     this.toReady()
   }
   private tripEnded = false
 
+  private syncTop() {
+    const v = this.flavor === 'voice'
+    this.q('.gr-drive').classList.toggle('is-voice', v)
+    this.q('.gr-chip-t').textContent = v ? 'Голосом' : 'В дороге'
+    this.q('.gr-notdriver').hidden = v || !this.autoEntered
+  }
+
+  /** «✕» on the chip: out of the mode at any moment; the trip chat stays */
+  private exitDrive() {
+    this.stopAudio()
+    this.pending = null
+    this.openChat(this.flavor === 'voice' ? this.conv : this.open)
+  }
+
+  /** a voice conversation that started parked becomes «В дороге» by itself once the car moves */
   private toDriveFlavor() {
     if (this.conv) {
       this.conv.trip = true
       this.trip = this.conv
-      this.tripStart = Date.now()
       this.tripEnded = false
     }
     this.flavor = 'drive'
-    this.q('.gr-drive').classList.remove('is-voice')
-    this.q('.gr-chip-t').textContent = 'В дороге'
-    this.tick()
-    this.toast('Режим «В дороге»: разговор тот же')
-  }
-
-  private tick() {
-    const el = this.q('.gr-clock')
-    if (this.flavor === 'voice') return void (el.textContent = '')
-    const min = Math.max(0, Math.round((Date.now() - this.tripStart) / 60000))
-    el.textContent = min < 60 ? `${min} мин в пути` : `${Math.floor(min / 60)} ч ${min % 60} мин`
+    this.autoEntered = true
+    this.syncTop()
+    earcon.ready()
   }
 
   private showFirst() {
     const f = this.q('.gr-first')
     const net = navigator.onLine
     this.q('.gr-checks').innerHTML = [
-      [ears.canHear, ears.canHear ? 'Микрофон' : 'Микрофон: только касание'],
+      [ears.canHear, ears.canHear ? 'Микрофон' : 'Микрофон: только кнопка'],
       [net, net ? 'Сеть' : 'Нет сети'],
       [true, 'Звук: динамик'],
     ]
       .map(([ok, t]) => `<span class="${ok ? 'is-ok' : 'is-no'}">${ic(ok ? 'check' : 'x')}${t}</span>`)
       .join('')
+    this.q('.gr-first-wake').classList.toggle('is-on', canWake)
     f.hidden = false
     this.hz?.set('ready')
   }
@@ -910,6 +875,9 @@ export class GrifApp {
   private async firstGo() {
     this.firstDone = true
     store.set('gr-first', '1')
+    // the consent to answer to «Ась» is given here, while parked — never on the move
+    this.wakeOn = this.q('.gr-first-wake').classList.contains('is-on')
+    store.set('gr-wake', this.wakeOn ? '1' : '0')
     this.q('.gr-first').hidden = true
     this.toReady()
     if (this.soundOn) this.play(LINE.hello, { keep: false, quietUi: true })
@@ -924,20 +892,18 @@ export class GrifApp {
 
   // ───────────────────────── drive: screen states
 
-  private mode(m: Mode, o: { label?: string; c?: Chunk; phrase?: string; ask?: string; char?: Parameters<typeof CHAR>[0] | null; hint?: string; btn?: [string, string, boolean?]; glow?: Glow } = {}) {
+  /** One screen, one anchor. On the move the screen never asks to read: the label, a number or a
+   *  word, and at most one short line. The sentence itself is spoken and goes to the trip chat. */
+  private mode(m: Mode, o: { label?: string; c?: Chunk; phrase?: string; char?: Parameters<typeof CHAR>[0] | null; btn?: [string, string, boolean?]; glow?: Glow } = {}) {
     this.md = m
     this.changedAt = performance.now()
     const d = this.q('.gr-drive')
     d.dataset.mode = m
     const c = o.c
-    const label = o.label ?? { ready: 'ГОТОВ', listen: 'СЛУШАЮ', think: 'ИЩУ', speak: 'ГОВОРЮ', pause: 'ПАУЗА', quiet: 'ТИХО', offline: 'НЕТ СВЯЗИ', denied: 'НЕ СЛЫШУ', call: 'ПАУЗА · ЗВОНОК' }[m]
+    const label = o.label ?? { ready: 'ГОТОВ', listen: 'СЛУШАЮ', think: 'ИЩУ', speak: 'ГОВОРЮ', pause: 'ПАУЗА', offline: 'НЕТ СВЯЗИ', denied: 'НЕ СЛЫШУ', call: 'ПАУЗА · ЗВОНОК', nav: 'ЖДУ НАВИГАТОР' }[m]
     this.q('.gr-label').textContent = label
-    const tag = this.q('.gr-tag')
-    tag.hidden = !c?.tag
-    if (c?.tag) {
-      tag.textContent = c.tag.text
-      tag.className = `gr-tag ${TAG_CLS[c.tag.kind]}`
-    }
+    // fact / forecast / rumour is said aloud in the first words; coloured labels live in the trip chat
+    this.q('.gr-tag').hidden = true
     const big = this.q('.gr-big')
     big.hidden = !c?.big
     if (c?.big) {
@@ -948,28 +914,24 @@ export class GrifApp {
     cap.hidden = !c?.cap
     if (c?.cap) cap.textContent = c.cap
     const ph = this.q('.gr-phrase')
-    const text = o.phrase ?? c?.text ?? ''
-    ph.innerHTML = c ? text.split(/(\s+)/).map((w) => (w.trim() ? `<span>${esc(w)}</span>` : w)).join('') : esc(text)
-    ph.classList.toggle('is-k', !!c)
+    ph.textContent = c?.big ? '' : (o.phrase ?? c?.text ?? '')
     ph.classList.toggle('is-dim', !c && m !== 'listen')
-    const ask = this.q('.gr-ask')
-    ask.hidden = !o.ask
-    if (o.ask) ask.textContent = o.ask
+    this.q('.gr-ask').hidden = true
     const ch = this.q<HTMLImageElement>('.gr-char')
-    const charName = o.char === undefined ? ({ ready: 'neutral', pause: 'sleepy', quiet: 'sleepy', offline: 'neutral', denied: 'neutral', call: 'sleepy' } as Record<string, Parameters<typeof CHAR>[0]>)[m] : o.char
+    const charName = o.char === undefined ? ({ ready: 'neutral', pause: 'sleepy', offline: 'neutral', denied: 'neutral', call: 'sleepy', nav: 'sleepy' } as Record<string, Parameters<typeof CHAR>[0]>)[m] : o.char
     ch.hidden = !charName
     if (charName) ch.src = CHAR(charName)
-    this.q('.gr-hint').textContent = o.hint ?? ''
+    this.q('.gr-hint').textContent = '' // grey command hints cannot be read on the move
     const [bt, bi, primary] = o.btn ?? (({
       ready: ['Спросить', 'mic', true],
       listen: ['Стоп', 'stop'],
       think: ['Стоп', 'stop'],
       speak: ['Пауза', 'pause'],
       pause: ['Продолжить', 'play', true],
-      quiet: ['Спросить', 'mic'],
-      offline: ['Повторить ответ', 'repeat'],
+      offline: ['Спросить', 'mic', true],
       denied: ['Открыть настройки', 'gear'],
       call: ['Продолжить', 'play'],
+      nav: ['Пауза', 'pause'],
     } as Record<Mode, [string, string, boolean?]>)[m])
     const b = this.q('.gr-btn[data-act="main"]')
     b.classList.toggle('is-primary', !!primary)
@@ -979,19 +941,24 @@ export class GrifApp {
     st.hidden = !this.offline && !this.denied
     st.className = `gr-status ${this.denied ? 'is-red' : 'is-amber'}`
     st.innerHTML = this.denied ? `${ic('micoff')}Микрофон` : `${ic('wifioff')}Нет сети`
-    this.hz?.set(o.glow ?? ({ ready: 'ready', listen: 'listen', think: 'think', speak: 'speak', pause: 'pause', quiet: 'quiet', offline: 'offline', denied: 'denied', call: 'pause' } as Record<Mode, Glow>)[m])
+    this.hz?.set(o.glow ?? ({ ready: 'ready', listen: 'listen', think: 'think', speak: 'speak', pause: 'pause', offline: 'offline', denied: 'denied', call: 'pause', nav: 'pause' } as Record<Mode, Glow>)[m])
   }
 
-  private toReady(hint?: string) {
+  private demoTold = false
+  private toReady(note?: string) {
     this.stopMeter()
-    if (this.denied) return this.mode('denied', { phrase: LINE.mic.text, hint: 'Касание задаёт следующий вопрос из демо' })
-    if (this.offline) return this.mode('offline', { phrase: LINE.offline.text, hint: 'Без сети: «повтори», «сохрани», «пауза»' })
-    const tapOnly = !this.micOK || !ears.canHear
-    const fork = this.pending === 'next' || this.pending === 'save' || this.pending === 'resume'
+    if (this.denied) return this.mode('denied', { phrase: LINE.mic.text })
+    if (this.offline) return this.mode('offline', { phrase: LINE.offline.text })
+    const wake = this.wakeOn && this.micOK && canWake
+    const fork = this.pending === 'next' || this.pending === 'save' || this.pending === 'resume' || this.pending === 'queued'
     this.mode('ready', {
-      phrase: fork ? 'Скажите «да» или задайте новый вопрос' : 'Скажите «ась» или коснитесь экрана',
-      hint: hint ?? (tapOnly ? 'Без микрофона: касание — следующая реплика демо' : 'Весь экран — одна большая кнопка'),
+      phrase: note ?? (fork ? 'Скажите «да» или спросите новое' : wake ? 'Скажите «Ась»\nили нажмите кнопку' : 'Нажмите кнопку\nи спросите'),
     })
+    // demo only, told once: without a microphone the button plays the scenario line by line
+    if (!this.demoTold && (!ears.canHear || (this.askedMic && !this.micOK))) {
+      this.demoTold = true
+      this.toast('Демо без микрофона: «Спросить» — следующая реплика сценария')
+    }
     this.armWake()
     if (this.queuedAsk) {
       const t = this.queuedAsk
@@ -1002,7 +969,7 @@ export class GrifApp {
 
   private armWake() {
     stopWake()
-    if (!this.micOK || !canWake || this.view !== 'drive' || this.denied) return
+    if (!this.wakeOn || !this.micOK || !canWake || this.view !== 'drive' || this.denied) return
     startWake(
       (rest) => {
         if (this.view !== 'drive') return
@@ -1033,32 +1000,35 @@ export class GrifApp {
     if (dt < 60 || dt > 700 || Math.hypot(e.clientX - d.x, dy) > 12) return
     if (performance.now() - this.changedAt < 300) return // a tap right after a change is a stray
     this.firstGesture()
-    this.tap()
+    this.tapAnywhere()
   }
 
-  /** the whole screen is one button */
-  private tap() {
-    vib(10)
+  /** A tap anywhere only ever makes Ась quiet — the safe direction. Asking takes the button or
+   *  «Ась»: a bump on the road must not open the microphone. */
+  private tapAnywhere() {
     switch (this.md) {
       case 'speak':
       case 'think':
+        vib(10)
         return this.pause()
-      case 'pause':
-        return this.resume()
       case 'listen':
+        vib(10)
         return this.stop()
-      case 'call':
-        return
-      default:
-        return this.listen()
     }
   }
 
   private mainButton() {
-    if (this.md === 'denied') return this.toast('В браузере: значок замка у адреса → Микрофон → Разрешить')
-    if (this.md === 'offline') return this.repeat()
-    if (this.md === 'call') return this.endCall()
-    this.tap()
+    vib(10)
+    switch (this.md) {
+      case 'denied': return this.toast('В браузере: значок замка у адреса → Микрофон → Разрешить')
+      case 'call': return this.endCall()
+      case 'nav': return this.pause()
+      case 'speak':
+      case 'think': return this.pause()
+      case 'pause': return this.resume()
+      case 'listen': return this.stop()
+      default: return this.listen() // ready, offline: the question waits in a queue when offline
+    }
   }
 
   // ───────────────────────── drive: dialogue
@@ -1067,6 +1037,11 @@ export class GrifApp {
     let tk = ++this.tok
     stopWake()
     this.stopAudio(false)
+    // whoever asks is the one who uses the mode: «Я не за рулём» has done its job
+    if (this.autoEntered) {
+      this.autoEntered = false
+      this.syncTop()
+    }
     // the microphone is asked for on the first tap, never on its own
     if (!this.micOK && ears.canHear && !this.denied && !this.askedMic && !follow) {
       this.askedMic = true
@@ -1078,12 +1053,7 @@ export class GrifApp {
     }
     const tapOnly = !this.micOK || !ears.canHear || this.denied
     if (follow && tapOnly) return this.toReady()
-    this.mode('listen', {
-      phrase: follow ? 'Слушаю ответ…' : 'Слушаю…',
-      ask: this.pending === 'clarify' ? 'Скажите «ставку» или «вклады»' : undefined,
-      char: 'attentive',
-      hint: follow ? 'Молчите 5 с — вернусь к готовности' : 'Договорите — пойму по паузе',
-    })
+    this.mode('listen', { phrase: follow ? 'Слушаю ответ…' : 'Слушаю…', char: 'attentive' })
     earcon.listen()
     vib(12)
     if (tapOnly) return this.fake(DEMO[this.demo++ % DEMO.length], tk)
@@ -1142,15 +1112,11 @@ export class GrifApp {
 
   private heardNothing(heard: string, follow: boolean) {
     if (heard) return this.handle(heard)
-    if (this.pending === 'clarify') {
-      this.pending = null
-      return this.topicStart('rate', 'Расскажу про ставку ЦБ')
-    }
     if (follow) {
       this.pending = null
       return this.toReady()
     }
-    this.toReady('Не расслышал. Коснитесь и спросите ещё раз')
+    this.toReady('Не расслышал.\nСпросите ещё раз')
   }
 
   /** tap-only mode: the next demo line «is said» word by word */
@@ -1174,7 +1140,7 @@ export class GrifApp {
     this.conv?.msgs.push({ who: 'ai', time: hhmm(), ...m })
   }
 
-  private handle(text: string, log = true) {
+  private handle(text: string, log = true): unknown {
     this.stopMeter()
     const it: Intent = understand(text)
     const asked = ['rate', 'hl3', 'ambiguous', 'deposits', 'digits', 'compare', 'sources', 'unknown'].includes(it)
@@ -1185,10 +1151,13 @@ export class GrifApp {
       return this.play(LINE.offline, { keep: false, mode: 'offline' })
     }
     const p = this.pending
-    if (p === 'clarify') {
+    if (p === 'queued') {
+      // «Связь вернулась. Ответ готов — сказать?»
       this.pending = null
-      if (it === 'deposits') return this.line(LINE.deposits, 'deposits')
-      if (it === 'rate' || it === 'ambiguous' || it === 'yes') return this.topicStart('rate')
+      const q = this.queued
+      this.queued = null
+      if (q && (it === 'yes' || it === 'more' || it === 'resume')) return this.handle(q, false)
+      if (it === 'no') return this.toReady()
     }
     if (p === 'resume') {
       this.pending = null
@@ -1201,8 +1170,8 @@ export class GrifApp {
       case 'rate': return this.topicStart('rate')
       case 'hl3': return this.topicStart('hl3')
       case 'ambiguous':
-        this.pending = 'clarify'
-        return this.play(LINE.clarify, { keep: false, label: 'УТОЧНЯЮ', follow: true, char: 'curious', ask: 'Скажите «ставку» или «вклады»' })
+        // no clarifying round on the move: take the likely meaning, say how to correct it
+        return this.play(LINE.assume, { keep: false, char: 'curious', then: () => this.topicStart('rate') })
       case 'deposits': return this.line(LINE.deposits, 'deposits')
       case 'yes':
       case 'more':
@@ -1232,8 +1201,8 @@ export class GrifApp {
         return this.line(this.topic === 'rate' ? LINE.rateSrc : LINE.hlSrc, 'sources')
       case 'pause': return this.pause()
       case 'resume': return this.resume()
-      case 'stop': return this.stop()
-      case 'quiet': return this.quiet()
+      case 'stop':
+      case 'quiet': return this.stop() // «помолчи» is the same as «стоп»: back to ready, silent
       case 'save': return this.save()
       case 'arrived': return this.arrive()
       case 'thanks': return this.line(LINE.thanks)
@@ -1252,8 +1221,7 @@ export class GrifApp {
       const [m] = this.conv.msgs.splice(i, 1)
       this.conv.msgs.push(m)
     }
-    const think = note ?? (t === 'rate' ? 'Смотрю решение Банка России от 23 октября и свежие прогнозы' : 'Смотрю новости игровых сайтов за неделю')
-    this.play(CHAIN[t][0], { think })
+    this.play(CHAIN[t][0], { think: note ?? 'Смотрю свежие данные' })
   }
 
   private next() {
@@ -1269,14 +1237,15 @@ export class GrifApp {
     this.play(l, { keep: !['g-unknown', 'g-thanks'].includes(l.id) })
   }
 
-  private async play(c: Chunk, o: { think?: string; keep?: boolean; label?: string; follow?: boolean; char?: Parameters<typeof CHAR>[0]; ask?: string; mode?: Mode; quietUi?: boolean } = {}) {
+
+  private async play(c: Chunk, o: { think?: string; keep?: boolean; label?: string; follow?: boolean; char?: Parameters<typeof CHAR>[0]; mode?: Mode; quietUi?: boolean; then?: () => void } = {}) {
     const tk = ++this.tok
     stopWake()
     ears.stopListening()
     this.stopMeter()
     if (o.keep !== false) this.last = c
     if (o.think) {
-      this.mode('think', { phrase: o.think, char: null, hint: 'Дольше 3 секунд — скажу, что ищу' })
+      this.mode('think', { phrase: o.think, char: null })
       await wait(1000 + Math.random() * 500)
       if (tk !== this.tok) return
     }
@@ -1284,30 +1253,17 @@ export class GrifApp {
     const pos = chain.indexOf(c)
     const label = o.label ?? (pos >= 0 ? `ГОВОРЮ · ${pos + 1} ИЗ ${chain.length}` : undefined)
     if (!o.quietUi) {
-      this.mode(o.mode ?? 'speak', {
-        c: c.text ? c : undefined,
-        label,
-        char: o.char ?? (o.mode ? undefined : null),
-        ask: o.ask,
-        hint: o.mode === 'offline' ? 'Без сети: «повтори», «сохрани», «пауза»' : '«короче» · «повтори» · «сохрани»',
-      })
+      this.mode(o.mode ?? 'speak', { c: c.text ? c : undefined, label, char: o.char ?? (o.mode ? undefined : null) })
       if (o.mode && o.mode !== 'speak') this.hz?.set(o.mode === 'denied' ? 'denied' : o.mode === 'offline' ? 'offline' : 'speak')
       else this.hz?.set('speak')
     }
-    const spans = [...this.q('.gr-phrase').querySelectorAll('span')]
-    const karaoke = (p: number) => {
-      const n = Math.round(p * spans.length)
-      spans.forEach((s, i) => s.classList.toggle('on', i < n))
-    }
     if (this.soundOn && voice.isOn()) {
-      await voice.speak(c.id, c.say, { onLevel: (v) => this.hz?.level(v), onWord: () => this.hz?.pulse(), onProgress: karaoke })
-    } else await this.silentRead(c.say.length * 58, karaoke, tk)
+      await voice.speak(c.id, c.say, { onLevel: (v) => this.hz?.level(v), onWord: () => this.hz?.pulse() })
+    } else await this.silentRead(c.say.length * 58, tk)
     if (tk !== this.tok) return
-    karaoke(1)
     this.hz?.level(0)
-    if (o.quietUi) return this.toReady()
-    if (o.mode === 'offline') return this.toReady()
-    if (o.mode === 'denied') return this.toReady()
+    if (o.then) return o.then()
+    if (o.quietUi || o.mode === 'offline' || o.mode === 'denied') return this.toReady()
     if (c.fork) {
       this.pending = c.fork
       return this.listen(true)
@@ -1316,15 +1272,14 @@ export class GrifApp {
     this.toReady()
   }
 
-  /** without sound the sentence still runs on screen, at speaking pace */
-  private silentRead(ms: number, karaoke: (p: number) => void, tk: number) {
+  /** without sound the light still «speaks» at speaking pace; the screen keeps one anchor */
+  private silentRead(ms: number, tk: number) {
     return new Promise<void>((resolve) => {
       const t0 = performance.now()
       let lastPulse = 0
       const step = () => {
         if (tk !== this.tok) return resolve()
         const p = (performance.now() - t0) / ms
-        karaoke(Math.min(1, p))
         this.hz?.level(0.35 + 0.25 * Math.sin(performance.now() / 90))
         if (performance.now() - lastPulse > 230) {
           lastPulse = performance.now()
@@ -1344,10 +1299,10 @@ export class GrifApp {
     this.stopMeter()
   }
 
-  private pause() {
-    const spoken = [...this.q('.gr-phrase').querySelectorAll('span.on')].map((s) => s.textContent).slice(-5).join(' ')
+  /** silence at once; «продолжай» starts the interrupted chunk from its beginning */
+  private pause(as: Mode = 'pause') {
     this.stopAudio()
-    this.mode('pause', { phrase: spoken ? `Остановился на «…${spoken}»` : 'Пауза', hint: 'Скажите «продолжай» или коснитесь' })
+    this.mode(as, { phrase: 'Продолжу с начала фразы' })
     this.armWake()
   }
 
@@ -1368,23 +1323,18 @@ export class GrifApp {
     this.toReady()
   }
 
-  private quiet() {
-    this.stopAudio()
-    this.pending = null
-    this.mode('quiet', { phrase: 'Молчу, пока не скажете «ась»', hint: '«помолчи», «стоп» или касание — тишина сразу' })
-    this.armWake()
-  }
-
+  /** «сохрани»: a sound and one word; the screen does not change into a «saved» state */
   private save() {
     this.pending = null
     if (!this.topic) return this.play({ id: 'g-nothing', text: 'Пока нечего сохранять — спросите что-нибудь.', say: 'Пока нечего сохранять.' }, { keep: false })
     const m = [...(this.conv?.msgs ?? [])].reverse().find((x) => x.topic === this.topic)
     if (m && !m.saved) m.saved = hhmm()
     this.saved.add(this.topic)
-    if (this.conv) this.conv.pinned = true
+    this.stopAudio()
     earcon.ready()
     vib([10, 40, 10])
-    this.play({ ...LINE.saved, tag: { text: '✓ СОХРАНЕНО · ЧАТ ПОЕЗДКИ', kind: 'fact' } }, { keep: false, label: 'СОХРАНЕНО', char: 'proud' })
+    this.toReady()
+    this.play(LINE.saved, { keep: false, quietUi: true })
   }
 
   // ───────────────────────── drive: road events
@@ -1398,8 +1348,8 @@ export class GrifApp {
   private road(ev: string) {
     if (ev === 'arrive') return this.arrive()
     if (ev === 'end') return this.openChat(this.conv)
-    if (ev === 'quiet') return this.quiet()
-    if (ev === 'call') return this.call()
+    if (ev === 'call') return this.md === 'call' ? this.endCall() : this.call()
+    if (ev === 'nav') return this.navSpeaks()
     if (ev === 'mic') {
       this.denied = !this.denied
       if (this.denied) {
@@ -1412,42 +1362,37 @@ export class GrifApp {
     if (ev === 'net') {
       this.offline = !this.offline
       if (this.offline) return this.play(LINE.offline, { keep: false, mode: 'offline' })
-      this.toast('Связь вернулась')
       earcon.ready()
-      const q = this.queued
-      this.queued = null
-      if (q) return this.handle(q, false)
+      // the queued answer is not read out of the blue: a sound, then «Ответ готов — сказать?»
+      if (this.queued) {
+        this.pending = 'queued'
+        return this.play(LINE.netBack, { keep: false, follow: true, label: 'СВЯЗЬ ВЕРНУЛАСЬ' })
+      }
       return this.toReady()
     }
   }
 
-  private callTimer = 0
+  /** the navigator's prompt comes first: Ась waits and goes on from the start of the sentence */
+  private navTimer = 0
+  private navSpeaks() {
+    const was = this.md
+    const resume = (was === 'speak' || was === 'think') && this.last
+    this.pause('nav')
+    clearTimeout(this.navTimer)
+    this.navTimer = window.setTimeout(() => {
+      if (this.md !== 'nav') return
+      if (resume) this.resume()
+      else this.toReady()
+    }, 2600)
+  }
+
+  /** the call screen is the system's; Ась only goes quiet and asks afterwards */
   private call() {
     this.stopAudio()
     stopWake()
-    this.q('.gr-call').hidden = false
-    this.q('.gr-call-st').textContent = 'мобильный'
-    this.q('.gr-drive').classList.remove('is-talking')
-    this.mode('call', {
-      phrase: this.topic ? `После звонка спрошу: продолжить про ${this.topic === 'rate' ? 'ставку' : 'Half-Life'}?` : 'После звонка вернусь к готовности',
-      hint: 'Уведомления поверх Ась не озвучивает',
-    })
-  }
-  private takeCall() {
-    this.q('.gr-drive').classList.add('is-talking')
-    let s = 0
-    const st = this.q('.gr-call-st')
-    clearInterval(this.callTimer)
-    this.callTimer = window.setInterval(() => {
-      s++
-      st.textContent = `разговор 0:0${s}`
-      if (s >= 4) this.endCall()
-    }, 1000)
+    this.mode('call', { phrase: this.topic ? 'После звонка спрошу,\nпродолжать ли' : 'Звонок. Помолчу' })
   }
   private endCall() {
-    clearInterval(this.callTimer)
-    this.q('.gr-call').hidden = true
-    this.q('.gr-drive').classList.remove('is-talking')
     if (this.md !== 'call') return
     if (this.topic && this.last) {
       this.pending = 'resume'
@@ -1456,34 +1401,27 @@ export class GrifApp {
     this.toReady()
   }
 
-  // ───────────────────────── stop and after
+  // ───────────────────────── the end of a trip
 
+  /** Parked: the stereo went off, the route is done or «приехали». Not «speed 0 for 3 minutes» —
+   *  that is a jam. No summary screen: one notification leads to the trip chat. */
   private arrive() {
     this.stopAudio()
     stopWake()
     this.pending = null
-    clearInterval(this.clock)
     this.tripEnded = true
-    if (this.trip) {
-      this.trip.pinned = true
-      this.trip.when = `${this.q('.gr-clock').textContent || '0 мин'}`
-    }
-    const min = Math.max(0, Math.round((Date.now() - this.tripStart) / 60000))
-    const t = this.saved.size
-    this.q('.gr-sum').innerHTML = `
-      <header class="gr-top"><span class="gr-chip is-still">${ic('car')}Остановка</span><span class="gr-clock">${min < 60 ? `${min} мин` : `${Math.floor(min / 60)} ч ${min % 60} мин`}</span></header>
-      <img class="gr-char" src="${CHAR('happy')}" alt="">
-      <div class="gr-label">ОСТАНОВКА · СОХРАНЕНО ${t}</div>
-      <h2 class="gr-sum-h">${t ? 'Теперь можно<br>почитать' : 'Остановка'}</h2>
-      ${t ? [...this.saved].map((s) => `<button class="gr-card" data-act="sum-topic"><b>${TOPIC_TITLE[s]}</b><small>${s === 'rate' ? 'факт · прогноз ЦБ · 3 источника' : 'слух · 3 источника'}</small>${ic('chev')}</button>`).join('') : '<p class="gr-sum-p">Ничего не сохраняли. Весь разговор — в чате поездки.</p>'}
-      <div class="gr-sum-foot">
-        <button class="gr-wide is-primary" data-act="trip-chat">Открыть чат поездки</button>
-        <button class="gr-wide" data-act="continue">Продолжить поездку</button>
-        <p class="gr-sh-note">Оценивать разговор не нужно</p>
-      </div>`
-    this.setView('summary')
-    if (this.soundOn && voice.isOn())
-      voice.speak(LINE.arrived.id, t ? `Остановка. Сохранил ${t === 1 ? 'один ответ' : 'два ответа'} — они в чате поездки.` : LINE.arrived.say)
+    this.declined = false
+    this.inCar = false
+    if (this.trip) this.trip.when = hhmm()
+    const n = this.saved.size
+    const what = [...this.saved].map((s) => (s === 'rate' ? 'Ставка ЦБ — 14%' : 'Half-Life 3 — слух')).join(' · ')
+    if (this.view === 'drive') this.openChat(this.open)
+    this.note(
+      `<b>${n ? `Из поездки — ${n === 1 ? 'отмечен 1 ответ' : `отмечено ${n} ответа`}` : 'Поездка закончилась'}</b><span>${n ? what : 'Весь разговор — в чате поездки'}</span>
+      <div class="gr-note-b"><button class="is-primary" data-act="note-trip">Открыть чат поездки</button></div>`,
+      9000,
+    )
+    if (this.soundOn && voice.isOn()) voice.speak(LINE.arrived.id, LINE.arrived.say)
   }
 
   private openTripChat() {
@@ -1501,9 +1439,8 @@ export class GrifApp {
   destroy() {
     this.stopAudio()
     stopWake()
-    clearInterval(this.clock)
-    clearInterval(this.bannerTimer)
-    clearInterval(this.callTimer)
+    clearTimeout(this.noteTimer)
+    clearTimeout(this.navTimer)
     if (this.geoWatch) navigator.geolocation.clearWatch(this.geoWatch)
     removeEventListener('online', this.onNet)
     removeEventListener('offline', this.onNet)

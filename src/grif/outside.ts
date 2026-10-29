@@ -3,13 +3,15 @@
 //   android — over a navigator: a bubble at the edge, the answer takes the place of the ETA panel,
 //             the light at the screen edge carries the state; route, manoeuvre, speed and signs stay open
 //   iphone  — iOS draws nothing over other apps: voice + Dynamic Island only
+// v2 rules (research/20): one anchor on screen — a number or a word and 2–4 words; the sentence is
+// spoken; the navigator comes first; a question to the driver only while parked (a notification).
 // The map is drawn here (no navigator's branding); Yandex Maps / Google Maps look roughly like this.
 
 import * as voice from '../voice'
 import * as ears from '../app/ears'
 import * as earcon from '../app/earcon'
 import { Horizon } from './horizon'
-import { CHAIN, LINE, understand, type Chunk, type Tag, type Topic } from './talk'
+import { CHAIN, LINE, understand, type Chunk, type Topic } from './talk'
 
 type Scene = 'home' | 'android' | 'iphone'
 type St = 'idle' | 'listen' | 'think' | 'speak' | 'hold'
@@ -32,7 +34,6 @@ const P: Record<string, string> = {
 }
 const ic = (n: string, cls = '') => `<svg class="o-i ${cls}" viewBox="0 0 24 24" aria-hidden="true"><path d="${P[n]}"/></svg>`
 const CH = (n: string) => `./grif/${n}.webp`
-const TAG_CLS: Record<Tag['kind'], string> = { fact: 'is-fact', forecast: 'is-forecast', rumor: 'is-rumor', info: 'is-info' }
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
 const DEMO = ['Как изменится ключевая ставка в ближайший месяц?', 'Почему?', 'Сохрани', 'Что там с Half-Life 3?', 'Сохрани']
 
@@ -171,6 +172,13 @@ export class OutsidePage {
         <div class="o-speed"><span class="o-lim">90</span><span class="o-cur"><b>87</b>км/ч</span></div>
         <div class="o-eta"><span><b class="o-eta-t">2 ч 47 мин</b><small>312 км · прибытие 14:32</small></span><i>${ic('x')}</i></div>
 
+        <!-- parked: the only moment Ась may ask something — a system notification -->
+        <div class="o-notif" hidden>
+          <header><img src="${CH('neutral')}" alt=""><small>Ась · сейчас</small></header>
+          <b>Похоже, вы в машине</b><span>Включу короткие ответы голосом. Карта останется на экране.</span>
+          <div class="o-notif-b"><button class="is-primary" data-o="notif-yes">Включить</button><button data-o="notif-no">Я пассажир</button></div>
+        </div>
+
         <!-- Ась over the navigator -->
         <div class="o-edge" aria-hidden="true"></div>
         <button class="o-bubble" data-o="bubble" aria-label="Спросить Ась"><img src="${CH('neutral')}" alt=""><i class="o-badge"></i></button>
@@ -216,7 +224,8 @@ export class OutsidePage {
     demo.innerHTML =
       s === 'home'
         ? `<button data-o="ask">${ic('mic')}Спросить из виджета</button>`
-        : `<button data-o="bubble">${ic('mic')}${s === 'iphone' ? '«Ась» / касание острова' : 'Спросить Ась'}</button>
+        : `<button data-o="park">${ic('car')}Магнитола подключилась · стоим</button>
+           <button data-o="bubble">${ic('mic')}${s === 'iphone' ? '«Ась» / касание острова' : 'Спросить Ась'}</button>
            <button data-o="navspeak">${ic('sound')}Навигатор говорит</button>
            <button data-o="turn">${ic('right')}Скоро манёвр</button>`
     this.q('.o-text').innerHTML = {
@@ -226,10 +235,11 @@ export class OutsidePage {
       android: `<h2>Поверх навигатора · Android</h2>
         <p>Карты остаются главными. Ась не трогает то, что нужно за рулём: <b>манёвр сверху, линию маршрута, знаки и камеры, скорость и ограничение слева внизу</b>.</p>
         <ul>
-          <li><b>Пузырь у правого края</b> ниже кнопок карты. Касание или «ась» — спросить. Пузырь можно перетащить.</li>
-          <li><b>Ответ занимает место панели времени прибытия</b> — она меняется медленнее всего — и сам сворачивается через 4 секунды. Знак ограничения скорости над ней остаётся видно.</li>
+          <li><b>Пузырь у правого края</b> ниже кнопок карты. Касание пузыря или «Ась» — спросить. Касание карты — это навигатор, не Ась.</li>
+          <li><b>Ответ занимает место панели времени прибытия</b> — она меняется медленнее всего — и сам сворачивается через 4 секунды. На ней одна опора: цифра или слово и пара слов к ним. Фраза целиком звучит и уходит в чат поездки. Касание карточки — тишина.</li>
           <li><b>Свет по нижнему краю экрана</b> — состояние: слушает, ищет, говорит. Видно боковым зрением, не закрывает карту.</li>
-          <li><b>Навигатор главнее.</b> Когда он говорит, Android забирает у Ась звук, и Ась замолкает до конца подсказки. Перед манёвром Ась ждёт: расстояние до поворота читается из уведомления навигатора.</li>
+          <li><b>Навигатор главнее.</b> Когда он говорит, Android забирает у Ась звук, и Ась замолкает до конца подсказки и продолжает с начала фразы. Перед манёвром Ась ждёт: расстояние до поворота читается из уведомления навигатора.</li>
+          <li><b>Спросить водителя можно только на стоянке.</b> Магнитола подключилась, машина стоит — системное уведомление «Включить / Я пассажир». На ходу Ась ничего не спрашивает.</li>
         </ul>
         <p class="o-small">Нужны разрешения «Поверх других приложений» и «Доступ к уведомлениям» — спрашиваем один раз на стоянке.</p>`,
       iphone: `<h2>Поверх навигатора · iPhone</h2>
@@ -248,6 +258,18 @@ export class OutsidePage {
     if (a === 'island') return this.st === 'idle' || this.st === 'hold' ? this.listen() : this.toggleIsland()
     if (a === 'pause') return this.st === 'hold' ? this.resume() : this.pause()
     if (a === 'navspeak') return this.yield('navspeak')
+    if (a === 'park') {
+      this.q('.o-notif').hidden = false
+      this.q('.o-cur b').textContent = '0' // parked: reading a question is safe only now
+      return
+    }
+    if (a === 'notif-yes' || a === 'notif-no') {
+      this.q('.o-notif').hidden = true
+      this.q('.o-cur b').textContent = '87'
+      this.root.classList.toggle('is-passenger', a === 'notif-no')
+      if (a === 'notif-yes') earcon.ready()
+      return
+    }
     if (a === 'turn') return this.yield('turn')
   }
 
@@ -258,22 +280,15 @@ export class OutsidePage {
     this.root.dataset.st = s
     const label = o.label ?? { idle: '', listen: 'СЛУШАЮ', think: 'ИЩУ', speak: 'ГОВОРЮ', hold: 'ПАУЗА' }[s]
     this.root.querySelectorAll('.o-label').forEach((e) => (e.textContent = label))
-    this.root.querySelectorAll<HTMLElement>('.o-tag').forEach((t) => {
-      t.hidden = !c?.tag
-      if (c?.tag) {
-        t.textContent = c.tag.text
-        t.className = `o-tag ${TAG_CLS[c.tag.kind]}`
-      }
-    })
+    // fact / forecast / rumour is said aloud; no label to read on the move
+    this.root.querySelectorAll<HTMLElement>('.o-tag').forEach((t) => (t.hidden = true))
     this.root.querySelectorAll<HTMLElement>('.o-big').forEach((b) => {
       b.hidden = !c?.big
       if (c?.big) b.textContent = c.big
     })
-    const text = o.phrase ?? c?.text ?? ''
-    this.root.querySelectorAll<HTMLElement>('.o-phrase').forEach((p) => {
-      p.innerHTML = c ? text.split(/(\s+)/).map((w) => (w.trim() ? `<span>${w}</span>` : w)).join('') : text
-      p.classList.toggle('is-k', !!c)
-    })
+    // one anchor: with a number or a word on screen, only its 2–4 word caption goes beside it
+    const text = o.phrase ?? (c?.big ? (c.cap ?? '') : (c?.text ?? ''))
+    this.root.querySelectorAll<HTMLElement>('.o-phrase').forEach((p) => (p.textContent = text))
     const ch = o.char ?? ({ idle: 'neutral', listen: 'attentive', think: 'curious', speak: 'happy', hold: 'sleepy' } as Record<St, string>)[s]
     this.root.querySelectorAll<HTMLImageElement>('.o-card-ch, .o-island img').forEach((i) => (i.src = CH(ch)))
     this.q<HTMLImageElement>('.o-bubble img').src = CH(ch)
@@ -347,7 +362,14 @@ export class OutsidePage {
       this.idx++
       return this.play(CHAIN[this.topic][this.idx])
     }
-    if (it === 'save') return this.play({ ...LINE.saved, tag: { text: '✓ СОХРАНЕНО · ЧАТ ПОЕЗДКИ', kind: 'fact' } }, false, 'СОХРАНЕНО')
+    if (it === 'save') {
+      // a sound and one word; the screen does not turn into a «saved» state
+      this.tok++
+      this.setState('idle')
+      earcon.ready()
+      if (voice.isOn()) voice.speak(LINE.saved.id, LINE.saved.say)
+      return
+    }
     if (it === 'short' && this.topic) return this.play(this.topic === 'rate' ? LINE.rateShort : LINE.hlShort)
     if (it === 'stop' || it === 'quiet') return this.stopAll()
     this.play(LINE.unknown)
@@ -358,27 +380,23 @@ export class OutsidePage {
     const tk = ++this.tok
     this.last = c
     if (think) {
-      this.setState('think', undefined, { phrase: this.topic === 'hl3' ? 'Смотрю новости игровых сайтов' : 'Смотрю решение Банка России' })
+      this.setState('think', undefined, { phrase: 'Смотрю свежие данные' })
       await wait(1100)
       if (tk !== this.tok) return
     }
     const chain = this.topic ? CHAIN[this.topic] : []
     const pos = chain.indexOf(c)
     this.setState('speak', c, { label: label ?? (pos >= 0 ? `ГОВОРЮ · ${pos + 1} ИЗ ${chain.length}` : 'ГОВОРЮ') })
-    const spans = [...this.root.querySelectorAll('.o-phrase')].map((p) => [...p.querySelectorAll('span')])
-    const k = (p: number) => spans.forEach((list) => list.forEach((s, i) => s.classList.toggle('on', i < Math.round(p * list.length))))
-    if (voice.isOn()) await voice.speak(c.id, c.say, { onProgress: k, onLevel: (v) => this.hz?.level(v), onWord: () => this.hz?.pulse() })
+    if (voice.isOn()) await voice.speak(c.id, c.say, { onLevel: (v) => this.hz?.level(v), onWord: () => this.hz?.pulse() })
     else {
       const t0 = performance.now()
       const ms = c.say.length * 58
       while (performance.now() - t0 < ms) {
         if (tk !== this.tok) return
-        k((performance.now() - t0) / ms)
         await wait(120)
       }
     }
     if (tk !== this.tok) return
-    k(1)
     this.root.dataset.st = 'done'
     this.st = 'idle'
     // the answer gives the panel back to the navigator a few seconds later
@@ -396,7 +414,7 @@ export class OutsidePage {
   private pause() {
     this.tok++
     voice.stop()
-    this.setState('hold', undefined, { phrase: 'Пауза. Касание — продолжить' })
+    this.setState('hold', undefined, { phrase: 'Продолжу с начала фразы' })
   }
 
   private resume() {
@@ -413,8 +431,8 @@ export class OutsidePage {
     man.classList.add('is-hot')
     this.q('.o-man-d').textContent = why === 'turn' ? '300 м' : '400 м'
     this.setState('hold', undefined, {
-      label: why === 'turn' ? 'ЖДУ МАНЁВР' : 'НАВИГАТОР ГОВОРИТ',
-      phrase: why === 'turn' ? 'Поворот через 300 м — продолжу после' : '«Через 400 метров съезд направо»',
+      label: why === 'turn' ? 'ЖДУ МАНЁВР' : 'ЖДУ НАВИГАТОР',
+      phrase: 'Продолжу с начала фразы',
     })
     await wait(why === 'turn' ? 3200 : 2600)
     man.classList.remove('is-hot')
@@ -425,6 +443,9 @@ export class OutsidePage {
 
   private stopAll() {
     this.tok++
+    this.q('.o-notif').hidden = true
+    this.q('.o-cur b').textContent = '87'
+    this.root.classList.remove('is-passenger')
     voice.stop()
     ears.stopListening()
     clearTimeout(this.collapse)
