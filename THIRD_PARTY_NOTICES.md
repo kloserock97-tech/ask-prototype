@@ -18,6 +18,11 @@ Everything else — code, shaders, the scene and its liquid glass, 3D models and
 renders, texts, icons — is original work by Nikita Gorbachev and is covered by `LICENSE`.
 Build tools (Vite, TypeScript) are not shipped with the site.
 
+## Cormorant Garamond (font)
+
+Copyright 2015 The Cormorant Project Authors (https://github.com/CatharsisFonts/Cormorant).
+Licensed under the SIL Open Font License, Version 1.1. Delivered through `@fontsource/cormorant-garamond`; used on the #/visions page.
+
 ## Recorded voice (public/voice)
 
 The reply recordings are generated with Piper (https://github.com/rhasspy/piper, MIT) using
