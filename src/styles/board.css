@@ -1,0 +1,527 @@
+/* Components taken from the «AI assist» Pinterest board and redrawn in code.
+   p13 tiles + composer · p27 drops · p08 CC/settings + voice sheet · p04 listening ring
+   p17 ready bloom · p16 slider pills. Loaded after grif.css. */
+
+.gr > section {
+  border-radius: inherit;
+}
+
+/* p13 · action tiles above the composer: glass, icon on top, name below */
+.gr-sugs {
+  gap: 10px;
+  padding: 0 12px 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.gr-sugs::-webkit-scrollbar {
+  display: none;
+}
+.gr-tile {
+  flex: 0 0 auto;
+  width: 136px;
+  height: 88px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 15px 16px 13px !important;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.045) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.075), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  text-align: left;
+  transition: transform 160ms ease-out;
+}
+.gr-tile:active {
+  transform: scale(0.97);
+}
+.gr-tile .gr-i {
+  width: 22px;
+  height: 22px;
+  color: #c4c8d4;
+  stroke-width: 1.6;
+}
+.gr-tile b {
+  font-size: 16.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+.gr-tile.is-drive .gr-i {
+  color: var(--bl);
+}
+
+/* p13 · composer: a deep-blue to teal slab, round outlined tools, a mode pill, a white circle */
+.gr-comp {
+  display: block;
+  margin: 0 12px calc(env(safe-area-inset-bottom) + 10px);
+  padding: 15px 12px 12px 18px;
+  border: 0;
+  border-radius: 28px;
+  background:
+    radial-gradient(90% 150% at 40% 125%, rgba(52, 78, 230, 0.85), transparent 64%),
+    radial-gradient(75% 140% at 112% -20%, rgba(34, 160, 136, 0.55), transparent 62%),
+    linear-gradient(180deg, #252833, #1d2030);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.gr-comp .gr-input {
+  display: block;
+  width: 100%;
+  padding: 0 0 16px;
+  font-size: 18px;
+}
+.gr-comp .gr-input::placeholder {
+  color: rgba(255, 255, 255, 0.45);
+}
+.gr-comp-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.gr-cb {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.02) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+  color: #e6e8ef !important;
+  transition: background 160ms, transform 160ms ease-out;
+}
+.gr-cb .gr-i {
+  width: 20px;
+  height: 20px;
+  stroke-width: 1.7;
+}
+.gr-cb:active {
+  transform: scale(0.94);
+}
+.gr-cb[aria-pressed='true'] {
+  background: rgba(255, 255, 255, 0.16) !important;
+}
+.gr-cb.gr-dict.is-on {
+  color: var(--rd) !important;
+}
+.gr-modepill {
+  margin-left: auto;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 13px 0 16px !important;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+  font-size: 16px !important;
+  font-weight: 500;
+  color: #eef0f5 !important;
+}
+.gr-modepill .gr-i {
+  width: 17px;
+  height: 17px;
+}
+.gr-comp .gr-voice {
+  width: 44px;
+  height: 44px;
+}
+
+/* p27 · drops flowing into each other (thinking) */
+.gr-goo circle {
+  fill: currentColor;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: gr-drop 1.5s ease-in-out infinite;
+  animation-delay: calc(var(--i) * -0.2s);
+}
+@keyframes gr-drop {
+  0%,
+  100% {
+    transform: scale(0.7);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+.gr-presence .gr-goo {
+  width: 26px;
+  height: 26px;
+  color: var(--bl);
+}
+.gr-think {
+  display: none;
+  align-self: center;
+  width: clamp(56px, 10cqh, 84px);
+  margin-bottom: 1.6cqh;
+  color: var(--bl);
+}
+.gr-think .gr-goo {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.gr-drive[data-mode='think'] .gr-think {
+  display: block;
+}
+
+/* p08 · CC and voice-settings buttons in the top bar */
+.gr-tb {
+  width: 40px !important;
+  height: 40px !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: var(--t1);
+}
+.gr-tb .gr-i {
+  width: 20px;
+  height: 20px;
+}
+.gr-tb[aria-pressed='false'] {
+  color: var(--t4);
+}
+.gr-tb.is-blue {
+  background: #2f6bf2 !important;
+  color: #fff;
+}
+@container (max-width: 380px) {
+  .gr-drive .gr-clock {
+    display: none;
+  }
+}
+.gr-drive .gr-top .gr-tb[data-act='cc'] {
+  margin-left: auto;
+}
+.gr-drive .gr-clock {
+  margin-left: 4px;
+}
+.gr-drive.no-subs[data-mode='speak'] .gr-big:not([hidden]) ~ .gr-phrase,
+.gr-drive.no-subs[data-mode='speak'] .gr-tag:not([hidden]) ~ .gr-phrase {
+  visibility: hidden;
+}
+
+/* p04 · listening: a big live transcript fading upward, a halftone ring around the mic, a glowing frame */
+.gr-drive::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  border-radius: inherit;
+  pointer-events: none;
+  transition: box-shadow 400ms ease-out;
+}
+.gr-drive[data-mode='listen']::after {
+  box-shadow:
+    inset 0 0 0 2.5px rgba(160, 175, 255, 0.9),
+    inset 0 0 70px 12px rgba(79, 99, 216, 0.6),
+    inset -10px 0 40px -6px rgba(255, 190, 90, 0.45);
+}
+.gr-drive[data-mode='listen'] {
+  background: linear-gradient(180deg, #141a2c 0%, #1b2338 55%, #222b45 100%);
+}
+.gr-drive .gr-hz {
+  transition: opacity 400ms ease-out;
+}
+.gr-drive[data-mode='listen'] .gr-hz {
+  opacity: 0;
+}
+.gr-drive[data-mode='listen'] .gr-mid {
+  padding-top: 2cqh;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 16%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 16%);
+}
+.gr-drive[data-mode='listen'] :is(.gr-char, .gr-mid .gr-label, .gr-foot .gr-btn, .gr-hint) {
+  display: none;
+}
+.gr-drive[data-mode='listen'] .gr-phrase {
+  font-size: clamp(28px, 8.4cqw, 33px);
+  font-weight: 500;
+  line-height: 1.13;
+  letter-spacing: -0.015em;
+  color: #d9ddec;
+}
+.gr-ring-l {
+  display: none;
+  margin: 0;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #b4bff0;
+}
+.gr-ring {
+  --lv: 0;
+  position: relative;
+  display: none;
+  width: 156px;
+  height: 156px;
+  align-self: center;
+  place-items: center;
+  border-radius: 50%;
+}
+.gr-drive[data-mode='listen'] :is(.gr-ring, .gr-ring-l) {
+  display: grid;
+}
+.gr-ring::before {
+  content: '';
+  position: absolute;
+  inset: 30px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(70, 88, 180, 0.7), rgba(42, 54, 118, 0.55) 68%, transparent 71%);
+}
+.gr-ring-dots {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  scale: calc(1 + var(--lv) * 0.16);
+  animation: gr-spin 16s linear infinite;
+  transition: scale 90ms linear;
+}
+@keyframes gr-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+.gr-ring-core {
+  position: relative;
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #a6b2ef, #7b88d4);
+  color: #fff;
+  box-shadow: 0 0 26px rgba(140, 160, 255, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+.gr-ring-core .gr-i {
+  width: 22px;
+  height: 22px;
+  stroke-width: 2;
+}
+
+/* p17 · ready: a soft white circle sitting in a blue bloom (the whole button stays tappable) */
+.gr-drive[data-mode='ready'] .gr-foot .gr-btn {
+  background: transparent !important;
+}
+.gr-drive[data-mode='ready'] .gr-foot .gr-btn-t {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.gr-drive[data-mode='ready'] .gr-foot .gr-btn-i {
+  position: relative;
+  z-index: 1;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.42);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.35), 0 2px 10px rgba(10, 30, 120, 0.35);
+}
+.gr-drive[data-mode='ready'] .gr-foot .gr-btn {
+  position: relative;
+}
+.gr-drive[data-mode='ready'] .gr-foot .gr-btn::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 360px;
+  height: 230px;
+  transform: translate(-50%, -38%);
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(62, 116, 255, 0.95), rgba(44, 84, 236, 0.6) 42%, rgba(30, 60, 200, 0.18) 72%, transparent);
+  filter: blur(6px);
+  pointer-events: none;
+}
+.gr-drive[data-mode='ready'] .gr-foot .gr-btn-i .gr-i {
+  opacity: 0;
+}
+
+/* p08 · voice sheet: black, voice cards, a preview line, «Применить» */
+.gr-sheet.is-black {
+  background: #000;
+  box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.08);
+}
+.gr-vs-h {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 2px 4px;
+}
+.gr-vs-h b {
+  font-size: 18px;
+  font-weight: 600;
+}
+.gr-x {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+}
+.gr-sheet.is-black h3 {
+  margin: 16px 2px 8px;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #8b8b93;
+}
+.gr-vcards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.gr-vcard {
+  position: relative;
+  aspect-ratio: 3 / 4.1;
+  overflow: hidden;
+  border-radius: 14px;
+  background: var(--bg) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  transition: box-shadow 160ms, transform 160ms ease-out;
+}
+.gr-vcard:active {
+  transform: scale(0.97);
+}
+.gr-vcard img {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: 92%;
+  transform: translate(-50%, -50%);
+}
+.gr-vcard span {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 8px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
+}
+.gr-vcard.is-on {
+  box-shadow: 0 0 0 2px #fff, inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+.gr-vplay {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.gr-vplay-b {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14) !important;
+  box-shadow: 0 0 26px rgba(255, 255, 255, 0.22);
+}
+.gr-vplay-b .gr-i {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+.gr-vtrack {
+  --p: 0;
+  position: relative;
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.18);
+}
+.gr-vtrack i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: calc(var(--p) * 100%);
+  border-radius: 2px;
+  background: #fff;
+}
+.gr-vtrack b {
+  position: absolute;
+  top: 50%;
+  left: calc(var(--p) * 100%);
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  transform: translate(-50%, -50%);
+}
+.gr-apply {
+  display: block;
+  height: 46px;
+  margin: 22px auto 2px;
+  padding: 0 28px !important;
+  border-radius: 999px;
+  background: #1c1c1f !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+  font-size: 16px !important;
+  font-weight: 500;
+}
+
+/* p16 · glass slider pills */
+.gr-sls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+}
+.gr-sl {
+  position: relative;
+  height: 56px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  touch-action: none;
+  cursor: pointer;
+}
+.gr-sl:focus-visible {
+  outline: 2px solid var(--bl);
+  outline-offset: 2px;
+}
+.gr-sl-fill {
+  --p: 0.5;
+  position: absolute;
+  inset: 0 auto 0 0;
+  z-index: 1;
+  width: calc(96px + (100% - 96px - 118px) * var(--p));
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 18px 0 20px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(64, 64, 70, 0.96), rgba(32, 32, 36, 0.96));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+.gr-sl-fill .gr-i {
+  width: 19px;
+  height: 19px;
+}
+.gr-sl-fill b {
+  font-size: 16px;
+  font-weight: 400;
+  font-style: italic;
+  white-space: nowrap;
+}
+.gr-sl-fill i {
+  margin-left: auto;
+  width: 4px;
+  height: 13px;
+  flex: none;
+  background: radial-gradient(circle, #fff 1.5px, transparent 1.8px) 0 0 / 4px 6.5px repeat-y;
+}
+.gr-sl-lbl {
+  position: absolute;
+  right: 22px;
+  top: 50%;
+  z-index: 2;
+  transform: translateY(-50%);
+  font-size: 16px;
+  font-style: italic;
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.85);
+  pointer-events: none;
+}

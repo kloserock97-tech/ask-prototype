@@ -45,7 +45,7 @@ const hex = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) 
 
 type Target = { h: number; scan: number; dash: number; line: number; a: string; b: string }
 const TARGET: Record<Glow, Target> = {
-  ready: { h: 0.2, scan: 0, dash: 0, line: 0.9, a: '#2C3790', b: '#8B9BF7' },
+  ready: { h: 0.13, scan: 0, dash: 0, line: 0.9, a: '#2C3790', b: '#8B9BF7' },
   listen: { h: 0.22, scan: 0, dash: 0, line: 1, a: '#3A48C4', b: '#B4C0FF' },
   think: { h: 0.17, scan: 1, dash: 0, line: 0.8, a: '#2C3790', b: '#8B9BF7' },
   speak: { h: 0.24, scan: 0, dash: 0, line: 1, a: '#4F63D8', b: '#C2CBFF' },

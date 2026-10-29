@@ -26,6 +26,29 @@ let ctx: AudioContext | null = null
 let analyser: AnalyserNode | null = null
 const buf = new Float32Array(1024)
 const missing = new Set<string>()
+
+/** which recorded voice plays: the main one, a second Piper voice (GRIF lines only), or the browser */
+export type VoiceName = 'dmitri' | 'denis' | 'system'
+let voiceName: VoiceName = 'dmitri'
+let rate = 1
+export function setVoice(v: VoiceName) {
+  voiceName = v
+}
+export function getVoice() {
+  return voiceName
+}
+/** speaking rate, 0.8–1.3; recordings keep their pitch */
+export function setRate(r: number) {
+  rate = Math.max(0.7, Math.min(1.4, r))
+}
+export function getRate() {
+  return rate
+}
+let volume = 1
+export function setVolume(x: number) {
+  volume = Math.max(0, Math.min(1, x))
+  if (audio) audio.volume = volume
+}
 const present = new Set<string>()
 
 /** find out up front which recordings exist — a fallback started after a failed load
@@ -92,7 +115,8 @@ export function say(line: string, onWord: () => void): Promise<void> {
     const u = new SpeechSynthesisUtterance(text)
     u.lang = 'ru-RU'
     if (voiceRu) u.voice = voiceRu
-    u.rate = 1.04
+    u.rate = 1.04 * rate
+    u.volume = volume
     u.pitch = 1.05
     u.onboundary = (e) => {
       if (e.name === 'word' || e.charIndex >= 0) onWord()
@@ -112,7 +136,8 @@ function sayWithProgress(text: string, h: SpeakHandlers): Promise<void> {
     const u = new SpeechSynthesisUtterance(text)
     u.lang = 'ru-RU'
     if (voiceRu) u.voice = voiceRu
-    u.rate = 1.04
+    u.rate = 1.04 * rate
+    u.volume = volume
     u.onboundary = (e) => {
       h.onWord?.()
       h.onLevel?.(0.55)
@@ -136,7 +161,7 @@ export type SpeakHandlers = {
 /** play the recorded line `id`; falls back to speech synthesis of `text` */
 export function speak(id: string, text: string, h: SpeakHandlers = {}): Promise<void> {
   if (!enabled) return Promise.resolve()
-  if (!audio || !present.has(id)) return sayWithProgress(text, h)
+  if (!audio || !present.has(id) || voiceName === 'system') return sayWithProgress(text, h)
   stop()
   return new Promise((resolve) => {
     let raf = 0
@@ -176,7 +201,8 @@ export function speak(id: string, text: string, h: SpeakHandlers = {}): Promise<
       audio.onended = audio.onerror = audio.onpause = null
       say(`«${text}»`, () => h.onWord?.()).then(resolve)
     }
-    audio.src = `./voice/${id}.mp3`
+    audio.src = `./voice/${voiceName === 'denis' && id.startsWith('g-') ? 'denis/' : ''}${id}.mp3`
+    audio.playbackRate = rate
     ctx?.resume()
     audio.play().then(() => (raf = requestAnimationFrame(tick))).catch(() => audio.onerror?.(new Event('error')))
   })

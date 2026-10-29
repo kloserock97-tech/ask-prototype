@@ -53,6 +53,32 @@ const MAP = `<svg class="o-map" viewBox="0 0 900 1100" aria-hidden="true">
   <text x="250" y="560" font-size="30" fill="#8A94A3" font-family="Manrope, sans-serif" font-weight="600" transform="rotate(-8 250 560)">Химки</text>
 </svg>`
 
+// p03 (board «AI assist»): a black squircle, amber light rising from the bottom along road lines
+// that run to a vanishing point, a glossy triangle on the centre line
+const ROAD = `<svg class="o-road-svg" viewBox="0 0 170 170" aria-hidden="true">
+  <defs>
+    <linearGradient id="rdC" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#fffbe8"/><stop offset=".42" stop-color="#ffd16a"/><stop offset="1" stop-color="#ff9500" stop-opacity="0"/></linearGradient>
+    <linearGradient id="rdS" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#ffe08a"/><stop offset=".5" stop-color="#ffaa2a" stop-opacity=".85"/><stop offset="1" stop-color="#ff8a00" stop-opacity="0"/></linearGradient>
+    <linearGradient id="rdT" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffdb8f"/><stop offset="1" stop-color="#ff9d17"/></linearGradient>
+    <filter id="rdB" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation=".7"/></filter>
+    <filter id="rdG" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="5"/></filter>
+  </defs>
+  <g filter="url(#rdB)">
+    <path d="M75 170 L95 170 L87.4 112 L82.6 112Z" fill="url(#rdC)"/>
+    <path d="M40 170 L52 170 L79.4 86 L77.8 86Z" fill="url(#rdS)"/>
+    <path d="M118 170 L130 170 L92.2 86 L90.6 86Z" fill="url(#rdS)"/>
+    <path d="M0 120 L0 132 L70.6 86 L68.8 86Z" fill="url(#rdS)" opacity=".9"/>
+    <path d="M170 120 L170 132 L99.4 86 L101.2 86Z" fill="url(#rdS)" opacity=".9"/>
+  </g>
+  <g transform="translate(0 -12)">
+    <ellipse cx="85" cy="112" rx="26" ry="22" fill="#000" opacity=".55" filter="url(#rdG)"/>
+    <path d="M85 93 Q87.3 93 88.7 95.9 L100.3 122.4 Q102.1 127 97.9 127 L72.1 127 Q67.9 127 69.7 122.4 L81.3 95.9 Q82.7 93 85 93Z" fill="#ff9a10" opacity=".75" filter="url(#rdG)"/>
+    <path d="M69.6 125 L100.4 125 Q99.8 129 97.4 129 L72.6 129 Q70.2 129 69.6 125Z" fill="#b65c00"/>
+    <path d="M85 93 Q87.3 93 88.7 95.9 L100.3 122.4 Q102.1 127 97.9 127 L72.1 127 Q67.9 127 69.7 122.4 L81.3 95.9 Q82.7 93 85 93Z" fill="url(#rdT)"/>
+    <path d="M75.6 109 L81.3 95.9 Q82.7 93 85 93 Q87.3 93 88.7 95.9 L94.4 109Z" fill="#fff" opacity=".18"/>
+  </g>
+</svg>`
+
 export class OutsidePage {
   readonly root = document.createElement('main')
   private scene: Scene = 'android'
@@ -105,15 +131,18 @@ export class OutsidePage {
       <!-- home screen -->
       <div class="o-home">
         <div class="o-status"><b>9:41</b><span>М-11 · 2 ч 47 мин</span></div>
-        <div class="o-widget">
-          <div class="o-w-top"><img src="${CH('neutral')}" alt=""><b>GRIF</b><span>последний ответ</span></div>
-          <div class="o-w-ans"><b>14%</b><span>ставка ЦБ · до 18 дек</span></div>
-          <div class="o-w-btns">
-            <button class="o-w-ask" data-o="ask">${ic('mic')}Спросить</button>
-            <a class="o-w-drive" href="./?drive=1#/">${ic('car')}В дорогу</a>
+        <div class="o-wrow">
+          <div class="o-road" role="group" aria-label="Виджет GRIF «В дороге»">
+            <a class="o-road-go" href="./?drive=1#/" aria-label="Включить «В дороге»"></a>
+            ${ROAD}
+            <svg class="o-road-ar" viewBox="0 0 28 28" aria-hidden="true"><defs><linearGradient id="rdA" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#8d8d92"/><stop offset="1" stop-color="#fff"/></linearGradient></defs><path d="M5 22v-5a7 7 0 0 1 7-7h10M17 5l5 5-5 5" fill="none" stroke="url(#rdA)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <b class="o-road-big">14%</b>
+            <small class="o-road-sub">ставка ЦБ</small>
+            <span class="o-road-pills"><i>2</i><button data-o="ask" aria-label="Спросить GRIF">${ic('mic')}</button></span>
           </div>
+          <div class="o-apps4">${['карты', 'музыка', 'погода', 'камера'].map((n) => `<span><i></i>${n}</span>`).join('')}</div>
         </div>
-        <div class="o-apps">${['карты', 'музыка', 'погода', 'камера', 'заметки', 'часы', 'фото', 'почта'].map((n) => `<span><i></i>${n}</span>`).join('')}</div>
+        <div class="o-apps">${['заметки', 'часы', 'фото', 'почта'].map((n) => `<span><i></i>${n}</span>`).join('')}</div>
         <div class="o-dock"><i></i><i></i><i></i><i></i></div>
         <div class="o-sheet">
           <canvas class="o-hz" aria-hidden="true"></canvas>

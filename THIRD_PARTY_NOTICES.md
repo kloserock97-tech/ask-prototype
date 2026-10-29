@@ -21,7 +21,7 @@ Build tools (Vite, TypeScript) are not shipped with the site.
 ## Recorded voice (public/voice)
 
 The reply recordings are generated with Piper (https://github.com/rhasspy/piper, MIT) using
-the `ru_RU-dmitri-medium` voice (rhasspy/piper-voices, MIT), trained on a CC0 dataset
+the `ru_RU-dmitri-medium` voice and, in `public/voice/denis`, the `ru_RU-denis-medium` voice (rhasspy/piper-voices, MIT), trained on a CC0 dataset
 (https://github.com/OHF-Voice/voice-datasets). Piper itself is not shipped with the site.
 
 ## GRIF character (public/grif)

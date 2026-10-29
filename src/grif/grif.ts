@@ -54,6 +54,12 @@ const IC: Record<string, string> = {
   moon: 'M20 14A8 8 0 1 1 10 4a6 6 0 0 0 10 10z',
   nfc: 'M7 8a6 6 0 0 1 0 8M11 6a10 10 0 0 1 0 12M15 4a14 14 0 0 1 0 16',
   chev: 'M9 6l6 6-6 6',
+  chevd: 'M6 9l6 6 6-6',
+  clip: 'M21 11.5l-8.6 8.6a5.5 5.5 0 0 1-7.8-7.8l8.6-8.6a3.7 3.7 0 0 1 5.2 5.2l-8.6 8.6a1.8 1.8 0 0 1-2.6-2.6l7.9-7.9',
+  cc: 'M4 6h16v12H4zM10.5 10.2a2.2 2.2 0 1 0 0 3.6M16.5 10.2a2.2 2.2 0 1 0 0 3.6',
+  sliders: 'M5 4v6M5 14v6M12 4v2M12 10v10M19 4v10M19 18v2M3 12h4M10 8h4M17 16h4',
+  chart: 'M4 19h16M7 16V10M12 16V5M17 16v-4',
+  game: 'M6 9h12a4 4 0 0 1 4 4v1a3 3 0 0 1-5.4 1.8L15 14H9l-1.6 1.8A3 3 0 0 1 2 14v-1a4 4 0 0 1 4-4zM8 11v3M6.5 12.5h3M16 12h.01M18 13.5h.01',
 }
 const ic = (n: string, cls = '') => `<svg class="gr-i ${cls}" viewBox="0 0 24 24" aria-hidden="true"><path d="${IC[n]}"/></svg>`
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!)
@@ -83,6 +89,34 @@ const store = {
     }
   },
 }
+// p04: the mic sits in a halftone ring — dots thin out outward and to one side
+const RING = (() => {
+  let d = ''
+  for (let r = 32; r <= 68; r += 3) {
+    const n = Math.round((2 * Math.PI * r) / 4.2)
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2
+      const op = (0.2 + 0.8 * (1 - (r - 31) / 40)) * (0.5 + 0.5 * Math.cos(a + 2.4))
+      d += `<circle cx="${(70 + r * Math.cos(a)).toFixed(1)}" cy="${(70 + r * Math.sin(a)).toFixed(1)}" r="${(1.75 - (r - 32) / 48).toFixed(2)}" opacity="${Math.max(0.07, op).toFixed(2)}"/>`
+    }
+  }
+  return `<svg class="gr-ring-dots" viewBox="0 0 140 140" aria-hidden="true"><g fill="#B3C0FF">${d}</g></svg>`
+})()
+// p27: drops that flow into each other — circles under an SVG «goo» filter
+const GOO = `<svg class="gr-goo" viewBox="150 160 420 420" aria-hidden="true"><g filter="url(#gr-goo)">${[
+  [181, 523, 19],
+  [262, 508, 33],
+  [355, 446, 42],
+  [435, 352, 45],
+  [506, 214, 52],
+]
+  .map(([x, y, r], i) => `<circle cx="${x}" cy="${y}" r="${r}" style="--i:${i}"/>`)
+  .join('')}</g></svg>`
+// p16: a glass slider pill — icon and value on the fill, «⋮» as the handle, the name on the track
+const SL = (k: string, label: string, icon: string, v: number, min: number, max: number, text: string) =>
+  `<div class="gr-sl" data-sl="${k}" data-min="${min}" data-max="${max}" data-v="${v}" role="slider" tabindex="0" aria-label="${label}" aria-valuemin="${min}" aria-valuemax="${max}" aria-valuenow="${v}">
+    <div class="gr-sl-fill" style="--p:${(v - min) / (max - min)}">${ic(icon)}<b>${text}</b><i></i></div><span class="gr-sl-lbl">${label}</span></div>`
+type VoicePick = voice.VoiceName | 'none'
 const CHAR = (n: 'neutral' | 'attentive' | 'curious' | 'happy' | 'sleepy' | 'proud') => `./grif/${n}.webp`
 const TAG_CLS: Record<Tag['kind'], string> = { fact: 'is-fact', forecast: 'is-forecast', rumor: 'is-rumor', info: 'is-info' }
 
@@ -146,6 +180,12 @@ export class GrifApp {
     this.root.innerHTML = this.shell()
     this.hz = new Horizon(this.q<HTMLCanvasElement>('.gr-hz'))
     voice.prepare(VOICE_IDS)
+    const vp = store.get('gr-voice') as VoicePick | null
+    if (vp === 'none') this.soundOn = false
+    else if (vp) voice.setVoice(vp)
+    voice.setRate(Number(store.get('gr-rate')) || 1)
+    this.vol = Number(store.get('gr-vol') ?? 1)
+    voice.setVolume(this.vol)
     this.bind()
     this.renderChat()
     this.renderDrawer()
@@ -164,6 +204,7 @@ export class GrifApp {
   private shell() {
     return `
 <div class="gr" data-view="chat">
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="gr-goo"><feGaussianBlur in="SourceGraphic" stdDeviation="10"/><feColorMatrix values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -9"/></filter></svg>
   <section class="gr-chat" aria-label="Чат">
     <header class="gr-hdr">
       <button class="gr-ib" data-act="drawer" aria-label="Меню">${ic('menu')}</button>
@@ -174,10 +215,14 @@ export class GrifApp {
     <div class="gr-thread"></div>
     <div class="gr-sugs"></div>
     <form class="gr-comp" autocomplete="off">
-      <button type="button" class="gr-ib gr-plus" data-act="plus" aria-label="Добавить">${ic('plus')}</button>
       <input class="gr-input" placeholder="Спросите GRIF" enterkeyhint="send" aria-label="Сообщение">
-      <button type="button" class="gr-ib gr-dict" data-act="dictate" aria-label="Надиктовать">${ic('mic')}</button>
-      <button type="button" class="gr-voice" data-act="voice" aria-label="Голосовой разговор">${ic('wave')}</button>
+      <div class="gr-comp-row">
+        <button type="button" class="gr-cb" data-act="plus" aria-label="Добавить файл">${ic('clip')}</button>
+        <button type="button" class="gr-cb gr-dict" data-act="dictate" aria-label="Надиктовать">${ic('mic')}</button>
+        <button type="button" class="gr-cb" data-act="deep" aria-label="Подумать дольше" aria-pressed="false">${ic('bulb')}</button>
+        <button type="button" class="gr-modepill" data-act="modes"><span>Чат</span>${ic('chevd')}</button>
+        <button type="button" class="gr-voice" data-act="voice" aria-label="Голосовой разговор">${ic('wave')}</button>
+      </div>
     </form>
   </section>
 
@@ -187,10 +232,13 @@ export class GrifApp {
       <button class="gr-chip" data-act="chip">${ic('car')}<span class="gr-chip-t">В дороге</span></button>
       <span class="gr-clock"></span>
       <span class="gr-status" hidden></span>
+      <button class="gr-ib gr-tb" data-act="cc" aria-label="Субтитры" aria-pressed="true">${ic('cc')}</button>
+      <button class="gr-ib gr-tb is-blue" data-act="voice-sheet" aria-label="Голос и скорость">${ic('sliders')}</button>
       <button class="gr-ib gr-more" data-act="road" aria-label="Что может случиться в дороге">${ic('more')}</button>
     </header>
     <div class="gr-mid" aria-live="polite">
       <img class="gr-char" alt="" src="${CHAR('neutral')}">
+      <div class="gr-think">${GOO}</div>
       <div class="gr-label"></div>
       <div class="gr-tag" hidden></div>
       <div class="gr-big" hidden></div>
@@ -201,6 +249,8 @@ export class GrifApp {
     <div class="gr-foot">
       <p class="gr-hint"></p>
       <button class="gr-btn" data-act="main"><span class="gr-btn-i"></span><span class="gr-btn-t"></span></button>
+      <p class="gr-ring-l">GRIF СЛУШАЕТ…</p>
+      <button class="gr-ring" data-act="main" aria-label="Стоп">${RING}<span class="gr-ring-core">${ic('mic')}</span></button>
     </div>
     <div class="gr-call" hidden>
       <div class="gr-call-card">
@@ -255,6 +305,30 @@ export class GrifApp {
       }
     })
     input.addEventListener('input', () => this.syncComposer())
+    this.root.addEventListener('pointerdown', (e) => {
+      const sl = (e.target as HTMLElement).closest<HTMLElement>('.gr-sl')
+      if (!sl) return
+      try {
+        sl.setPointerCapture(e.pointerId)
+      } catch {
+        /* a synthetic pointer cannot be captured */
+      }
+      this.slide(sl, e.clientX)
+      const move = (m: PointerEvent) => this.slide(sl, m.clientX)
+      const up = () => {
+        sl.removeEventListener('pointermove', move)
+        sl.removeEventListener('pointerup', up)
+      }
+      sl.addEventListener('pointermove', move)
+      sl.addEventListener('pointerup', up)
+    })
+    this.root.addEventListener('keydown', (e) => {
+      const sl = (e.target as HTMLElement).closest<HTMLElement>('.gr-sl')
+      if (sl && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) {
+        e.preventDefault()
+        this.slide(sl, null, e.key === 'ArrowRight' ? 1 : -1)
+      }
+    })
     const drive = this.q('.gr-drive')
     drive.addEventListener('pointerdown', this.onDown)
     drive.addEventListener('pointerup', this.onUp)
@@ -293,10 +367,31 @@ export class GrifApp {
       case 'to-drive': this.closeAll(); return this.enterDrive('drive')
       case 'signals': return this.sheetSignals()
       case 'settings': return this.sheetSettings()
+      case 'modes': return this.sheet(`<h2 class="gr-sh-h">Режим</h2>
+        <button class="gr-li" data-act="close">${ic('edit')}<span><b>Чат</b><small>текстом и голосом, ответы полные</small></span>${ic('check')}</button>
+        <button class="gr-li is-accent" data-act="to-drive">${ic('car')}<span><b>В дороге</b><small>голосом, коротко, крупно</small></span></button>`)
+      case 'deep': {
+        const on = el.getAttribute('aria-pressed') !== 'true'
+        el.setAttribute('aria-pressed', String(on))
+        return this.toast(on ? 'Подумаю дольше над следующим вопросом' : 'Обычный режим')
+      }
+      case 'cc': {
+        this.subs = !this.subs
+        el.setAttribute('aria-pressed', String(this.subs))
+        this.q('.gr-drive').classList.toggle('no-subs', !this.subs)
+        return this.toast(this.subs ? 'Фраза на экране — включена' : 'Только голос и опорная цифра')
+      }
+      case 'voice-sheet': return this.sheetVoice()
+      case 'vpick':
+        this.pick = el.dataset.v as VoicePick
+        this.root.querySelectorAll('.gr-vcard').forEach((c) => c.classList.toggle('is-on', c === el))
+        return
+      case 'vplay': return this.previewVoice()
+      case 'vapply': return this.applyVoice()
       case 'signal': return this.signal(el.dataset.sig!)
       case 'auto': this.auto = el.dataset.v as Auto; store.set('gr-auto', this.auto); return this.sheetSettings()
       case 'toggle': return this.toggleSignal(el.dataset.sig!)
-      case 'sound': this.soundOn = !this.soundOn; voice.setOn(this.soundOn); this.toast(this.soundOn ? 'Звук включён' : 'Звук выключен — ответы только на экране'); return this.closeAll()
+      case 'sound': return this.sheetVoice()
       case 'bt-yes': this.closeAll(); return this.enterDrive('drive')
       case 'bt-no': this.declined = true; return this.closeAll()
       case 'banner-cancel': return this.cancelBanner()
@@ -345,12 +440,14 @@ export class GrifApp {
       const h = new Date().getHours()
       const hi = h < 5 ? 'Доброй ночи' : h < 12 ? 'Доброе утро' : h < 18 ? 'Добрый день' : 'Добрый вечер'
       th.innerHTML = `<div class="gr-empty"><img src="${CHAR('neutral')}" alt=""><h1>${hi}, Никита</h1><p>Что обсудим?</p></div>`
-      sugs.innerHTML = [
-        ['Ставка ЦБ', 'на месяц', 'Как изменится ключевая ставка в ближайший месяц?'],
-        ['Half-Life 3', 'слухи', 'Какие свежие слухи о Half-Life 3?'],
-      ]
-        .map((s) => `<button class="gr-sug" data-act="sug" data-q="${esc(s[2])}"><b>${s[0]}</b><span>${s[1]}</span></button>`)
-        .join('') + `<button class="gr-sug is-drive" data-act="sug" data-drive="1"><b>${ic('car')} В дорогу</b><span>голосом</span></button>`
+      sugs.innerHTML =
+        [
+          ['chart', 'Ставка ЦБ', 'Как изменится ключевая ставка в ближайший месяц?'],
+          ['game', 'Half-Life 3', 'Какие свежие слухи о Half-Life 3?'],
+        ]
+          .map((s) => `<button class="gr-tile" data-act="sug" data-q="${esc(s[2])}">${ic(s[0])}<b>${s[1]}</b></button>`)
+          .join('') +
+        `<button class="gr-tile is-drive" data-act="sug" data-drive="1">${ic('car')}<b>В дорогу</b></button><button class="gr-tile" data-act="voice">${ic('wave')}<b>Голосом</b></button>`
       sugs.hidden = false
       return
     }
@@ -386,7 +483,7 @@ export class GrifApp {
     c.msgs.push({ who: 'me', text, time: hhmm() })
     this.renderChat()
     const th = this.q('.gr-thread')
-    th.insertAdjacentHTML('beforeend', `<div class="gr-ai gr-thinking"><div class="gr-presence"><img src="${CHAR('curious')}" alt="">Думаю…</div></div>`)
+    th.insertAdjacentHTML('beforeend', `<div class="gr-ai gr-thinking"><div class="gr-presence">${GOO}Думаю…</div></div>`)
     th.scrollTop = th.scrollHeight
     await wait(700)
     const it = understand(text)
@@ -499,9 +596,10 @@ export class GrifApp {
     this.q('.gr-scrim').hidden = true
   }
 
-  private sheet(html: string) {
+  private sheet(html: string, cls = '') {
     this.root.querySelector('.gr')!.classList.remove('is-drawer')
     const sh = this.q('.gr-sheet')
+    sh.className = `gr-sheet ${cls}`
     sh.innerHTML = `<div class="gr-grab"></div>${html}`
     sh.hidden = false
     this.q('.gr-scrim').hidden = false
@@ -541,8 +639,86 @@ export class GrifApp {
       <h3>Включаться сам</h3><div class="gr-seg">${seg}</div>
       <h3>Когда замечать</h3>
       ${tg('bt', 'bt', 'Bluetooth «LADA»')}${tg('motion', 'car', 'Едем больше 20 км/ч')}${tg('focus', 'moon', 'Фокус «Вождение»')}${tg('nfc', 'nfc', 'Метка на держателе')}${tg('charge', 'bulb', 'Зарядка в машине')}
-      <button class="gr-li" data-act="sound">${ic('speaker')}<span><b>Звук ответов: ${this.soundOn ? 'вкл' : 'выкл'}</b><small>голос — записанные реплики, без записи читает браузер</small></span></button>
+      <button class="gr-li" data-act="sound">${ic('speaker')}<span><b>Голос и скорость</b><small>${this.soundOn ? { dmitri: 'Дмитрий', denis: 'Денис', system: 'голос браузера' }[voice.getVoice()] : 'без голоса'} · ${voice.getRate().toFixed(1).replace('.', ',')}×</small></span>${ic('chev')}</button>
       <p class="gr-sh-p">Выход: стоим 3 минуты или «приехали» → сводка и чат поездки.</p>`)
+  }
+
+  private subs = true
+  private pick: VoicePick = 'dmitri'
+  private vol = 1
+
+  /** p08: voices as cards, a preview with a progress line, «Применить»; p16 sliders under it */
+  private sheetVoice() {
+    const cur: VoicePick = this.soundOn ? voice.getVoice() : 'none'
+    this.pick = cur
+    const cards: [VoicePick, string, Parameters<typeof CHAR>[0], string][] = [
+      ['dmitri', 'Дмитрий', 'neutral', '#141416'],
+      ['denis', 'Денис', 'curious', '#d5d6db'],
+      ['system', 'Браузер', 'happy', '#cbb9a4'],
+      ['none', 'Без голоса', 'sleepy', '#f2f2f4'],
+    ]
+    const r = voice.getRate()
+    this.sheet(
+      `<div class="gr-vs-h"><b>Голос</b><button class="gr-x" data-act="close" aria-label="Закрыть">${ic('x')}</button></div>
+      <h3>Голоса</h3>
+      <div class="gr-vcards">${cards.map(([id, n, ch, bg]) => `<button class="gr-vcard${id === cur ? ' is-on' : ''}" data-act="vpick" data-v="${id}" style="--bg:${bg}"><img src="${CHAR(ch)}" alt=""><span>${n}</span></button>`).join('')}</div>
+      <h3>Послушать</h3>
+      <div class="gr-vplay"><button class="gr-vplay-b" data-act="vplay" aria-label="Послушать">${ic('play')}</button><div class="gr-vtrack"><i></i><b></b></div></div>
+      <div class="gr-sls">
+        ${SL('rate', 'Скорость', 'speaker', r, 0.8, 1.3, `${r.toFixed(1).replace('.', ',')}×`)}
+        ${SL('vol', 'Громкость', 'speaker', Math.round(this.vol * 100), 0, 100, String(Math.round(this.vol * 100)))}
+      </div>
+      <button class="gr-apply" data-act="vapply">Применить</button>`,
+      'is-black',
+    )
+  }
+
+  private async previewVoice() {
+    if (this.pick === 'none') return this.toast('Без голоса: ответ — только на экране')
+    const was = voice.getVoice()
+    voice.setOn(true)
+    voice.setVoice(this.pick)
+    const track = this.root.querySelector<HTMLElement>('.gr-vtrack')
+    const set = (p: number) => track?.style.setProperty('--p', p.toFixed(3))
+    await voice.speak(LINE.rateShort.id, LINE.rateShort.say, { onProgress: set })
+    set(1)
+    voice.setVoice(was)
+  }
+
+  private applyVoice() {
+    this.soundOn = this.pick !== 'none'
+    voice.setOn(this.soundOn)
+    if (this.pick !== 'none') voice.setVoice(this.pick)
+    store.set('gr-voice', this.pick)
+    this.toast(this.soundOn ? 'Голос сохранён' : 'Без голоса — ответы только на экране')
+    this.closeAll()
+  }
+
+  /** drag or arrow keys on a p16 slider */
+  private slide(el: HTMLElement, x: number | null, step = 0) {
+    const min = Number(el.dataset.min), max = Number(el.dataset.max)
+    let v = Number(el.dataset.v)
+    if (x !== null) {
+      const r = el.getBoundingClientRect()
+      const p = Math.max(0, Math.min(1, (x - r.left - 48) / Math.max(1, r.width - 214)))
+      v = min + p * (max - min)
+    } else v = Math.max(min, Math.min(max, v + step * (max - min) / 20))
+    const k = el.dataset.sl
+    if (k === 'rate') v = Math.round(v * 20) / 20
+    else v = Math.round(v)
+    el.dataset.v = String(v)
+    el.setAttribute('aria-valuenow', String(v))
+    const fill = el.querySelector<HTMLElement>('.gr-sl-fill')!
+    fill.style.setProperty('--p', String((v - min) / (max - min)))
+    fill.querySelector('b')!.textContent = k === 'rate' ? `${v.toFixed(2).replace(/0$/, '').replace('.', ',')}×` : String(v)
+    if (k === 'rate') {
+      voice.setRate(v)
+      store.set('gr-rate', String(v))
+    } else {
+      this.vol = v / 100
+      voice.setVolume(this.vol)
+      store.set('gr-vol', String(this.vol))
+    }
   }
 
   private toggleSignal(k: string) {
@@ -944,7 +1120,9 @@ export class GrifApp {
     cancelAnimationFrame(this.meterRaf)
     const loop = () => {
       if (tk !== this.tok || this.md !== 'listen') return ears.closeMeter()
-      this.hz?.level(ears.level())
+      const lv = ears.level()
+      this.hz?.level(lv)
+      this.q('.gr-ring').style.setProperty('--lv', lv.toFixed(3))
       this.meterRaf = requestAnimationFrame(loop)
     }
     loop()
