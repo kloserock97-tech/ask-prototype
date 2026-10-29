@@ -1,10 +1,10 @@
-// GRIF: a chat-only AI companion (ChatGPT / Grok layout) with a «В дороге» mode.
+// Ась: a chat-only AI companion (ChatGPT / Grok layout) with a «В дороге» mode.
 // research/16 and research/17 describe the flow; Figma page «08 · Компаньон».
 //   chat     — empty state, answers with fact / forecast / rumour labels, ≡ menu, «+» sheet
 //   entry    — Bluetooth sheet, «you are moving» banner with a 3 s cancel, manual «В дорогу»
 //   drive    — one screen: anchor + the sentence that plays; the horizon light carries the state
 //   summary  — on a stop; the trip chat pins itself in the menu
-// Rule: GRIF may simplify the screen on its own, but never opens the microphone without consent.
+// Rule: Ась may simplify the screen on its own, but never opens the microphone without consent.
 
 import * as voice from '../voice'
 import * as ears from '../app/ears'
@@ -215,7 +215,7 @@ export class GrifApp {
     <div class="gr-thread"></div>
     <div class="gr-sugs"></div>
     <form class="gr-comp" autocomplete="off">
-      <input class="gr-input" placeholder="Спросите GRIF" enterkeyhint="send" aria-label="Сообщение">
+      <input class="gr-input" placeholder="Спросите Ась" enterkeyhint="send" aria-label="Сообщение">
       <div class="gr-comp-row">
         <button type="button" class="gr-cb" data-act="plus" aria-label="Добавить файл">${ic('clip')}</button>
         <button type="button" class="gr-cb gr-dict" data-act="dictate" aria-label="Надиктовать">${ic('mic')}</button>
@@ -249,7 +249,7 @@ export class GrifApp {
     <div class="gr-foot">
       <p class="gr-hint"></p>
       <button class="gr-btn" data-act="main"><span class="gr-btn-i"></span><span class="gr-btn-t"></span></button>
-      <p class="gr-ring-l">GRIF СЛУШАЕТ…</p>
+      <p class="gr-ring-l">АСЬ СЛУШАЕТ…</p>
       <button class="gr-ring" data-act="main" aria-label="Стоп">${RING}<span class="gr-ring-core">${ic('mic')}</span></button>
     </div>
     <div class="gr-call" hidden>
@@ -778,7 +778,7 @@ export class GrifApp {
       return this.sheet(`
         <div class="gr-sh-ic">${ic('bt')}</div>
         <h2 class="gr-sh-h">Вы в машине?</h2>
-        <p class="gr-sh-p">Телефон подключился к «LADA». В режиме «В дороге» GRIF говорит коротко, а длинное откладывает на потом.</p>
+        <p class="gr-sh-p">Телефон подключился к «LADA». В режиме «В дороге» Ась говорит коротко, а длинное откладывает на потом.</p>
         <button class="gr-wide is-primary" data-act="bt-yes">Включить</button>
         <button class="gr-wide" data-act="bt-no">Не сейчас</button>
         <p class="gr-sh-note">Включаться без вопроса — в настройках.</p>`)
@@ -815,10 +815,10 @@ export class GrifApp {
     const v = this.flavor === 'voice'
     this.sheet(`
       <h2 class="gr-sh-h">${v ? 'Голосовой разговор' : 'Что может случиться в дороге'}</h2>
-      <p class="gr-sh-p">Демо: так ведёт себя GRIF, когда что-то идёт не по плану.</p>
-      ${v ? `<button class="gr-li" data-act="road-ev" data-ev="end">${ic('x')}<span><b>Завершить разговор</b><small>вернуться в чат</small></span></button>` : `<button class="gr-li is-accent" data-act="road-ev" data-ev="arrive">${ic('car')}<span><b>Приехали</b><small>или «GRIF, приехали», или стоим 3 минуты</small></span></button>`}
+      <p class="gr-sh-p">Демо: так ведёт себя Ась, когда что-то идёт не по плану.</p>
+      ${v ? `<button class="gr-li" data-act="road-ev" data-ev="end">${ic('x')}<span><b>Завершить разговор</b><small>вернуться в чат</small></span></button>` : `<button class="gr-li is-accent" data-act="road-ev" data-ev="arrive">${ic('car')}<span><b>Приехали</b><small>или «Ась, приехали», или стоим 3 минуты</small></span></button>`}
       <button class="gr-li" data-act="road-ev" data-ev="net">${ic('wifioff')}<span><b>${this.offline ? 'Связь вернулась' : 'Пропала связь'}</b><small>трасса, тоннель</small></span></button>
-      <button class="gr-li" data-act="road-ev" data-ev="call">${ic('phone')}<span><b>Входящий звонок</b><small>GRIF замолкает сразу</small></span></button>
+      <button class="gr-li" data-act="road-ev" data-ev="call">${ic('phone')}<span><b>Входящий звонок</b><small>Ась замолкает сразу</small></span></button>
       <button class="gr-li" data-act="road-ev" data-ev="quiet">${ic('moon')}<span><b>«Помолчи»</b><small>на дороге сложно — тишина до «ась»</small></span></button>
       <button class="gr-li" data-act="road-ev" data-ev="mic">${ic('micoff')}<span><b>${this.denied ? 'Микрофон снова доступен' : 'Нет доступа к микрофону'}</b><small>разрешение отозвано</small></span></button>`)
   }
@@ -1430,7 +1430,7 @@ export class GrifApp {
     this.q('.gr-drive').classList.remove('is-talking')
     this.mode('call', {
       phrase: this.topic ? `После звонка спрошу: продолжить про ${this.topic === 'rate' ? 'ставку' : 'Half-Life'}?` : 'После звонка вернусь к готовности',
-      hint: 'Уведомления поверх GRIF не озвучивает',
+      hint: 'Уведомления поверх Ась не озвучивает',
     })
   }
   private takeCall() {

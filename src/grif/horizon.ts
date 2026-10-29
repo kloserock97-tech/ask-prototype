@@ -108,7 +108,7 @@ export class Horizon {
     this.glow = g
     this.canvas.dataset.glow = g
   }
-  /** loudness 0..1 — the driver's voice while listening, GRIF's while speaking */
+  /** loudness 0..1 — the driver's voice while listening, Ась's while speaking */
   level(v: number) {
     this.lv = v
   }

@@ -56,7 +56,7 @@ function route() {
     app.replaceChildren(widget.root)
     return
   }
-  // GRIF with the «В дороге» mode lives at the root; the previous voice-only app at #/v9
+  // Ась with the «В дороге» mode lives at the root; the previous voice-only app at #/v9
   if (h === '#/' || h === '#') {
     if (inPlayer) {
       player.unmount()

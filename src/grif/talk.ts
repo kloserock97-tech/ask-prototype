@@ -1,4 +1,4 @@
-// What GRIF says on the road. Facts as of 28 October 2026:
+// What Ась says on the road. Facts as of 28 October 2026:
 //   Bank of Russia kept the key rate at 14% on 23 Oct (second hold in a row);
 //   its own outlook for 2027 is 12.5–13.5%; next meeting 18 Dec (one source — check cbr.ru).
 //   Half-Life 3: on 23 Oct a Valve developer said «HLX» at GameSoundCon; Valve announced nothing.

@@ -1,4 +1,4 @@
-// GRIF outside the app (#/outside).
+// Ась outside the app (#/outside).
 //   home    — a home-screen widget: ask without opening the app; the answer folds into the island
 //   android — over a navigator: a bubble at the edge, the answer takes the place of the ETA panel,
 //             the light at the screen edge carries the state; route, manoeuvre, speed and signs stay open
@@ -118,7 +118,7 @@ export class OutsidePage {
   private shell() {
     return `
 <header class="o-bar">
-  <a class="o-backlink" href="#/">${ic('back')}GRIF</a>
+  <a class="o-backlink" href="#/">${ic('back')}Ась</a>
   <div class="o-seg" role="tablist">
     <button data-o="scene" data-s="home" role="tab">Главный экран</button>
     <button data-o="scene" data-s="android" role="tab">Навигатор · Android</button>
@@ -132,13 +132,13 @@ export class OutsidePage {
       <div class="o-home">
         <div class="o-status"><b>9:41</b><span>М-11 · 2 ч 47 мин</span></div>
         <div class="o-wrow">
-          <div class="o-road" role="group" aria-label="Виджет GRIF «В дороге»">
+          <div class="o-road" role="group" aria-label="Виджет Ась «В дороге»">
             <a class="o-road-go" href="./?drive=1#/" aria-label="Включить «В дороге»"></a>
             ${ROAD}
             <svg class="o-road-ar" viewBox="0 0 28 28" aria-hidden="true"><defs><linearGradient id="rdA" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#8d8d92"/><stop offset="1" stop-color="#fff"/></linearGradient></defs><path d="M5 22v-5a7 7 0 0 1 7-7h10M17 5l5 5-5 5" fill="none" stroke="url(#rdA)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             <b class="o-road-big">14%</b>
             <small class="o-road-sub">ставка ЦБ</small>
-            <span class="o-road-pills"><i>2</i><button data-o="ask" aria-label="Спросить GRIF">${ic('mic')}</button></span>
+            <span class="o-road-pills"><i>2</i><button data-o="ask" aria-label="Спросить Ась">${ic('mic')}</button></span>
           </div>
           <div class="o-apps4">${['карты', 'музыка', 'погода', 'камера'].map((n) => `<span><i></i>${n}</span>`).join('')}</div>
         </div>
@@ -171,9 +171,9 @@ export class OutsidePage {
         <div class="o-speed"><span class="o-lim">90</span><span class="o-cur"><b>87</b>км/ч</span></div>
         <div class="o-eta"><span><b class="o-eta-t">2 ч 47 мин</b><small>312 км · прибытие 14:32</small></span><i>${ic('x')}</i></div>
 
-        <!-- GRIF over the navigator -->
+        <!-- Ась over the navigator -->
         <div class="o-edge" aria-hidden="true"></div>
-        <button class="o-bubble" data-o="bubble" aria-label="Спросить GRIF"><img src="${CH('neutral')}" alt=""><i class="o-badge"></i></button>
+        <button class="o-bubble" data-o="bubble" aria-label="Спросить Ась"><img src="${CH('neutral')}" alt=""><i class="o-badge"></i></button>
         <div class="o-card" aria-live="polite">
           <img class="o-card-ch" src="${CH('happy')}" alt="">
           <div class="o-card-mid">
@@ -183,7 +183,7 @@ export class OutsidePage {
           <button class="o-card-b" data-o="pause" aria-label="Пауза">${ic('pause')}</button>
         </div>
       </div>
-      <button class="o-island" data-o="island" aria-label="GRIF в Dynamic Island"><img src="${CH('happy')}" alt=""><span class="o-isl-t"></span><span class="o-isl-bars"><i></i><i></i><i></i><i></i></span>
+      <button class="o-island" data-o="island" aria-label="Ась в Dynamic Island"><img src="${CH('happy')}" alt=""><span class="o-isl-t"></span><span class="o-isl-bars"><i></i><i></i><i></i><i></i></span>
         <span class="o-isl-x"><span class="o-label"></span><span class="o-phrase"></span></span></button>
     </div>
   </div>
@@ -216,28 +216,28 @@ export class OutsidePage {
     demo.innerHTML =
       s === 'home'
         ? `<button data-o="ask">${ic('mic')}Спросить из виджета</button>`
-        : `<button data-o="bubble">${ic('mic')}${s === 'iphone' ? '«Ась» / касание острова' : 'Спросить GRIF'}</button>
+        : `<button data-o="bubble">${ic('mic')}${s === 'iphone' ? '«Ась» / касание острова' : 'Спросить Ась'}</button>
            <button data-o="navspeak">${ic('sound')}Навигатор говорит</button>
            <button data-o="turn">${ic('right')}Скоро манёвр</button>`
     this.q('.o-text').innerHTML = {
       home: `<h2>Виджет на главном экране</h2>
-        <p>Спросить, не открывая приложение: касание «Спросить» — GRIF слушает и отвечает поверх главного экрана, потом ответ сворачивается в Dynamic Island. «В дорогу» открывает режим для машины.</p>
+        <p>Спросить, не открывая приложение: касание «Спросить» — Ась слушает и отвечает поверх главного экрана, потом ответ сворачивается в Dynamic Island. «В дорогу» открывает режим для машины.</p>
         <p>В виджете — последний ответ: цифра и до какой даты она верна.</p>`,
       android: `<h2>Поверх навигатора · Android</h2>
-        <p>Карты остаются главными. GRIF не трогает то, что нужно за рулём: <b>манёвр сверху, линию маршрута, знаки и камеры, скорость и ограничение слева внизу</b>.</p>
+        <p>Карты остаются главными. Ась не трогает то, что нужно за рулём: <b>манёвр сверху, линию маршрута, знаки и камеры, скорость и ограничение слева внизу</b>.</p>
         <ul>
           <li><b>Пузырь у правого края</b> ниже кнопок карты. Касание или «ась» — спросить. Пузырь можно перетащить.</li>
           <li><b>Ответ занимает место панели времени прибытия</b> — она меняется медленнее всего — и сам сворачивается через 4 секунды. Знак ограничения скорости над ней остаётся видно.</li>
           <li><b>Свет по нижнему краю экрана</b> — состояние: слушает, ищет, говорит. Видно боковым зрением, не закрывает карту.</li>
-          <li><b>Навигатор главнее.</b> Когда он говорит, Android забирает у GRIF звук, и GRIF замолкает до конца подсказки. Перед манёвром GRIF ждёт: расстояние до поворота читается из уведомления навигатора.</li>
+          <li><b>Навигатор главнее.</b> Когда он говорит, Android забирает у Ась звук, и Ась замолкает до конца подсказки. Перед манёвром Ась ждёт: расстояние до поворота читается из уведомления навигатора.</li>
         </ul>
         <p class="o-small">Нужны разрешения «Поверх других приложений» и «Доступ к уведомлениям» — спрашиваем один раз на стоянке.</p>`,
       iphone: `<h2>Поверх навигатора · iPhone</h2>
-        <p>iOS не даёт рисовать поверх чужих приложений. Поэтому на iPhone GRIF — <b>голос и Dynamic Island</b>: в компактном острове персонаж и опорная цифра, карта не закрыта ничем.</p>
+        <p>iOS не даёт рисовать поверх чужих приложений. Поэтому на iPhone Ась — <b>голос и Dynamic Island</b>: в компактном острове персонаж и опорная цифра, карта не закрыта ничем.</p>
         <ul>
-          <li>Спросить — «Привет, Сири, GRIF» или кнопка действия; в прототипе — касание острова.</li>
+          <li>Спросить — «Привет, Сири, Ась» или кнопка действия; в прототипе — касание острова.</li>
           <li>Развёрнутый остров закрывает манёвр, поэтому сам не раскрывается — только по долгому нажатию.</li>
-          <li>Подсказки навигатора приглушают GRIF средствами iOS.</li>
+          <li>Подсказки навигатора приглушают Ась средствами iOS.</li>
         </ul>`,
     }[s]
   }
@@ -404,7 +404,7 @@ export class OutsidePage {
     else this.setState('idle')
   }
 
-  /** the navigator comes first: its voice prompt or a near manoeuvre puts GRIF on hold */
+  /** the navigator comes first: its voice prompt or a near manoeuvre puts Ась on hold */
   private async yield(why: 'navspeak' | 'turn') {
     const wasTalking = this.st === 'speak' || this.st === 'think'
     this.tok++

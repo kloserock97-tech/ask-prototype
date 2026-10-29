@@ -27,7 +27,7 @@ let analyser: AnalyserNode | null = null
 const buf = new Float32Array(1024)
 const missing = new Set<string>()
 
-/** which recorded voice plays: the main one, a second Piper voice (GRIF lines only), or the browser */
+/** which recorded voice plays: the main one, a second Piper voice (Ась lines only), or the browser */
 export type VoiceName = 'dmitri' | 'denis' | 'system'
 let voiceName: VoiceName = 'dmitri'
 let rate = 1

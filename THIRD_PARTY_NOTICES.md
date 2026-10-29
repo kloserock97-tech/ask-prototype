@@ -29,8 +29,8 @@ The reply recordings are generated with Piper (https://github.com/rhasspy/piper,
 the `ru_RU-dmitri-medium` voice and, in `public/voice/denis`, the `ru_RU-denis-medium` voice (rhasspy/piper-voices, MIT), trained on a CC0 dataset
 (https://github.com/OHF-Voice/voice-datasets). Piper itself is not shipped with the site.
 
-## GRIF character (public/grif)
+## Assistant character (public/grif)
 
 The character renders are made from a squishmoji "pebble" shape
 (@usespaceui/squishmoji, https://github.com/usespaceui) — MIT License, Copyright (c) 2026 Space UI.
-Recoloured and lit for GRIF; only the rendered WebP images are shipped.
+Recoloured and lit for the assistant; only the rendered WebP images are shipped.

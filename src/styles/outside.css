@@ -1,4 +1,4 @@
-/* GRIF outside the app: home-screen widget, over a navigator (Android), Dynamic Island (iPhone). */
+/* Ась outside the app: home-screen widget, over a navigator (Android), Dynamic Island (iPhone). */
 
 .o-page {
   position: fixed;
@@ -418,7 +418,7 @@
   color: #e5484d;
 }
 
-/* ───────── GRIF over the navigator (Android) */
+/* ───────── Ась over the navigator (Android) */
 
 .o-edge {
   position: absolute;
