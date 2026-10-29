@@ -26,6 +26,7 @@ import { Player } from './player/player'
 
 let askApp: AskApp | null = null
 let grif: GrifApp | null = null
+let visions: VisionsPage | null = null
 let widget: OutsidePage | null = null
 
 const app = document.getElementById('app')!
@@ -39,6 +40,8 @@ function route() {
   const h = location.hash || '#/'
   const m = h.match(/^#\/p\/(\w+)/)
   leaveGuide()
+  visions?.destroy()
+  visions = null
   if (!(h === '#/' || h === '#')) {
     grif?.destroy()
     grif = null
@@ -72,7 +75,8 @@ function route() {
   if (h.startsWith('#/visions')) {
     askApp?.destroy()
     askApp = null
-    app.replaceChildren(new VisionsPage().root)
+    visions = new VisionsPage()
+    app.replaceChildren(visions.root)
     scrollTo(0, 0)
     return
   }
