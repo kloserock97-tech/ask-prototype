@@ -564,6 +564,7 @@ export class GrifApp {
       <button class="gr-nav is-accent" data-act="to-drive">${ic('car')}В дорогу</button>
       <button class="gr-nav is-dim" data-act="signals">${ic('bt')}Сигналы машины · демо</button>
       <a class="gr-nav is-dim" href="#/outside">${ic('car')}Поверх навигатора и виджет</a>
+      <a class="gr-nav is-dim" href="#/visions">${ic('sliders')}Три варианта визуала</a>
       ${pinned.length ? `<h3>Закреплённые</h3>${pinned.map(row).join('')}` : ''}
       <h3>Разговоры</h3>${rest.map(row).join('') || '<p class="gr-none">Ничего не нашлось</p>'}
       <div class="gr-me-row"><span class="gr-av">НГ</span><b>Никита Горбачев</b><button class="gr-ib" data-act="settings" aria-label="Настройки">${ic('gear')}</button></div>`

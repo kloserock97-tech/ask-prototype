@@ -13,6 +13,7 @@
     "vite": "^8.3.5"
   },
   "dependencies": {
+    "@fontsource/cormorant-garamond": "^5.3.0",
     "@fontsource/manrope": "^5.3.0",
     "@fontsource/onest": "^5.3.1"
   }

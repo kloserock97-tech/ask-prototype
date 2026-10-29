@@ -13,11 +13,15 @@ import './styles/widget.css'
 import './styles/grif.css'
 import './styles/outside.css'
 import './styles/board.css'
+import './styles/visions.css'
+import '@fontsource/cormorant-garamond/500.css'
+import '@fontsource/cormorant-garamond/600.css'
 import { AskApp } from './app/app'
 import { GrifApp } from './grif/grif'
 import { SCREENS } from './data/screens'
 import { flow, guide, home, island, leaveGuide } from './pages/pages'
 import { OutsidePage } from './grif/outside'
+import { VisionsPage } from './grif/visions'
 import { Player } from './player/player'
 
 let askApp: AskApp | null = null
@@ -63,6 +67,13 @@ function route() {
     grif?.destroy()
     grif = new GrifApp()
     app.replaceChildren(grif.root)
+    return
+  }
+  if (h.startsWith('#/visions')) {
+    askApp?.destroy()
+    askApp = null
+    app.replaceChildren(new VisionsPage().root)
+    scrollTo(0, 0)
     return
   }
   if (h.startsWith('#/v9')) {
