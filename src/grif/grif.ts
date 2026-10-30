@@ -1,12 +1,14 @@
 // Ась: a chat-only AI companion (ChatGPT / Grok layout) with a «В дороге» mode.
 // Flow v2 after the roast (research/20, Figma page «08 · Компаньон», rows V2 A–E):
+// Round 2 (v3): no face, no live transcript and no small labels on the move.
 //   chat   — answers with fact / forecast / rumour labels, ≡ menu of conversations only;
-//            the only manual way in is the «В дорогу» tile, shown when a car signal is on
-//   entry  — two signals: car stereo (parked → a system-style notification) and motion
-//            (app open → switch at once, no countdown, no question on the move)
-//   drive  — one screen, one anchor (a number or a word); everything else is spoken.
+//            the manual way in is the voice button: a voice talk becomes «В дороге» once moving
+//   entry  — two signals: car stereo (parked → a notification; after two «Включить» it just
+//            switches on) and motion (app open → switch at once, no countdown, no question)
+//   drive  — one screen, one anchor: first what was understood, then a number or a word.
 //            A tap anywhere only silences; asking is the button or «Ась» after consent
-//   after  — parking (stereo off, route done, «приехали») → one notification → the trip chat
+//   after  — parking (stereo off, route done, «приехали») → one silent notification → the trip
+//            chat, named after its topics
 // Rules: on the move nothing asks to read or choose; «Ась» is heard only after consent given
 // while parked; the navigator, a call and the system come first.
 
@@ -167,11 +169,9 @@ export class GrifApp {
   private meterRaf = 0
   private autoOn = store.get('gr-auto-on') !== '0' // switch on by itself (motion, car stereo)
   private wakeOn = store.get('gr-wake') === '1' // answer to «Ась»: consent given once, while parked
-  private inCar = false // a car signal is on: the «В дорогу» tile shows in the new chat
   private geoWatch = 0
   private fastSince = 0
-  private declined = false // «Я пассажир» / «Я не за рулём»: not again this trip
-  private autoEntered = false // the mode switched on by itself: offer «Я не за рулём» once
+  private declined = false // «Я пассажир» or «✕» on the move: not again this trip
   private noteTimer = 0
   private firstDone = store.get('gr-first') === '1'
   private soundOn = true
@@ -220,8 +220,6 @@ export class GrifApp {
       <div class="gr-comp-row">
         <button type="button" class="gr-cb" data-act="plus" aria-label="Добавить файл">${ic('clip')}</button>
         <button type="button" class="gr-cb gr-dict" data-act="dictate" aria-label="Надиктовать">${ic('mic')}</button>
-        <button type="button" class="gr-cb" data-act="deep" aria-label="Подумать дольше" aria-pressed="false">${ic('bulb')}</button>
-        <button type="button" class="gr-modepill" data-act="modes"><span>Чат</span>${ic('chevd')}</button>
         <button type="button" class="gr-voice" data-act="voice" aria-label="Голосовой разговор">${ic('wave')}</button>
       </div>
     </form>
@@ -231,12 +229,10 @@ export class GrifApp {
     <canvas class="gr-hz" aria-hidden="true"></canvas>
     <header class="gr-top">
       <button class="gr-chip" data-act="exit" aria-label="Выйти из режима">${ic('car')}<span class="gr-chip-t">В дороге</span>${ic('x', 'gr-chip-x')}</button>
-      <button class="gr-notdriver" data-act="notdriver" hidden>Я не за рулём</button>
       <span class="gr-status" hidden></span>
       <button class="gr-ib gr-more" data-act="road" aria-label="Демо: что может случиться в дороге">${ic('more')}</button>
     </header>
     <div class="gr-mid" aria-live="polite">
-      <img class="gr-char" alt="" src="${CHAR('neutral')}">
       <div class="gr-think">${GOO}</div>
       <div class="gr-label"></div>
       <div class="gr-tag" hidden></div>
@@ -254,15 +250,15 @@ export class GrifApp {
     <div class="gr-first" hidden>
       <img class="gr-first-char" alt="" src="${CHAR('happy')}">
       <div class="gr-label">ПЕРВЫЙ РАЗ · МАШИНА СТОИТ</div>
-      <h2 class="gr-first-h">Три слова —<br>и руки на руле</h2>
+      <h2 class="gr-first-h">Два слова —<br>и руки на руле</h2>
       <ul class="gr-rules">
         <li>${ic('mic')}<b>«Ась» или кнопка</b><span>спросить</span></li>
         <li>${ic('stop')}<b>«Стоп»</b><span>или касание где угодно — тишина</span></li>
-        <li>${ic('bookmark')}<b>«Сохрани»</b><span>отмечу в чате поездки</span></li>
       </ul>
-      <button class="gr-li gr-tg gr-first-wake is-on" data-act="first-wake">${ic('mic')}<span><b>Отзываться на «Ась»</b><small>слушаю только это слово, на телефоне</small></span><i></i></button>
       <div class="gr-checks"></div>
-      <button class="gr-btn is-primary" data-act="go"><span class="gr-btn-t">Понятно</span></button>
+      <!-- the microphone consent is a choice; nothing is switched on in advance -->
+      <button class="gr-btn is-primary" data-act="go" data-wake="1"><span class="gr-btn-t">Отзываться на «Ась»</span></button>
+      <button class="gr-btn" data-act="go"><span class="gr-btn-t">Только кнопкой</span></button>
     </div>
   </section>
 
@@ -358,14 +354,6 @@ export class GrifApp {
       case 'chat': this.closeAll(); return this.openChat(this.chats.find((c) => c.id === Number(el.dataset.id)) ?? null)
       case 'signals': return this.sheetSignals()
       case 'settings': return this.sheetSettings()
-      case 'modes': return this.sheet(`<h2 class="gr-sh-h">Режим</h2>
-        <button class="gr-li" data-act="close">${ic('edit')}<span><b>Чат</b><small>текстом, ответы полные</small></span>${ic('check')}</button>
-        <button class="gr-li" data-act="voice">${ic('wave')}<span><b>Голосом</b><small>в машине сам станет «В дороге»</small></span></button>`)
-      case 'deep': {
-        const on = el.getAttribute('aria-pressed') !== 'true'
-        el.setAttribute('aria-pressed', String(on))
-        return this.toast(on ? 'Подумаю дольше над следующим вопросом' : 'Обычный режим')
-      }
       case 'vpick':
         this.pick = el.dataset.v as VoicePick
         this.root.querySelectorAll('.gr-vcard').forEach((c) => c.classList.toggle('is-on', c === el))
@@ -375,22 +363,30 @@ export class GrifApp {
       case 'signal': return this.signal(el.dataset.sig!)
       case 'toggle': return this.toggleSetting(el.dataset.k!)
       case 'sound': return this.sheetVoice()
-      case 'note-yes': this.hideNote(); return this.enterDrive('drive')
-      case 'note-no': this.declined = true; this.hideNote(); return this.toast('Понял. До конца поездки не спрашиваю')
+      case 'note-yes':
+        store.set('gr-yes', String(this.yesInRow + 1))
+        this.hideNote()
+        return this.enterDrive('drive')
+      case 'note-no':
+        store.set('gr-yes', '0')
+        this.declined = true
+        this.hideNote()
+        return this.toast('Понял. До конца поездки не спрашиваю')
+      case 'note-off':
+        // switched on by itself after two «Включить» — and switched off from the same notification
+        store.set('gr-yes', '0')
+        this.hideNote()
+        this.declined = true
+        return this.exitDrive()
       case 'note-trip': this.hideNote(); return this.openTripChat()
       case 'demo-tile': return this.toast('В прототипе этого нет')
       case 'copy': return this.copyMsg(Number(el.dataset.i))
       case 'listen-msg': return this.readMsg(Number(el.dataset.i))
       // drive
       case 'exit': return this.exitDrive()
-      case 'notdriver':
-        this.declined = true
-        this.exitDrive()
-        return this.toast('Понял, вы не за рулём. В этой поездке не включаюсь сам')
       case 'road': return this.sheetRoad()
       case 'main': return this.mainButton()
-      case 'first-wake': return void el.classList.toggle('is-on')
-      case 'go': return this.firstGo()
+      case 'go': return this.firstGo(el.dataset.wake === '1')
       case 'road-ev': this.closeAll(); return this.road(el.dataset.ev!)
     }
   }
@@ -428,8 +424,8 @@ export class GrifApp {
         ]
           .map((s) => `<button class="gr-tile" data-act="sug" data-q="${esc(s[2])}">${ic(s[0])}<b>${s[1]}</b></button>`)
           .join('') +
-        // the only manual way into the mode inside the app — and only when the phone is in a car
-        (this.inCar ? `<button class="gr-tile is-drive" data-act="sug" data-drive="1">${ic('car')}<b>В дорогу</b></button>` : '') +
+        // no «В дорогу» tile: without a car stereo there is no signal while parked, and it would never
+        // show. The voice button is the way in — a voice talk becomes «В дороге» once the car moves
         `<button class="gr-tile" data-act="voice">${ic('wave')}<b>Голосом</b></button>`
       sugs.hidden = false
       return
@@ -735,20 +731,28 @@ export class GrifApp {
   private signal(s: string) {
     this.closeAll()
     if (s === 'park') return this.arrive()
-    this.inCar = true
-    if (this.view === 'chat') this.renderChat()
-    if (!this.autoOn) return this.toast('В настройках: не включаться самому. Вход — плитка «В дорогу»')
+    if (!this.autoOn) return this.toast('В настройках: не включаться самому. Вход — кнопка голоса')
     if (this.declined) return this.toast('Вы сказали, что не за рулём, — в этой поездке не включаюсь')
     if (this.view === 'drive' && this.flavor === 'drive') return this.toast('Режим уже включён')
     if (s === 'bt') {
       // parked: reading is safe — a system notification over whatever is on screen (the navigator)
       if (this.view === 'drive') return this.toast('Подключился к «LADA»')
+      // the same question every morning is noise: after two «Включить» in a row it just switches on
+      if (this.yesInRow >= 2) {
+        this.enterDrive('drive')
+        return this.note(`<b>Включил «В дороге»</b><span>Как в прошлые поездки. Карта останется на экране.</span>
+          <div class="gr-note-b"><button data-act="note-off">Выключить</button></div>`, 6000)
+      }
       return this.note(`<b>Похоже, вы в машине</b><span>Включу короткие ответы голосом. Карта останется на экране.</span>
         <div class="gr-note-b"><button class="is-primary" data-act="note-yes">Включить</button><button data-act="note-no">Я пассажир</button></div>`)
     }
     // moving with Ась open: simplifying the screen is safe, so no countdown and no «Отмена» to aim at
     if (this.view === 'drive' && this.flavor === 'voice') return this.toDriveFlavor()
     this.enterDrive('drive', true)
+  }
+
+  private get yesInRow() {
+    return Number(store.get('gr-yes')) || 0
   }
 
   /** a system-style notification at the top: the same surface as on Android / iOS */
@@ -804,11 +808,8 @@ export class GrifApp {
         this.last = null
         this.pending = null
         this.tripEnded = false
-        this.autoEntered = false
       }
       this.conv = this.trip
-      if (auto) this.autoEntered = true
-      this.inCar = true
     } else {
       if (!this.open) {
         this.open = { id: Date.now(), title: 'Голосовой разговор', when: hhmm(), voice: true, msgs: [] }
@@ -834,13 +835,17 @@ export class GrifApp {
     const v = this.flavor === 'voice'
     this.q('.gr-drive').classList.toggle('is-voice', v)
     this.q('.gr-chip-t').textContent = v ? 'Голосом' : 'В дороге'
-    this.q('.gr-notdriver').hidden = v || !this.autoEntered
   }
 
-  /** «✕» on the chip: out of the mode at any moment; the trip chat stays */
+  /** «✕» on the chip — the one way out. Leaving the mode on the move means «I am not the driver»,
+   *  so it does not switch on by itself again this trip; the trip chat stays */
   private exitDrive() {
     this.stopAudio()
     this.pending = null
+    if (this.flavor === 'drive' && !this.tripEnded) {
+      this.declined = true
+      this.toast('Вышел из «В дороге». Сам не включусь до конца поездки')
+    }
     this.openChat(this.flavor === 'voice' ? this.conv : this.open)
   }
 
@@ -852,7 +857,6 @@ export class GrifApp {
       this.tripEnded = false
     }
     this.flavor = 'drive'
-    this.autoEntered = true
     this.syncTop()
     earcon.ready()
   }
@@ -867,16 +871,15 @@ export class GrifApp {
     ]
       .map(([ok, t]) => `<span class="${ok ? 'is-ok' : 'is-no'}">${ic(ok ? 'check' : 'x')}${t}</span>`)
       .join('')
-    this.q('.gr-first-wake').classList.toggle('is-on', canWake)
     f.hidden = false
     this.hz?.set('ready')
   }
 
-  private async firstGo() {
+  private async firstGo(wake: boolean) {
     this.firstDone = true
     store.set('gr-first', '1')
     // the consent to answer to «Ась» is given here, while parked — never on the move
-    this.wakeOn = this.q('.gr-first-wake').classList.contains('is-on')
+    this.wakeOn = wake && canWake
     store.set('gr-wake', this.wakeOn ? '1' : '0')
     this.q('.gr-first').hidden = true
     this.toReady()
@@ -894,7 +897,7 @@ export class GrifApp {
 
   /** One screen, one anchor. On the move the screen never asks to read: the label, a number or a
    *  word, and at most one short line. The sentence itself is spoken and goes to the trip chat. */
-  private mode(m: Mode, o: { label?: string; c?: Chunk; phrase?: string; char?: Parameters<typeof CHAR>[0] | null; btn?: [string, string, boolean?]; glow?: Glow } = {}) {
+  private mode(m: Mode, o: { label?: string; c?: Chunk; phrase?: string; btn?: [string, string, boolean?]; glow?: Glow } = {}) {
     this.md = m
     this.changedAt = performance.now()
     const d = this.q('.gr-drive')
@@ -915,12 +918,9 @@ export class GrifApp {
     if (c?.cap) cap.textContent = c.cap
     const ph = this.q('.gr-phrase')
     ph.textContent = c?.big ? '' : (o.phrase ?? c?.text ?? '')
-    ph.classList.toggle('is-dim', !c && m !== 'listen')
+    ph.classList.toggle('is-dim', !c && m !== 'think')
     this.q('.gr-ask').hidden = true
-    const ch = this.q<HTMLImageElement>('.gr-char')
-    const charName = o.char === undefined ? ({ ready: 'neutral', pause: 'sleepy', offline: 'neutral', denied: 'neutral', call: 'sleepy', nav: 'sleepy' } as Record<string, Parameters<typeof CHAR>[0]>)[m] : o.char
-    ch.hidden = !charName
-    if (charName) ch.src = CHAR(charName)
+    // no face on the move: a face pulls the eye harder than any icon; the light carries the state
     this.q('.gr-hint').textContent = '' // grey command hints cannot be read on the move
     const [bt, bi, primary] = o.btn ?? (({
       ready: ['Спросить', 'mic', true],
@@ -1037,15 +1037,10 @@ export class GrifApp {
     let tk = ++this.tok
     stopWake()
     this.stopAudio(false)
-    // whoever asks is the one who uses the mode: «Я не за рулём» has done its job
-    if (this.autoEntered) {
-      this.autoEntered = false
-      this.syncTop()
-    }
     // the microphone is asked for on the first tap, never on its own
     if (!this.micOK && ears.canHear && !this.denied && !this.askedMic && !follow) {
       this.askedMic = true
-      this.mode('listen', { phrase: 'Разрешите микрофон — и спрашивайте голосом', char: 'attentive' })
+      this.mode('listen', { phrase: 'Разрешите микрофон — и спрашивайте голосом' })
       this.micOK = await ears.openMeter()
       ears.closeMeter()
       if (tk !== this.tok) return
@@ -1053,7 +1048,9 @@ export class GrifApp {
     }
     const tapOnly = !this.micOK || !ears.canHear || this.denied
     if (follow && tapOnly) return this.toReady()
-    this.mode('listen', { phrase: follow ? 'Слушаю ответ…' : 'Слушаю…', char: 'attentive' })
+    // no live transcript: words that change while you talk pull the eye like any running text.
+    // What was understood shows next, as the anchor of «ищу»
+    this.mode('listen', { phrase: '' })
     earcon.listen()
     vib(12)
     if (tapOnly) return this.fake(DEMO[this.demo++ % DEMO.length], tk)
@@ -1063,7 +1060,6 @@ export class GrifApp {
       onPartial: (t) => {
         if (tk !== this.tok) return
         heard = t
-        this.showHeard(t)
       },
       onFinal: (t) => {
         clearTimeout(end)
@@ -1104,12 +1100,6 @@ export class GrifApp {
     this.hz?.level(0)
   }
 
-  private showHeard(t: string) {
-    const ph = this.q('.gr-phrase')
-    ph.classList.remove('is-dim', 'is-k')
-    ph.textContent = `«${t}»`
-  }
-
   private heardNothing(heard: string, follow: boolean) {
     if (heard) return this.handle(heard)
     if (follow) {
@@ -1125,7 +1115,6 @@ export class GrifApp {
     for (let i = 1; i <= words.length; i++) {
       await wait(110 + Math.random() * 60)
       if (tk !== this.tok) return
-      this.showHeard(words.slice(0, i).join(' '))
       this.hz?.level(0.4 + Math.random() * 0.5)
     }
     this.hz?.level(0)
@@ -1171,7 +1160,7 @@ export class GrifApp {
       case 'hl3': return this.topicStart('hl3')
       case 'ambiguous':
         // no clarifying round on the move: take the likely meaning, say how to correct it
-        return this.play(LINE.assume, { keep: false, char: 'curious', then: () => this.topicStart('rate') })
+        return this.play(LINE.assume, { keep: false, then: () => this.topicStart('rate') })
       case 'deposits': return this.line(LINE.deposits, 'deposits')
       case 'yes':
       case 'more':
@@ -1221,7 +1210,9 @@ export class GrifApp {
       const [m] = this.conv.msgs.splice(i, 1)
       this.conv.msgs.push(m)
     }
-    this.play(CHAIN[t][0], { think: note ?? 'Смотрю свежие данные' })
+    // the anchor of «ищу» is what was understood — a better check than a transcript: meaning, not letters
+    this.play(CHAIN[t][0], { think: note ?? (t === 'rate' ? 'Ставка ЦБ' : 'Half-Life 3') })
+    if (this.conv?.trip) this.conv.title = [...new Set(this.conv.msgs.filter((m) => m.topic).map((m) => (m.topic === 'rate' ? 'Ставка ЦБ' : 'Half-Life 3')))].join(' · ')
   }
 
   private next() {
@@ -1238,22 +1229,20 @@ export class GrifApp {
   }
 
 
-  private async play(c: Chunk, o: { think?: string; keep?: boolean; label?: string; follow?: boolean; char?: Parameters<typeof CHAR>[0]; mode?: Mode; quietUi?: boolean; then?: () => void } = {}) {
+  private async play(c: Chunk, o: { think?: string; keep?: boolean; label?: string; follow?: boolean; mode?: Mode; quietUi?: boolean; then?: () => void } = {}) {
     const tk = ++this.tok
     stopWake()
     ears.stopListening()
     this.stopMeter()
     if (o.keep !== false) this.last = c
     if (o.think) {
-      this.mode('think', { phrase: o.think, char: null })
+      this.mode('think', { phrase: o.think })
       await wait(1000 + Math.random() * 500)
       if (tk !== this.tok) return
     }
-    const chain = this.topic ? CHAIN[this.topic] : []
-    const pos = chain.indexOf(c)
-    const label = o.label ?? (pos >= 0 ? `ГОВОРЮ · ${pos + 1} ИЗ ${chain.length}` : undefined)
+    // no «1 из 3»: a counter is one more thing to read, and the length is heard anyway
     if (!o.quietUi) {
-      this.mode(o.mode ?? 'speak', { c: c.text ? c : undefined, label, char: o.char ?? (o.mode ? undefined : null) })
+      this.mode(o.mode ?? 'speak', { c: c.text ? c : undefined, label: o.label })
       if (o.mode && o.mode !== 'speak') this.hz?.set(o.mode === 'denied' ? 'denied' : o.mode === 'offline' ? 'offline' : 'speak')
       else this.hz?.set('speak')
     }
@@ -1302,7 +1291,8 @@ export class GrifApp {
   /** silence at once; «продолжай» starts the interrupted chunk from its beginning */
   private pause(as: Mode = 'pause') {
     this.stopAudio()
-    this.mode(as, { phrase: 'Продолжу с начала фразы' })
+    // while the navigator speaks a manoeuvre is near: nothing to read at all
+    this.mode(as, { phrase: as === 'nav' ? '' : 'Продолжу с начала фразы' })
     this.armWake()
   }
 
@@ -1404,14 +1394,13 @@ export class GrifApp {
   // ───────────────────────── the end of a trip
 
   /** Parked: the stereo went off, the route is done or «приехали». Not «speed 0 for 3 minutes» —
-   *  that is a jam. No summary screen: one notification leads to the trip chat. */
+   *  that is a jam. No summary screen and no voice: one notification leads to the trip chat. */
   private arrive() {
     this.stopAudio()
     stopWake()
     this.pending = null
     this.tripEnded = true
     this.declined = false
-    this.inCar = false
     if (this.trip) this.trip.when = hhmm()
     const n = this.saved.size
     const what = [...this.saved].map((s) => (s === 'rate' ? 'Ставка ЦБ — 14%' : 'Half-Life 3 — слух')).join(' · ')
@@ -1421,7 +1410,7 @@ export class GrifApp {
       <div class="gr-note-b"><button class="is-primary" data-act="note-trip">Открыть чат поездки</button></div>`,
       9000,
     )
-    if (this.soundOn && voice.isOn()) voice.speak(LINE.arrived.id, LINE.arrived.say)
+    // no voice: the stereo is already off, the sound would come from the phone as the driver gets out
   }
 
   private openTripChat() {

@@ -5,6 +5,9 @@
 //   iphone  — iOS draws nothing over other apps: voice + Dynamic Island only
 // v2 rules (research/20): one anchor on screen — a number or a word and 2–4 words; the sentence is
 // spoken; the navigator comes first; a question to the driver only while parked (a notification).
+// Round 2 (v3): no face on the move (the bubble is a ring), no card while listening, nothing at
+// all while the navigator speaks; on iPhone the ask is «Сири, спроси Ась» — a tap on the island
+// would open the app and hide the map.
 // The map is drawn here (no navigator's branding); Yandex Maps / Google Maps look roughly like this.
 
 import * as voice from '../voice'
@@ -181,17 +184,15 @@ export class OutsidePage {
 
         <!-- Ась over the navigator -->
         <div class="o-edge" aria-hidden="true"></div>
-        <button class="o-bubble" data-o="bubble" aria-label="Спросить Ась"><img src="${CH('neutral')}" alt=""><i class="o-badge"></i></button>
+        <button class="o-bubble" data-o="bubble" aria-label="Спросить Ась"><i class="o-core"></i><i class="o-badge"></i></button>
         <div class="o-card" aria-live="polite">
-          <img class="o-card-ch" src="${CH('happy')}" alt="">
           <div class="o-card-mid">
-            <div class="o-card-top"><span class="o-label"></span><span class="o-tag" hidden></span></div>
             <div class="o-card-row"><b class="o-big" hidden></b><p class="o-phrase"></p></div>
           </div>
           <button class="o-card-b" data-o="pause" aria-label="Пауза">${ic('pause')}</button>
         </div>
       </div>
-      <button class="o-island" data-o="island" aria-label="Ась в Dynamic Island"><img src="${CH('happy')}" alt=""><span class="o-isl-t"></span><span class="o-isl-bars"><i></i><i></i><i></i><i></i></span>
+      <button class="o-island" data-o="island" aria-label="Ась в Dynamic Island"><i class="o-core"></i><span class="o-isl-t"></span><span class="o-isl-bars"><i></i><i></i><i></i><i></i></span>
         <span class="o-isl-x"><span class="o-label"></span><span class="o-phrase"></span></span></button>
     </div>
   </div>
@@ -225,7 +226,7 @@ export class OutsidePage {
       s === 'home'
         ? `<button data-o="ask">${ic('mic')}Спросить из виджета</button>`
         : `<button data-o="park">${ic('car')}Магнитола подключилась · стоим</button>
-           <button data-o="bubble">${ic('mic')}${s === 'iphone' ? '«Ась» / касание острова' : 'Спросить Ась'}</button>
+           <button data-o="bubble">${ic('mic')}${s === 'iphone' ? '«Сири, спроси Ась»' : 'Спросить Ась'}</button>
            <button data-o="navspeak">${ic('sound')}Навигатор говорит</button>
            <button data-o="turn">${ic('right')}Скоро манёвр</button>`
     this.q('.o-text').innerHTML = {
@@ -235,18 +236,18 @@ export class OutsidePage {
       android: `<h2>Поверх навигатора · Android</h2>
         <p>Карты остаются главными. Ась не трогает то, что нужно за рулём: <b>манёвр сверху, линию маршрута, знаки и камеры, скорость и ограничение слева внизу</b>.</p>
         <ul>
-          <li><b>Пузырь у правого края</b> ниже кнопок карты. Касание пузыря или «Ась» — спросить. Касание карты — это навигатор, не Ась.</li>
+          <li><b>Пузырь у правого края</b> ниже кнопок карты — без лица, кольцо и свет: лицо тянет взгляд сильнее любого значка. Касание пузыря или «Ась» — спросить. Пока слушает — карточки нет, только свет.</li>
           <li><b>Ответ занимает место панели времени прибытия</b> — она меняется медленнее всего — и сам сворачивается через 4 секунды. На ней одна опора: цифра или слово и пара слов к ним. Фраза целиком звучит и уходит в чат поездки. Касание карточки — тишина.</li>
           <li><b>Свет по нижнему краю экрана</b> — состояние: слушает, ищет, говорит. Видно боковым зрением, не закрывает карту.</li>
-          <li><b>Навигатор главнее.</b> Когда он говорит, Android забирает у Ась звук, и Ась замолкает до конца подсказки и продолжает с начала фразы. Перед манёвром Ась ждёт: расстояние до поворота читается из уведомления навигатора.</li>
+          <li><b>Навигатор главнее.</b> Когда он говорит, Android забирает у Ась звук: Ась замолкает, карточка складывается, пузырь гаснет — никакого текста перед манёвром. Потом продолжает с начала фразы. Перед манёвром Ась ждёт: расстояние до поворота читается из уведомления навигатора.</li>
           <li><b>Спросить водителя можно только на стоянке.</b> Магнитола подключилась, машина стоит — системное уведомление «Включить / Я пассажир». На ходу Ась ничего не спрашивает.</li>
         </ul>
         <p class="o-small">Нужны разрешения «Поверх других приложений» и «Доступ к уведомлениям» — спрашиваем один раз на стоянке.</p>`,
       iphone: `<h2>Поверх навигатора · iPhone</h2>
-        <p>iOS не даёт рисовать поверх чужих приложений. Поэтому на iPhone Ась — <b>голос и Dynamic Island</b>: в компактном острове персонаж и опорная цифра, карта не закрыта ничем.</p>
+        <p>iOS не даёт рисовать поверх чужих приложений и почти не даёт слушать в фоне. Поэтому на iPhone Ась — <b>голос и Dynamic Island</b>: в компактном острове кольцо и опорная цифра, карта не закрыта ничем.</p>
         <ul>
-          <li>Спросить — «Привет, Сири, Ась» или кнопка действия; в прототипе — касание острова.</li>
-          <li>Развёрнутый остров закрывает манёвр, поэтому сам не раскрывается — только по долгому нажатию.</li>
+          <li>Спросить — «Сири, спроси Ась…» (App Intents): Siri слушает, ответ звучит голосом Ась. В прототипе — кнопка слева.</li>
+          <li>Касание острова открыло бы приложение и убрало карту, поэтому оно только разворачивает остров. Развёрнутый остров закрывает манёвр — сам не раскрывается.</li>
           <li>Подсказки навигатора приглушают Ась средствами iOS.</li>
         </ul>`,
     }[s]
@@ -255,7 +256,7 @@ export class OutsidePage {
   private act(a: string, el: HTMLElement) {
     if (a === 'scene') return this.setScene(el.dataset.s as Scene)
     if (a === 'ask' || a === 'bubble') return this.st === 'speak' || this.st === 'think' ? this.pause() : this.listen()
-    if (a === 'island') return this.st === 'idle' || this.st === 'hold' ? this.listen() : this.toggleIsland()
+    if (a === 'island') return this.toggleIsland() // a tap must not open the app over the map
     if (a === 'pause') return this.st === 'hold' ? this.resume() : this.pause()
     if (a === 'navspeak') return this.yield('navspeak')
     if (a === 'park') {
@@ -275,23 +276,21 @@ export class OutsidePage {
 
   // ───────────────────────── state on screen
 
-  private setState(s: St, c?: Chunk, o: { label?: string; phrase?: string; char?: string } = {}) {
+  private setState(s: St, c?: Chunk, o: { label?: string; phrase?: string; big?: string } = {}) {
     this.st = s
     this.root.dataset.st = s
     const label = o.label ?? { idle: '', listen: 'СЛУШАЮ', think: 'ИЩУ', speak: 'ГОВОРЮ', hold: 'ПАУЗА' }[s]
     this.root.querySelectorAll('.o-label').forEach((e) => (e.textContent = label))
     // fact / forecast / rumour is said aloud; no label to read on the move
     this.root.querySelectorAll<HTMLElement>('.o-tag').forEach((t) => (t.hidden = true))
+    const big = o.big ?? c?.big
     this.root.querySelectorAll<HTMLElement>('.o-big').forEach((b) => {
-      b.hidden = !c?.big
-      if (c?.big) b.textContent = c.big
+      b.hidden = !big
+      if (big) b.textContent = big
     })
     // one anchor: with a number or a word on screen, only its 2–4 word caption goes beside it
     const text = o.phrase ?? (c?.big ? (c.cap ?? '') : (c?.text ?? ''))
     this.root.querySelectorAll<HTMLElement>('.o-phrase').forEach((p) => (p.textContent = text))
-    const ch = o.char ?? ({ idle: 'neutral', listen: 'attentive', think: 'curious', speak: 'happy', hold: 'sleepy' } as Record<St, string>)[s]
-    this.root.querySelectorAll<HTMLImageElement>('.o-card-ch, .o-island img').forEach((i) => (i.src = CH(ch)))
-    this.q<HTMLImageElement>('.o-bubble img').src = CH(ch)
     this.q('.o-isl-t').textContent = c?.big && c.big.length <= 5 ? c.big : ''
     this.q('.o-card-b').innerHTML = ic(s === 'hold' ? 'play' : 'pause')
     this.hz?.set(this.scene === 'home' ? ({ idle: 'off', listen: 'listen', think: 'think', speak: 'speak', hold: 'pause' } as const)[s] : 'off')
@@ -380,13 +379,12 @@ export class OutsidePage {
     const tk = ++this.tok
     this.last = c
     if (think) {
-      this.setState('think', undefined, { phrase: 'Смотрю свежие данные' })
+      // the anchor while searching is what was understood — meaning, not a transcript
+      this.setState('think', undefined, { big: this.topic === 'hl3' ? 'Half-Life 3' : 'Ставка ЦБ', phrase: '' })
       await wait(1100)
       if (tk !== this.tok) return
     }
-    const chain = this.topic ? CHAIN[this.topic] : []
-    const pos = chain.indexOf(c)
-    this.setState('speak', c, { label: label ?? (pos >= 0 ? `ГОВОРЮ · ${pos + 1} ИЗ ${chain.length}` : 'ГОВОРЮ') })
+    this.setState('speak', c, { label: label ?? 'ГОВОРЮ' })
     if (voice.isOn()) await voice.speak(c.id, c.say, { onLevel: (v) => this.hz?.level(v), onWord: () => this.hz?.pulse() })
     else {
       const t0 = performance.now()
@@ -430,11 +428,11 @@ export class OutsidePage {
     const man = this.q('.o-man')
     man.classList.add('is-hot')
     this.q('.o-man-d').textContent = why === 'turn' ? '300 м' : '400 м'
-    this.setState('hold', undefined, {
-      label: why === 'turn' ? 'ЖДУ МАНЁВР' : 'ЖДУ НАВИГАТОР',
-      phrase: 'Продолжу с начала фразы',
-    })
+    // a manoeuvre is near: Ась disappears — no card, a dimmed bubble, nothing to read
+    this.setState('idle')
+    this.root.classList.add('is-navwait')
     await wait(why === 'turn' ? 3200 : 2600)
+    this.root.classList.remove('is-navwait')
     man.classList.remove('is-hot')
     this.q('.o-man-d').textContent = why === 'turn' ? '8,4 км' : '1,2 км'
     if (wasTalking && this.last) this.play(this.last)

@@ -106,10 +106,9 @@ export const LINE = {
   backRate: { id: 'g-back-rate', text: 'Продолжить про ставку?', say: 'Продолжить про ставку?' },
   backHl: { id: 'g-back-hl', text: 'Продолжить про Half-Life?', say: 'Продолжить про Халф-Лайф?' },
   mic: { id: 'g-mic', text: 'Не слышу вас.\nВключим на стоянке', say: 'Не слышу вас — включим микрофон на остановке.' },
-  hello: { id: 'g-hello', text: '', say: 'Три слова: «ась» — спросить, «стоп» — замолчать, «сохрани» — на потом. Поехали.' },
+  hello: { id: 'g-hello', text: '', say: 'Два слова: «Ась» — спросить, «стоп» — замолчать. Поехали.' },
   wait: { id: 'g-wait', text: '', say: 'Секунду, смотрю свежие данные.' },
   thanks: { id: 'g-thanks', text: 'Пожалуйста', say: 'Пожалуйста. Позовите, если что.' },
-  arrived: { id: 'g-arrived', text: '', say: 'Приехали. Всё, что отметили, — в чате поездки.' },
 } satisfies Record<string, Omit<Chunk, 'fork'>>
 
 export type Line = (typeof LINE)[keyof typeof LINE]

@@ -117,7 +117,6 @@
 /* the character PNG keeps a soft glow; the corners are faded so no square shows */
 .gr-empty img,
 .gr-presence img,
-.gr-char,
 .gr-first-char {
   -webkit-mask-image: radial-gradient(circle, #000 64%, transparent 75%);
   mask-image: radial-gradient(circle, #000 64%, transparent 75%);
@@ -809,13 +808,6 @@ a.gr-nav {
   flex-direction: column;
   padding: 3cqh 32px 0;
 }
-.gr-char {
-  width: clamp(64px, 12cqh, 100px);
-  height: auto;
-  align-self: center;
-  margin-bottom: 1.4cqh;
-  animation: gr-breathe 4s ease-in-out infinite;
-}
 .gr-mid .gr-label,
 .gr-first .gr-label {
   align-self: center;
@@ -1021,12 +1013,14 @@ a.gr-nav {
 .gr-first .gr-btn {
   margin-top: 2.4cqh;
 }
+/* the consent is a choice of two: «Отзываться на «Ась»» or «Только кнопкой» */
+.gr-first .gr-btn + .gr-btn {
+  margin-top: 10px;
+  background: var(--l2) !important;
+}
 
 /* a phone on its side: text on the left, the button on the right */
 @container (orientation: landscape) {
-  .gr-drive .gr-char {
-    display: none;
-  }
   .gr-mid {
     padding: 2cqh 40px 0;
   }
@@ -1152,24 +1146,14 @@ a.gr-nav {
   margin-left: 2px;
   color: var(--t2) !important;
 }
-.gr-notdriver {
-  height: 40px;
-  padding: 0 14px;
-  border-radius: 999px;
-  background: var(--l2) !important;
-  font-size: 14px !important;
-  font-weight: 500;
-  white-space: nowrap;
-}
 /* the first visible thing after the chip takes the free space */
 .gr-top .gr-more {
   margin-left: auto;
 }
-.gr-top :is(.gr-notdriver, .gr-status):not([hidden]) {
+.gr-top .gr-status:not([hidden]) {
   margin-left: auto;
 }
-.gr-top :is(.gr-notdriver, .gr-status):not([hidden]) ~ .gr-more,
-.gr-top .gr-notdriver:not([hidden]) ~ .gr-status {
+.gr-top .gr-status:not([hidden]) ~ .gr-more {
   margin-left: 0;
 }
 
@@ -1184,7 +1168,9 @@ a.gr-nav {
   font-size: clamp(17px, 5cqw, 20px);
   font-weight: 500;
 }
-/* a state badge and «Я не за рулём» never crowd the bar: the badge wins */
-.gr-top:has(.gr-status:not([hidden])) .gr-notdriver {
-  display: none;
+/* the anchor of «ищу» is what was understood: as big as an answer's anchor */
+.gr-drive[data-mode='think'] .gr-phrase {
+  font-size: clamp(34px, 11cqw, 44px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
 }
