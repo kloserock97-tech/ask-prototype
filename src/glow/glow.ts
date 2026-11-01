@@ -7,17 +7,16 @@ import { GlowScene } from './scene'
 // «Свечение» — the full-screen «В дороге» voice mode, by the Figma flow:
 // 4А «Поехали» → 5Б ready → 6Б listening → 7Б thinking → 8Б/8В answer,
 // 7В offline. «Ась» or the button opens a conversation; follow-ups need no
-// «Ась»; 30 s of silence closes it. On screen: the globe and one big line.
-// Entering the mode plays the trail splash: a road of light that collapses into the globe.
+// «Ась»; 30 s of silence closes it. On screen: the glow and one big line.
 
 type Mode = 'start' | 'idle' | 'listen' | 'think' | 'answer' | 'offline'
 type V3 = [number, number, number]
 type Topic = { big: string; cap: string; heard: string; voiceId: string; say: string; top: V3; bottom: V3 }
 
 const TOPICS: Record<string, Topic> = {
-  rate: { heard: 'Ставка ЦБ', big: '14%', cap: 'ставка ЦБ', voiceId: 'g-rate-short', say: 'До декабря — 14%, дальше ЦБ обещает снижать медленно.', top: [0.06, 0.12, 0.56], bottom: [0.01, 0.015, 0.06] },
-  hl: { heard: 'Half-Life 3', big: 'Half-Life 3', cap: 'пока не точно', voiceId: 'g-hl-short', say: 'Это слух. Valve молчит, есть только слова инсайдеров.', top: [0.52, 0.12, 0.04], bottom: [0.06, 0.015, 0.0] },
-  unknown: { heard: 'Не понял', big: 'Не понял', cap: 'спросите про ставку или Half-Life 3', voiceId: 'g-unknown', say: 'В этом демо я знаю про ставку ЦБ и Half-Life 3.', top: [0.12, 0.13, 0.18], bottom: [0.02, 0.02, 0.03] },
+  rate: { heard: 'Ставка ЦБ', big: '14%', cap: 'ставка ЦБ', voiceId: 'g-rate-short', say: 'До декабря — 14%, дальше ЦБ обещает снижать медленно.', top: [0.42, 0.02, 0.3], bottom: [0.05, 0.0, 0.04] },
+  hl: { heard: 'Half-Life 3', big: 'Half-Life 3', cap: 'пока не точно', voiceId: 'g-hl-short', say: 'Это слух. Valve молчит, есть только слова инсайдеров.', top: [0.5, 0.16, 0.01], bottom: [0.07, 0.02, 0.0] },
+  unknown: { heard: 'Не понял', big: 'Не понял', cap: 'спросите про ставку или Half-Life 3', voiceId: 'g-unknown', say: 'В этом демо я знаю про ставку ЦБ и Half-Life 3.', top: [0.14, 0.14, 0.2], bottom: [0.02, 0.02, 0.04] },
 }
 const DEMO = ['rate', 'hl'] // without speech recognition, a tap plays these in turn
 const SESSION_MS = 30000 // silence that closes a conversation
@@ -51,7 +50,6 @@ export class GlowPage {
   private timers: Record<string, number> = {}
   private raf = 0
   private alive = true
-  private splash = true
   private ro: ResizeObserver
   private q = <T extends HTMLElement>(s: string) => this.root.querySelector(s) as T
 
@@ -83,7 +81,6 @@ export class GlowPage {
     this.root.addEventListener('pointerdown', (e) => {
       if ((e.target as HTMLElement).closest('button')) return
       earcon.unlock()
-      if (this.splash) return this.scene.skipTrail()
       this.scene.bump()
       if (this.mode === 'answer') this.togglePause()
     })
@@ -92,16 +89,8 @@ export class GlowPage {
     this.ro.observe(this.root)
     document.fonts?.ready.then(() => this.layout())
 
-    // the splash first; then 4А: the car moved while Ась was open — the conversation goes on in drive view
+    // 4А: the car moved while Ась was open — the conversation goes on in drive view
     this.setMode('start')
-    this.root.classList.add('is-splash')
-    this.scene.playTrail(() => this.arrive())
-  }
-
-  private arrive() {
-    if (!this.alive) return
-    this.splash = false
-    this.root.classList.remove('is-splash')
     this.setLine('Поехали', 'я на связи — говорите')
     this.after('notdriving', NOT_DRIVING_MS, () => this.root.classList.add('no-escape'))
     this.after('session', SESSION_MS, () => this.close(false))
@@ -152,7 +141,7 @@ export class GlowPage {
     g.spin = m === 'think' ? 1 : 0
     g.shrink = m === 'listen' ? 1 : 0
     g.dim = !talking || this.muted ? 0.4 : 1
-    if (m !== 'answer') this.scene.setColors([0.06, 0.1, 0.5], [0.01, 0.015, 0.06])
+    if (m !== 'answer') this.scene.setColors([0.42, 0.02, 0.3], [0.05, 0.0, 0.04])
     this.root.classList.toggle('in-session', talking)
   }
 
@@ -300,9 +289,7 @@ export class GlowPage {
     if (byUser) earcon.stop()
     this.root.classList.remove('is-followup')
     this.muted = false
-    const m = this.q('.gl-mute')
-    m.classList.remove('is-on')
-    m.innerHTML = `${ICON.mic}<span>Без звука</span>`
+    this.q('.gl-mute').classList.remove('is-on')
     this.setMode('idle')
     this.setLine('Скажите «Ась»', 'или нажмите кнопку')
     this.scene.target.level = 0
