@@ -1,19 +1,27 @@
 /* «Свечение» — full-screen «В дороге» voice mode. Classes are .gl-*.
-   On screen only: the chip to leave, the glow, one big line + caption,
-   and the dock (Спросить — or Без звука / Завершить in a conversation).
-   Motion: ease-out (0.23, 1, 0.32, 1), presses 120 ms. */
+   One bright thing — the globe (and the trail splash on entry); the chrome
+   around it stays quiet: an ink ramp, one off-white primary, one ember accent
+   for the only warning state (mic off). 4 px grid, weights 400–600.
+   Motion: one ease-out (0.23, 1, 0.32, 1), presses 120 ms, one entrance. */
 
 .gl-root {
-  --lime: #e6ff2e;
-  --ink: #0b0b0c;
+  --bg: #050608;
+  --raised: #171a22;
+  --line: rgb(238 240 245 / 0.08);
+  --text: #eef0f5;
+  --text-2: #a3a9b8;
+  --text-3: #7a8296;
+  --primary: #eef0f5;
+  --on-primary: #0b0d14;
+  --ember: #ff5a24;
   --out: cubic-bezier(0.23, 1, 0.32, 1);
   position: relative;
   height: 100dvh;
   max-width: 480px;
   margin: 0 auto;
   overflow: hidden;
-  background: #000;
-  color: #fff;
+  background: var(--bg);
+  color: var(--text);
   font-family: 'Onest', system-ui, sans-serif;
   display: grid;
   grid-template-rows: auto 1fr auto auto;
@@ -21,55 +29,57 @@
   -webkit-tap-highlight-color: transparent;
   user-select: none;
 }
-.gl-root svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.gl-root svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 .gl-root :where(button) { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+.gl-root :where(button):focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
 .gl-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .gl-root > :not(.gl-canvas) { position: relative; z-index: 1; }
 
+/* the splash: only the trail; the chrome comes in once, with a short rise */
+.gl-root > :not(.gl-canvas) { transition: opacity 320ms var(--out), transform 320ms var(--out); }
+.gl-root.is-splash > :not(.gl-canvas) { opacity: 0; transform: translateY(8px); pointer-events: none; transition: none; }
+.gl-root > .gl-hero { transition-delay: 40ms; }
+.gl-root > .gl-dock { transition-delay: 80ms; }
+
 /* the only way out: chip «В дороге ✕», 48 px tall */
 .gl-top { padding: max(12px, env(safe-area-inset-top)) 16px 0; }
-.gl-chip { display: inline-flex; align-items: center; gap: 8px; height: 48px; padding: 0 12px 0 16px; border-radius: 24px; background: rgb(255 255 255 / 0.12); font-weight: 600; font-size: 15px; transition: transform 120ms var(--out), background-color 160ms ease; }
-.gl-chip svg { width: 20px; height: 20px; }
-.gl-chip svg:last-child { opacity: 0.7; }
-.gl-chip:active { transform: scale(0.96); background: rgb(255 255 255 / 0.2); }
+.gl-chip { display: inline-flex; align-items: center; gap: 8px; height: 48px; padding: 0 12px 0 16px; border-radius: 16px; background: var(--raised); box-shadow: inset 0 0 0 1px var(--line); font-weight: 500; font-size: 16px; transition: transform 120ms var(--out), background-color 160ms ease; }
+.gl-chip svg { width: 20px; height: 20px; color: var(--text-2); }
+.gl-chip:active { transform: scale(0.97); }
 
 /* one line, read in a glance */
 .gl-hero { display: flex; flex-direction: column; justify-content: center; padding: 0 16px 24px; min-height: 0; }
-.gl-title { position: relative; width: 100%; min-width: 0; margin: 0; height: 1.05em; font-size: 64px; display: grid; align-items: center; justify-items: start; }
-.gl-title span { grid-area: 1 / 1; font-weight: 800; letter-spacing: -0.035em; line-height: 1; white-space: nowrap; }
-.gl-cap { margin: 8px 0 0; min-height: 30px; font-size: 24px; line-height: 30px; font-weight: 500; color: rgb(255 255 255 / 0.72); }
+.gl-title { position: relative; width: 100%; min-width: 0; margin: 0; height: 1.08em; font-size: 64px; display: grid; align-items: center; justify-items: start; }
+.gl-title span { grid-area: 1 / 1; font-weight: 500; letter-spacing: -0.03em; line-height: 1; white-space: nowrap; }
+.gl-cap { margin: 8px 0 0; min-height: 32px; font-size: 24px; line-height: 32px; font-weight: 400; color: var(--text-2); }
 
 /* 4А: one tap for a passenger, for the first 10 s only */
-.gl-notdriving { justify-self: center; height: 44px; padding: 0 20px; margin-bottom: 16px; border-radius: 22px; background: rgb(255 255 255 / 0.12); font-weight: 600; font-size: 15px; transition: opacity 200ms ease, transform 120ms var(--out); }
-.gl-notdriving:active { transform: scale(0.96); }
+.gl-notdriving { justify-self: center; height: 44px; padding: 0 20px; margin-bottom: 16px; border-radius: 12px; background: var(--raised); box-shadow: inset 0 0 0 1px var(--line); font-weight: 500; font-size: 16px; transition: transform 120ms var(--out); }
+.gl-notdriving:active { transform: scale(0.97); }
 .gl-root:not([data-mode='start']) .gl-notdriving, .gl-root.no-escape .gl-notdriving { display: none; }
 
-/* the dock: 106 px targets, thumb zone */
-.gl-dock { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 0 16px max(24px, env(safe-area-inset-bottom)); }
-.gl-btn { height: 106px; border-radius: 53px; display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 700; font-size: 22px; letter-spacing: -0.01em; transition: transform 120ms var(--out), background-color 160ms ease, color 160ms ease; min-width: 0; }
-.gl-btn svg { width: 30px; height: 30px; stroke-width: 2; }
+/* the dock: 104 px targets in the thumb zone, rounded rectangles, not pills */
+.gl-dock { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 16px max(24px, env(safe-area-inset-bottom)); }
+.gl-btn { height: 104px; border-radius: 28px; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600; font-size: 22px; transition: transform 120ms var(--out), background-color 160ms ease, color 160ms ease; min-width: 0; }
+.gl-btn svg { width: 28px; height: 28px; }
 .gl-btn span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.gl-btn:active { transform: scale(0.96); }
-.gl-ask { grid-column: 1 / -1; background: var(--lime); color: var(--ink); box-shadow: 0 8px 32px rgb(230 255 46 / 0.22); }
-.gl-mute { background: rgb(255 255 255 / 0.14); }
-.gl-mute.is-on { background: #fff; color: var(--ink); }
-.gl-end { background: var(--lime); color: var(--ink); }
+.gl-btn:active { transform: scale(0.97); }
+.gl-ask, .gl-end { background: var(--primary); color: var(--on-primary); box-shadow: inset 0 -1px 0 rgb(0 0 0 / 0.12); }
+.gl-ask { grid-column: 1 / -1; }
+.gl-mute { background: var(--raised); box-shadow: inset 0 0 0 1px var(--line), inset 0 1px 0 rgb(255 255 255 / 0.06); }
+.gl-mute.is-on { background: var(--ember); color: var(--on-primary); box-shadow: none; }
 .gl-root.in-session .gl-ask { display: none; }
 .gl-root:not(.in-session) .gl-mute, .gl-root:not(.in-session) .gl-end { display: none; }
-.gl-root[data-mode='answer'] .gl-mute, .gl-root[data-mode='answer'] .gl-chip { background: rgb(0 0 0 / 0.24); }
-
-/* the button breathes while the glow waits for «Ась» */
-.gl-root[data-mode='idle'] .gl-ask { animation: gl-wait 2.4s ease-in-out infinite; }
-@keyframes gl-wait { 50% { box-shadow: 0 0 0 10px rgb(230 255 46 / 0.08), 0 8px 32px rgb(230 255 46 / 0.22); } }
+.gl-root[data-mode='answer'] .gl-mute:not(.is-on), .gl-root[data-mode='answer'] .gl-chip { background: rgb(5 6 8 / 0.32); }
 
 @media (max-height: 680px) {
-  .gl-btn { height: 88px; border-radius: 44px; font-size: 20px; }
-  .gl-cap { font-size: 20px; line-height: 26px; }
+  .gl-btn { height: 88px; border-radius: 24px; font-size: 20px; }
+  .gl-cap { font-size: 20px; line-height: 28px; min-height: 28px; }
 }
 @media (max-width: 350px) {
-  .gl-btn { font-size: 18px; gap: 6px; }
+  .gl-btn { font-size: 18px; gap: 4px; }
   .gl-btn svg { width: 24px; height: 24px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .gl-root[data-mode='idle'] .gl-ask { animation: none; }
+  .gl-root > :not(.gl-canvas) { transition: opacity 200ms ease; transform: none !important; }
 }
