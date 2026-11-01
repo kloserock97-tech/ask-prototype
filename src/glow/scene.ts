@@ -20,6 +20,7 @@ uniform float uShrink;  // listen: blob pulled in
 uniform vec3 uTop;      // field colour, top
 uniform vec3 uBottom;   // field colour, bottom
 uniform float uBump;    // tap ripple 1 -> 0
+uniform float uDim;     // 0.4 waiting .. 1 listening / speaking
 out vec4 o;
 
 float hash(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
@@ -66,8 +67,9 @@ vec3 field(vec2 uv, float t) {
   vec2 w = vec2(fbm(vec3(q, t * 0.07)), fbm(vec3(q + 7.3, t * 0.07)));
   float s1 = abs(sin((q.x + w.x * 2.6) * 3.1 + (q.y + w.y * 1.8) * 1.7 + t * 0.25));
   float s2 = abs(sin((q.y + w.x * 2.2) * 2.6 - (q.x - w.y * 2.0) * 1.2 - t * 0.18));
-  float lines = smoothstep(0.045, 0.0, s1) * 0.55 + smoothstep(0.035, 0.0, s2) * 0.35;
-  lines *= 0.6 + uLevel * 0.9;
+  // dim and slow: at night a bright line across the screen is glare
+  float lines = smoothstep(0.04, 0.0, s1) * 0.28 + smoothstep(0.03, 0.0, s2) * 0.16;
+  lines *= 0.5 + uLevel * 0.8;
   vec3 glow = mix(uTop, vec3(1.0), 0.55);
   return base + glow * lines;
 }
@@ -77,7 +79,7 @@ void main() {
   vec2 res = uRes / uDpr;
   vec2 uv = px / res;
   float t = uTime;
-  vec3 a = blob(px, t);
+  vec3 a = blob(px, t) * uDim;
   vec3 b = field(uv, t);
   // the blob swells into the field: blend from its centre outward
   float reach = length((px - uCenter) / max(res.x, res.y));
@@ -98,8 +100,8 @@ export class GlowScene {
   private t = 0
   private reduce = matchMedia('(prefers-reduced-motion: reduce)').matches
   // live values and their targets
-  private cur = { field: 0, level: 0, spin: 0, shrink: 0, bump: 0 }
-  target = { field: 0, level: 0, spin: 0, shrink: 0 }
+  private cur = { field: 0, level: 0, spin: 0, shrink: 0, bump: 0, dim: 0.45 }
+  target = { field: 0, level: 0, spin: 0, shrink: 0, dim: 0.45 }
   private top: V3 = [0.62, 0.04, 0.42]
   private bottom: V3 = [0.16, 0.0, 0.12]
   private topTo: V3 = [0.62, 0.04, 0.42]
@@ -130,7 +132,7 @@ export class GlowScene {
     const loc = gl.getAttribLocation(p, 'p')
     gl.enableVertexAttribArray(loc)
     gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0)
-    for (const n of ['uRes', 'uTime', 'uCenter', 'uRad', 'uDpr', 'uField', 'uLevel', 'uSpin', 'uShrink', 'uTop', 'uBottom', 'uBump']) this.u[n] = gl.getUniformLocation(p, n)
+    for (const n of ['uRes', 'uTime', 'uCenter', 'uRad', 'uDpr', 'uField', 'uLevel', 'uSpin', 'uShrink', 'uTop', 'uBottom', 'uBump', 'uDim']) this.u[n] = gl.getUniformLocation(p, n)
     this.raf = requestAnimationFrame(this.frame)
   }
 
@@ -157,6 +159,7 @@ export class GlowScene {
     c.spin = ease(c.spin, g.spin, 3, dt)
     c.shrink = ease(c.shrink, g.shrink, 6, dt)
     c.bump = Math.max(0, c.bump - dt * 1.6)
+    c.dim = ease(c.dim, g.dim, 3, dt)
     for (let i = 0; i < 3; i++) {
       this.top[i] = ease(this.top[i], this.topTo[i], 3.2, dt)
       this.bottom[i] = ease(this.bottom[i], this.bottomTo[i], 3.2, dt)
@@ -180,6 +183,7 @@ export class GlowScene {
     gl.uniform1f(u.uSpin, c.spin)
     gl.uniform1f(u.uShrink, c.shrink)
     gl.uniform1f(u.uBump, c.bump)
+    gl.uniform1f(u.uDim, c.dim)
     gl.uniform3f(u.uTop, ...this.top)
     gl.uniform3f(u.uBottom, ...this.bottom)
     gl.drawArrays(gl.TRIANGLES, 0, 3)
