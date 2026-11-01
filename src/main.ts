@@ -14,6 +14,11 @@ import './styles/grif.css'
 import './styles/outside.css'
 import './styles/board.css'
 import './styles/visions.css'
+import './styles/glow.css'
+import '@fontsource/onest/500.css'
+import '@fontsource/onest/600.css'
+import '@fontsource/onest/700.css'
+import '@fontsource/onest/800.css'
 import '@fontsource/cormorant-garamond/500.css'
 import '@fontsource/cormorant-garamond/600.css'
 import { AskApp } from './app/app'
@@ -22,12 +27,14 @@ import { SCREENS } from './data/screens'
 import { flow, guide, home, island, leaveGuide } from './pages/pages'
 import { OutsidePage } from './grif/outside'
 import { VisionsPage } from './grif/visions'
+import { GlowPage } from './glow/glow'
 import { Player } from './player/player'
 
 let askApp: AskApp | null = null
 let grif: GrifApp | null = null
 let visions: VisionsPage | null = null
 let widget: OutsidePage | null = null
+let glow: GlowPage | null = null
 
 const app = document.getElementById('app')!
 const go = (hash: string) => {
@@ -48,6 +55,19 @@ function route() {
   }
   widget?.destroy()
   widget = null
+  glow?.destroy()
+  glow = null
+  if (h.startsWith('#/glow')) {
+    if (inPlayer) {
+      player.unmount()
+      inPlayer = false
+    }
+    askApp?.destroy()
+    askApp = null
+    glow = new GlowPage()
+    app.replaceChildren(glow.root)
+    return
+  }
   if (h.startsWith('#/widget') || h.startsWith('#/outside')) {
     if (inPlayer) {
       player.unmount()
