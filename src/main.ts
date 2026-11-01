@@ -13,26 +13,21 @@ import './styles/widget.css'
 import './styles/grif.css'
 import './styles/outside.css'
 import './styles/board.css'
-import './styles/visions.css'
 import './styles/glow.css'
 import '@fontsource/onest/500.css'
 import '@fontsource/onest/600.css'
 import '@fontsource/onest/700.css'
 import '@fontsource/onest/800.css'
-import '@fontsource/cormorant-garamond/500.css'
-import '@fontsource/cormorant-garamond/600.css'
 import { AskApp } from './app/app'
 import { GrifApp } from './grif/grif'
 import { SCREENS } from './data/screens'
 import { flow, guide, home, island, leaveGuide } from './pages/pages'
 import { OutsidePage } from './grif/outside'
-import { VisionsPage } from './grif/visions'
 import { GlowPage } from './glow/glow'
 import { Player } from './player/player'
 
 let askApp: AskApp | null = null
 let grif: GrifApp | null = null
-let visions: VisionsPage | null = null
 let widget: OutsidePage | null = null
 let glow: GlowPage | null = null
 
@@ -47,8 +42,6 @@ function route() {
   const h = location.hash || '#/'
   const m = h.match(/^#\/p\/(\w+)/)
   leaveGuide()
-  visions?.destroy()
-  visions = null
   if (!(h === '#/' || h === '#')) {
     grif?.destroy()
     grif = null
@@ -90,14 +83,6 @@ function route() {
     grif?.destroy()
     grif = new GrifApp()
     app.replaceChildren(grif.root)
-    return
-  }
-  if (h.startsWith('#/visions')) {
-    askApp?.destroy()
-    askApp = null
-    visions = new VisionsPage()
-    app.replaceChildren(visions.root)
-    scrollTo(0, 0)
     return
   }
   if (h.startsWith('#/v9')) {
