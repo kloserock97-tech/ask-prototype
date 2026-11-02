@@ -1,10 +1,12 @@
 import { Cat, type Mood } from './cat'
 
-// #/drive — flow 5 of the Figma page (46:2, screens 5.1–5.7), entered from the menu (8.1 + a «В дорогу» row).
-// chat → ≡ → «В дорогу» → Поехали → Готов → Слушаю → Ищу → Отвечаю (parts) → Готов,
-// branches: Пауза (tap the answer), Микрофон выключен (tap Ась), exit with the «В дороге ✕» chip.
+// #/drive — flow 5 of the Figma page (46:2, screens 5.1–5.11), entered from the menu (8.1 + a «В дорогу» row).
+// chat → ≡ → «В дорогу» → 5.1 tap Ась → (first time: 5.6 sheet → 5.7–5.10 system alerts → 5.11)
+// → 5.2 Карты, Ась in the island asks «Куда едем?» → 5.3 dictation → 5.4 the address flows into Карты → 5.5 navigation.
 
-type State = 'go' | 'ready' | 'listen' | 'think' | 'answer' | 'pause' | 'muted'
+type State = 'ready' | 'perms' | 'intro' | 'ask' | 'dictate' | 'handoff' | 'nav'
+type Perm = 'mic' | 'speech' | 'geo' | 'notif'
+type Grant = 'need' | 'ok' | 'off'
 
 const I = {
   menu: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h16M4 15h16"/></svg>`,
@@ -17,23 +19,40 @@ const I = {
   close: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg>`,
   search: `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M16 16l4 4"/></svg>`,
   sliders: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h10M18 8h2M4 16h2M10 16h10"/><circle cx="16" cy="8" r="2"/><circle cx="8" cy="16" r="2"/></svg>`,
+  turn: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 20v-7a4 4 0 0 1 4-4h8M15 5l4 4-4 4" stroke-width="2.5"/></svg>`,
 }
 
-interface View { h: string; sub?: string; btn?: { text: string; icon?: string; kind: 'primary' | 'secondary' }; mood: Mood }
+// the map: our own street grid, the route over the main road and the puck, 390 × 844 like the Figma navigator
+const MAP = (() => {
+  const xs = [-20, 70, 270, 360], ys = [120, 300, 470, 640, 800]
+  const streets = xs.map((x) => `<rect x="${x}" y="-20" width="12" height="900"/>`).join('') + ys.map((y) => `<rect x="-20" y="${y}" width="430" height="12"/>`).join('')
+  const road = 'M195 900V430C195 340 228 300 290 262L430 176'
+  return `<svg class="dv-map-svg" viewBox="0 0 390 844" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+<rect width="390" height="844" fill="#1d2026"/><g fill="#272b33">${streets}</g>
+<path d="${road}" stroke="#30353f" stroke-width="26" fill="none"/><path d="${road}" stroke="#3a404b" stroke-width="14" fill="none"/>
+<path class="dv-route-case" d="${road}" pathLength="1" stroke="#163a57" stroke-width="18" fill="none" stroke-linecap="round"/>
+<path class="dv-route" d="${road}" pathLength="1" stroke="#4fb4ff" stroke-width="10" fill="none" stroke-linecap="round"/>
+<circle class="dv-route-dot" cx="195" cy="420" r="7" fill="#f5a524" stroke="#1d2026" stroke-width="3"/></svg>`
+})()
 
-// texts, buttons and the cat's expression per screen, as in Figma 5.1–5.7
-const VIEW: Record<State, View> = {
-  go: { h: 'Поехали\nЯ на связи, говорите', mood: 'listen' },
-  ready: { h: 'Скажите «Привет, Ась»\nили нажмите кнопку', btn: { text: 'Спросить', icon: I.mic, kind: 'primary' }, mood: 'calm' },
-  listen: { h: 'Слушаю', btn: { text: 'Отмена', kind: 'secondary' }, mood: 'listen' },
-  think: { h: 'Ставка ЦБ', btn: { text: 'Стоп', icon: I.close, kind: 'primary' }, mood: 'think' },
-  answer: { h: 'Отвечаю', btn: { text: 'Стоп', icon: I.close, kind: 'primary' }, mood: 'speak' },
-  pause: { h: 'Пауза', sub: 'скажите «дальше» или нажмите', btn: { text: 'Дальше', kind: 'primary' }, mood: 'calm' },
-  muted: { h: 'Микрофон выключен', sub: 'Ась не слушает, пока не включите', btn: { text: 'Включить микрофон', kind: 'primary' }, mood: 'calm' },
+const PERMS: { k: Perm; t: string; sub: string; title: string; msg: string; btns: string[] }[] = [
+  { k: 'mic', t: 'Микрофон', sub: 'слышать адрес и вопросы', title: 'Приложение «Ась» запрашивает доступ к микрофону', msg: 'Чтобы слышать адрес и вопросы, пока вы за рулём', btns: ['Не разрешать', 'Разрешить'] },
+  { k: 'speech', t: 'Распознавание речи', sub: 'понимать, что вы сказали', title: 'Приложение «Ась» запрашивает доступ к распознаванию речи', msg: 'Чтобы понимать адрес и вопросы без рук. Речь обрабатывается для распознавания', btns: ['Не разрешать', 'Разрешить'] },
+  { k: 'geo', t: 'Геопозиция', sub: 'маршрут от того места, где вы сейчас', title: 'Разрешить приложению «Ась» использовать вашу геопозицию?', msg: 'Чтобы строить маршрут от того места, где вы сейчас', btns: ['Однократно', 'При использовании приложения', 'Не разрешать'] },
+  { k: 'notif', t: 'Уведомления', sub: 'Ась над Картами и подсказки в пути', title: 'Приложение «Ась» запрашивает разрешение на отправку уведомлений', msg: 'Уведомления могут содержать предупреждения, звуки и наклейки. Их можно настроить в Настройках', btns: ['Не разрешать', 'Разрешить'] },
+]
+
+// what the phone already allowed lives for the whole visit: the second trip skips the sheet, a reload starts over
+const granted: Record<Perm, Grant> = { mic: 'need', speech: 'need', geo: 'need', notif: 'need' }
+
+const ADDRESS = 'В Пулково, терминал 1'
+const PLACE = 'Пулково, терминал 1'
+
+// Dynamic Island geometry in phone pixels: the cat sits in a slot on its left
+const ISL = {
+  open: { top: 12, h: 84, pad: 16, cat: 52 },
+  compact: { top: 12, h: 37, w: 168, pad: 7, cat: 24 },
 }
-
-const PARTS = 3
-const PART_MS = 2600
 
 export class DrivePage {
   readonly root: HTMLDivElement
@@ -41,13 +60,11 @@ export class DrivePage {
   private q = <T extends Element>(s: string) => this.root.querySelector(s) as T
   private state: State | null = null
   private timers: number[] = []
-  private part = 0
-  private partStart = 0
-  private partDone = 0
   private raf = 0
   private ro: ResizeObserver
   private still = matchMedia('(prefers-reduced-motion: reduce)').matches
   private onKey = (e: KeyboardEvent) => this.key(e)
+  private island: 'off' | 'open' | 'compact' = 'off'
 
   constructor() {
     this.root = document.createElement('div')
@@ -90,16 +107,42 @@ export class DrivePage {
   <section class="dv-drive" aria-label="В дороге" aria-hidden="true">
     ${status('is-dark')}
     <button class="dv-chip" data-act="exit" aria-label="Выйти из режима «В дороге»">${I.car}<span>В дороге</span>${I.close}</button>
-    <div class="dv-head" aria-live="polite">
-      <h2 class="dv-h"></h2>
-      <p class="dv-sub"></p>
-      <div class="dv-parts" aria-hidden="true">${'<i><b></b></i>'.repeat(PARTS)}</div>
-    </div>
-    <div class="dv-orb" data-act="orb" role="button" aria-label="Ась">
-      <span class="dv-ring"></span><span class="dv-ring"></span><span class="dv-ring dv-ring--arc"></span>
-    </div>
-    <div class="dv-dock"><button class="dv-big" data-act="big"></button></div>
+    <div class="dv-head" aria-live="polite"><h2 class="dv-h is-long"></h2></div>
+    <button class="dv-orb" data-act="orb" aria-label="Ась: открыть Карты и проложить маршрут">
+      <span class="dv-ring"></span><span class="dv-ring"></span>
+    </button>
+    <p class="dv-note">Дальше я в островке над Картами. Адрес передам туда сам, Карты сразу поведут по маршруту</p>
   </section>
+  <section class="dv-maps" aria-label="Карты" aria-hidden="true">
+    ${status('is-dark')}
+    <div class="dv-map">${MAP}<i class="dv-puck"></i></div>
+    <div class="dv-mbtns" aria-hidden="true"><i>+</i><i>−</i><i>◎</i></div>
+    <div class="dv-man"><span class="dv-man-ic">${I.turn}</span><span><b>300 м</b><small>на Пулковское шоссе</small></span></div>
+    <div class="dv-speed" aria-hidden="true"><i>90</i><span><b>87</b> км/ч</span></div>
+    <div class="dv-msheet">
+      <div class="dv-msearch">${I.search}<span class="dv-mq">Поиск в Картах</span></div>
+      <div class="dv-mrecent"><span>Дом</span><span>Работа</span><span>Пулково</span></div>
+      <div class="dv-mroute"><b>${PLACE}</b><small>34 мин · 28 км · через Пулковское ш.</small><i><b></b></i><small>Включаю ведение</small></div>
+    </div>
+    <div class="dv-eta"><span><b>13:27</b><small>34 мин · 28 км</small></span><button class="dv-eta-btn" tabindex="-1">Обзор</button></div>
+  </section>
+  <div class="dv-isl" data-act="island" aria-live="polite">
+    <span class="dv-isl-text"><small></small><b></b></span>
+    <span class="dv-isl-wave" aria-hidden="true">${'<i></i>'.repeat(5)}</span>
+    <button class="dv-isl-end" data-act="end">Завершить</button>
+    <span class="dv-isl-right"></span>
+  </div>
+  <div class="dv-sdim"></div>
+  <div class="dv-sheet" role="dialog" aria-modal="true" aria-label="Разрешения" aria-hidden="true">
+    <i class="dv-grip" aria-hidden="true"></i>
+    <h3 class="dv-sh-t"></h3>
+    <p class="dv-sh-s"></p>
+    <ul class="dv-perms">${PERMS.map((p) => `<li data-k="${p.k}"><span><b>${p.t}</b><small>${p.sub}</small></span><em></em></li>`).join('')}</ul>
+    <button class="dv-btn dv-btn--primary" data-act="sheet-go"></button>
+    <button class="dv-btn" data-act="sheet-later">Позже</button>
+  </div>
+  <div class="dv-adim"></div>
+  <div class="dv-alert" role="alertdialog" aria-modal="true" aria-hidden="true"></div>
   <div class="dv-toast" role="status"></div>
 </div>`
     this.q('.dv-phone').append(this.cat.el)
@@ -123,40 +166,34 @@ export class DrivePage {
 
   // ---------- events ----------
   private click(e: MouseEvent) {
-    const a = (e.target as HTMLElement).closest<HTMLElement>('[data-act]')?.dataset.act
+    const el = (e.target as HTMLElement).closest<HTMLElement>('[data-act]')
+    const a = el?.dataset.act
     if (!a) return
     if (a === 'menu') this.menu(true)
     else if (a === 'close') this.menu(false)
     else if (a === 'drive') this.enter()
     else if (a === 'exit') this.exit()
-    else if (a === 'big') this.big()
     else if (a === 'orb') this.orb()
+    else if (a === 'sheet-go') this.sheetGo()
+    else if (a === 'sheet-later') this.sheet(false)
+    else if (a === 'alert') this.answer(el!.dataset.k as Perm, el!.dataset.yes === '1')
+    else if (a === 'end') { e.stopPropagation(); this.exit('Поездка закончилась, «В дороге» выключен') }
+    else if (a === 'island') this.islandTap()
   }
 
   private key(e: KeyboardEvent) {
-    if (this.root.dataset.mode !== 'drive') {
+    const mode = this.root.dataset.mode
+    if (mode === 'chat') {
       if (e.key === 'Escape') this.menu(false)
       return
     }
-    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); this.big() }
-    if (e.key === 'Escape') this.exit()
-  }
-
-  private big() {
-    switch (this.state) {
-      case 'ready': return this.go('listen')
-      case 'listen': return this.go('ready')
-      case 'think': return this.go('ready')
-      case 'answer': return this.go('ready')
-      case 'pause': return this.go('answer')
-      case 'muted': return this.go('ready')
+    if (this.state === 'perms') return // the sheet and the alerts take keys through their buttons
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault()
+      if (this.state === 'ready') this.orb()
+      else if (this.state === 'nav') this.islandTap()
     }
-  }
-
-  private orb() {
-    if (this.state === 'ready') this.go('muted') // stands in for «Ась, помолчи»
-    else if (this.state === 'answer') this.go('pause') // a tap pauses the answer
-    else if (this.state === 'pause') this.go('answer')
+    if (e.key === 'Escape') this.exit()
   }
 
   // ---------- menu and mode ----------
@@ -173,97 +210,241 @@ export class DrivePage {
     const slot = this.slotRect()
     this.root.style.setProperty('--ox', `${slot.x + slot.w / 2}px`)
     this.root.style.setProperty('--oy', `${slot.y + slot.h / 2}px`)
-    this.root.dataset.mode = 'drive'
-    this.q('.dv-drive').setAttribute('aria-hidden', 'false')
-    this.q('.dv-chat').setAttribute('aria-hidden', 'true')
+    this.mode('drive')
+    this.go('ready')
     this.placeCat(true)
-    this.go('go')
   }
 
-  private exit() {
+  private exit(msg = 'Режим «В дороге» выключен') {
     this.clear()
     this.state = null
-    this.root.dataset.mode = 'chat'
     this.root.dataset.state = ''
-    this.q('.dv-drive').setAttribute('aria-hidden', 'true')
-    this.q('.dv-chat').setAttribute('aria-hidden', 'false')
+    this.sheet(false)
+    this.setIsland('off')
+    this.mode('chat')
     this.cat.set('calm')
     this.placeCat(true)
-    this.toast('Режим «В дороге» выключен')
+    this.toast(msg)
+    window.setTimeout(() => this.resetMaps(), 420)
+  }
+
+  private mode(m: 'chat' | 'drive' | 'maps') {
+    this.root.dataset.mode = m
+    this.q('.dv-chat').setAttribute('aria-hidden', String(m !== 'chat'))
+    this.q('.dv-drive').setAttribute('aria-hidden', String(m !== 'drive'))
+    this.q('.dv-maps').setAttribute('aria-hidden', String(m !== 'maps'))
+  }
+
+  // 5.1: Ась is the button. Everything allowed → straight to Карты, otherwise the sheet first
+  private orb() {
+    if (this.state !== 'ready') return
+    if (PERMS.every((p) => granted[p.k] === 'ok')) this.openMaps()
+    else this.sheet(true)
   }
 
   // ---------- states ----------
   private go(s: State) {
     this.clear()
-    const prev = this.state
     this.state = s
     this.root.dataset.state = s
-    const v = VIEW[s]
-    this.cat.set(v.mood)
-    if (s === 'answer' && prev !== 'pause') { this.part = 0; this.partDone = 0 }
-    this.swapText(v.h, s === 'answer' ? `часть ${this.part + 1} из ${PARTS}` : v.sub ?? '')
-    this.button(v.btn)
-    if (s === 'go') this.later(3200, () => this.go('ready'))
-    if (s === 'listen') this.later(2800, () => this.go('think'))
-    if (s === 'think') this.later(1700, () => this.go('answer'))
-    if (s === 'answer') this.playPart()
-    this.paintParts()
+    const mood: Record<State, Mood> = { ready: 'calm', perms: 'calm', intro: 'speak', ask: 'listen', dictate: 'listen', handoff: 'speak', nav: 'calm' }
+    this.cat.set(mood[s])
+    if (s === 'ready') this.swapText('Нажмите на Ась\nили позовите голосом')
+    if (s === 'intro') {
+      this.swapText('Открою Карты\nи спрошу, куда едем')
+      this.later(3200, () => this.openMaps())
+    }
+    if (s === 'ask') {
+      this.islandText('Слушаю', 'Куда едем?')
+      this.setIsland('open')
+      this.later(2400, () => this.go('dictate'))
+    }
+    if (s === 'dictate') this.dictate()
+    if (s === 'handoff') this.handoff()
+    if (s === 'nav') {
+      this.q('.dv-maps').classList.add('is-nav')
+      this.islandRight('34 мин')
+      this.setIsland('compact')
+    }
   }
 
-  private playPart() {
-    this.partStart = performance.now() - this.partDone
-    this.later(PART_MS - this.partDone, () => {
-      this.part++
-      this.partDone = 0
-      if (this.part >= PARTS) return this.go('ready')
-      this.swapText('Отвечаю', `часть ${this.part + 1} из ${PARTS}`)
-      this.playPart()
-    })
+  private openMaps() {
+    this.mode('maps')
+    this.go('ask')
+    this.placeCat(true)
   }
 
-  private paintParts() {
-    const bars = [...this.root.querySelectorAll<HTMLElement>('.dv-parts b')]
-    bars.forEach((b, i) => {
-      const now = i === this.part && this.state === 'answer'
-      b.style.transition = 'none'
-      b.style.transform = `scaleX(${i < this.part ? 1 : i === this.part ? this.partDone / PART_MS : 0})`
-      if (now) {
-        void b.offsetWidth
-        b.style.transition = `transform ${PART_MS - this.partDone}ms linear`
-        b.style.transform = 'scaleX(1)'
-      }
-    })
+  // 5.3: the transcript types itself out in the island
+  private dictate() {
+    this.islandText('Куда едем?', '')
+    const b = this.q<HTMLElement>('.dv-isl-text b')
+    b.classList.add('is-typing')
+    let i = 0
+    const step = () => {
+      b.textContent = ADDRESS.slice(0, ++i)
+      if (i < ADDRESS.length) this.later(this.still ? 0 : 55, step)
+      else this.later(800, () => { b.classList.remove('is-typing'); this.go('handoff') })
+    }
+    this.later(300, step)
   }
 
+  // 5.4: Ась folds into the compact island, the address flies down into the Карты search and the route draws
+  private handoff() {
+    const from = this.q<HTMLElement>('.dv-isl-text b').getBoundingClientRect()
+    this.islandRight('передаю')
+    this.setIsland('compact')
+    const maps = this.q<HTMLElement>('.dv-maps')
+    const field = this.q<HTMLElement>('.dv-mq')
+    const ph = this.q<HTMLElement>('.dv-phone').getBoundingClientRect()
+    const to = field.getBoundingClientRect()
+    const fly = document.createElement('span')
+    fly.className = 'dv-fly'
+    fly.textContent = PLACE
+    fly.style.left = `${from.left - ph.left}px`
+    fly.style.top = `${from.top - ph.top}px`
+    this.q('.dv-phone').append(fly)
+    const land = () => {
+      fly.remove()
+      field.textContent = PLACE
+      maps.classList.add('is-route')
+      this.later(1900, () => this.go('nav'))
+    }
+    if (this.still) { land(); return }
+    const dx = to.left - from.left, dy = to.top - from.top
+    const a = fly.animate(
+      [
+        { transform: 'translate(0, 0) scale(1)', opacity: 1, filter: 'blur(0)' },
+        { transform: `translate(${dx * 0.5}px, ${dy * 0.5}px) scale(0.92)`, opacity: 0.85, filter: 'blur(1px)', offset: 0.5 },
+        { transform: `translate(${dx}px, ${dy}px) scale(0.85)`, opacity: 1, filter: 'blur(0)' },
+      ],
+      { duration: 560, easing: 'cubic-bezier(0.77, 0, 0.175, 1)', fill: 'forwards' },
+    )
+    a.onfinish = land
+  }
+
+  private islandTap() {
+    if (this.state !== 'nav') return
+    if (this.island === 'open') { this.setIsland('compact'); return }
+    this.islandText(PLACE, '34 мин')
+    this.setIsland('open', true)
+    this.later(6000,() => { if (this.state === 'nav') this.setIsland('compact') })
+  }
+
+  // ---------- permissions: our sheet (5.6), then the system alerts (5.7–5.10) ----------
+  private sheet(open: boolean, title = 'Ась в дороге', sub = 'Нужно четыре разрешения. Телефон спросит по очереди, один раз и пока вы стоите', go = 'Разрешить по очереди') {
+    this.root.classList.toggle('is-sheet', open)
+    this.q('.dv-sheet').setAttribute('aria-hidden', String(!open))
+    if (!open) {
+      this.alert(null)
+      if (this.state === 'perms') this.go('ready')
+      return
+    }
+    this.state = 'perms'
+    this.root.dataset.state = 'perms'
+    this.q('.dv-sh-t').textContent = title
+    this.q('.dv-sh-s').textContent = sub
+    this.q('[data-act="sheet-go"]').textContent = go
+    this.paintPerms()
+    this.q<HTMLElement>('[data-act="sheet-go"]').focus({ preventScroll: true })
+  }
+
+  private paintPerms() {
+    for (const li of this.root.querySelectorAll<HTMLElement>('.dv-perms li')) {
+      const g = granted[li.dataset.k as Perm]
+      li.dataset.g = g
+      li.querySelector('em')!.textContent = g === 'ok' ? 'есть' : g === 'off' ? 'выключено' : 'нужно'
+    }
+  }
+
+  private sheetGo() {
+    // 5.E1 → «Открыть Настройки»: in the stand the switch flips as if the person came back from Настройки
+    const off = PERMS.find((p) => (p.k === 'mic' || p.k === 'speech') && granted[p.k] === 'off')
+    if (off) {
+      granted[off.k] = 'ok'
+      this.toast(`${off.t}: включено в Настройках`)
+      this.sheet(true)
+      return
+    }
+    this.next()
+  }
+
+  private next() {
+    const p = PERMS.find((x) => granted[x.k] === 'need')
+    if (!p) {
+      this.sheet(false)
+      this.go('intro')
+      return
+    }
+    this.later(this.still ? 0 : 240, () => this.alert(p))
+  }
+
+  private alert(p: (typeof PERMS)[number] | null) {
+    const box = this.q<HTMLElement>('.dv-alert')
+    this.root.classList.toggle('is-alert', !!p)
+    box.setAttribute('aria-hidden', String(!p))
+    if (!p) return
+    const geo = p.k === 'geo'
+    const yes = (i: number) => (geo ? i < 2 : i === 1)
+    box.className = `dv-alert${geo ? ' is-stack' : ''}`
+    box.innerHTML = `<div class="dv-al-text"><b>${p.title}</b><span>${p.msg}</span></div>${geo ? `<div class="dv-al-map">${MAP}<i class="dv-puck"></i><em>Точно: вкл.</em></div>` : ''}<div class="dv-al-btns">${p.btns.map((b, i) => `<button data-act="alert" data-k="${p.k}" data-yes="${yes(i) ? 1 : 0}"${i === (geo ? 1 : p.btns.length - 1) ? ' class="is-main"' : ''}>${b}</button>`).join('')}</div>`
+    box.querySelector<HTMLElement>('.is-main')?.focus({ preventScroll: true })
+  }
+
+  private answer(k: Perm, yes: boolean) {
+    granted[k] = yes ? 'ok' : 'off'
+    this.alert(null)
+    this.paintPerms()
+    // without the microphone or speech Ась cannot hear the address: 5.E1, the only way back is Настройки
+    if (!yes && (k === 'mic' || k === 'speech')) {
+      const t = k === 'mic' ? 'Микрофон выключен' : 'Распознавание речи выключено'
+      this.sheet(true, 'Ась не услышит адрес', `${t}. Включите в Настройках, это один переключатель`, 'Открыть Настройки')
+      return
+    }
+    this.next()
+  }
+
+  // ---------- island ----------
+  private setIsland(s: 'off' | 'open' | 'compact', withEnd = false) {
+    this.island = s
+    const el = this.q<HTMLElement>('.dv-isl')
+    el.dataset.s = s
+    el.classList.toggle('has-end', withEnd)
+    if (this.root.dataset.mode === 'maps') this.placeCat('morph')
+  }
+
+  private islandText(label: string, main: string) {
+    this.q('.dv-isl-text small').textContent = label
+    this.q('.dv-isl-text b').textContent = main
+  }
+
+  private islandRight(text: string) {
+    this.q('.dv-isl-right').textContent = text
+  }
+
+  private resetMaps() {
+    if (this.root.dataset.mode === 'maps') return
+    const maps = this.q<HTMLElement>('.dv-maps')
+    maps.classList.remove('is-route', 'is-nav')
+    this.q('.dv-mq').textContent = 'Поиск в Картах'
+  }
+
+  // ---------- helpers ----------
   private clear() {
-    if (this.state === 'answer') this.partDone = Math.min(PART_MS, performance.now() - this.partStart)
     this.timers.forEach(clearTimeout)
     this.timers = []
   }
 
   private later(ms: number, fn: () => void) {
-    this.timers.push(window.setTimeout(() => { fn(); if (this.state === 'answer' || this.state === 'pause') this.paintParts() }, ms))
+    this.timers.push(window.setTimeout(fn, ms))
   }
 
-  // ---------- view helpers ----------
-  private swapText(h: string, sub: string) {
+  private swapText(h: string) {
     const head = this.q<HTMLElement>('.dv-head')
     const hEl = this.q<HTMLElement>('.dv-h')
-    const sEl = this.q<HTMLElement>('.dv-sub')
-    if (hEl.textContent === h && sEl.textContent === sub) return
-    // a sentence is set at 28/34 as in 5.1–5.2, a one- or two-word state at 56/60
-    const put = () => { hEl.textContent = h; sEl.textContent = sub; hEl.classList.toggle('is-long', h.includes('\n')) }
-    if (this.still || !hEl.textContent) { put(); return }
+    if (hEl.textContent === h) return
+    if (this.still || !hEl.textContent) { hEl.textContent = h; return }
     head.classList.add('is-out')
-    window.setTimeout(() => { put(); head.classList.remove('is-out') }, 160)
-  }
-
-  private button(b?: View['btn']) {
-    const el = this.q<HTMLButtonElement>('.dv-big')
-    if (!b) { el.hidden = true; return }
-    el.hidden = false
-    el.className = `dv-big dv-big--${b.kind}`
-    el.innerHTML = `${b.icon ?? ''}<span>${b.text}</span>`
+    window.setTimeout(() => { hEl.textContent = h; head.classList.remove('is-out') }, 160)
   }
 
   private toast(text: string) {
@@ -283,17 +464,24 @@ export class DrivePage {
     return { x: slot.left - ph.left - shift + want, y: slot.top - ph.top, w: slot.width, h: slot.height }
   }
 
-  // the cat lives in one element and flies between the chat header and the drive orb
-  private placeCat(animate: boolean | 'slide') {
+  // the cat lives in one element and flies between the chat header, the drive orb and the island over Карты
+  private placeCat(animate: boolean | 'slide' | 'morph') {
     const ph = this.q<HTMLElement>('.dv-phone').getBoundingClientRect()
-    const drive = this.root.dataset.mode === 'drive'
+    const mode = this.root.dataset.mode
     const orb = this.q<HTMLElement>('.dv-orb').getBoundingClientRect()
     const size = orb.width * (125 / 220) // the cat inside the 220 orb is 125, as in Figma
     let x: number, y: number, s: number
-    if (drive) {
+    if (mode === 'drive') {
       x = orb.left - ph.left + orb.width / 2 - size / 2
       y = orb.top - ph.top + orb.height / 2 - size / 2 + orb.width * (4 / 220)
       s = 1
+    } else if (mode === 'maps') {
+      // the island's final geometry, not its animated one: the cat and the island morph together
+      const g = this.island === 'compact' ? ISL.compact : ISL.open
+      const left = this.island === 'compact' ? (ph.width - ISL.compact.w) / 2 : 10
+      x = left + g.pad + g.cat / 2 - size / 2
+      y = g.top + g.h / 2 - size / 2
+      s = g.cat / size
     } else {
       const r = this.slotRect()
       x = r.x + r.w / 2 - size / 2
@@ -304,21 +492,24 @@ export class DrivePage {
     el.style.width = el.style.height = `${size}px`
     el.classList.toggle('is-fly', animate === true && !this.still)
     el.classList.toggle('is-slide', animate === 'slide' && !this.still)
+    el.classList.toggle('is-morph', animate === 'morph' && !this.still)
     el.style.setProperty('--x', `${x}px`)
     el.style.setProperty('--y', `${y}px`)
     el.style.setProperty('--s', String(s))
   }
 
-  // a stand-in for the microphone level: syllable-like bursts while someone talks
+  // a stand-in for the voice level: syllable-like bursts while someone talks
   private voiceLoop(t: number) {
     const s = this.state
     let lvl = 0
-    if (s === 'listen' || s === 'answer') {
+    if (s === 'intro' || s === 'ask' || s === 'dictate' || s === 'handoff') {
       const syl = Math.max(0, Math.sin(t / 95)) * (0.55 + 0.45 * Math.sin(t / 410))
-      lvl = Math.min(1, syl * (s === 'answer' ? 0.9 : 1))
+      lvl = Math.min(1, syl * (s === 'ask' ? 0.35 : 0.9))
     }
     this.cat.voice(lvl)
+    // set on the two elements that use it, not the root: a root variable restyles the whole tree every frame
     this.q<HTMLElement>('.dv-orb').style.setProperty('--amp', lvl.toFixed(3))
+    this.q<HTMLElement>('.dv-isl').style.setProperty('--amp', lvl.toFixed(3))
     this.raf = requestAnimationFrame(this.voiceLoop)
   }
 }

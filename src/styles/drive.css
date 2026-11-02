@@ -1,6 +1,6 @@
-/* #/drive — flow 5 (Figma 46:2, 5.1–5.7) with the chat (1.1) and menu (8.1) it starts from.
+/* #/drive — flow 5 (Figma 46:2, 5.1–5.11) with the chat (1.1) and menu (8.1) it starts from.
    Base unit 4px. Sizes follow the mockups at 390 × 844; radii follow inner = outer − gap
-   (screen 44 → dock inset 16 → button 28). */
+   (screen 44 → sheet and panels inset 8–16 → 26–28). */
 
 .dv {
   --u: 4px;
@@ -259,7 +259,7 @@
 .dv-me i { width: calc(var(--u) * 9); height: calc(var(--u) * 9); border-radius: 50%; background: var(--surface); display: grid; place-items: center; font-style: normal; font-size: 15px; font-weight: 600; }
 .dv-me svg { width: 22px; height: 22px; }
 
-/* ---------- drive (5.1–5.7) ---------- */
+/* ---------- drive (5.1, 5.11): Ась in the centre is the button ---------- */
 .dv-drive {
   position: absolute;
   inset: 0;
@@ -271,7 +271,9 @@
   pointer-events: none;
   transition: clip-path 560ms var(--ease-move);
 }
-.dv[data-mode='drive'] .dv-drive { clip-path: circle(150% at var(--ox, 50%) var(--oy, 10%)); pointer-events: auto; }
+.dv[data-mode='drive'] .dv-drive,
+.dv[data-mode='maps'] .dv-drive { clip-path: circle(150% at var(--ox, 50%) var(--oy, 10%)); }
+.dv[data-mode='drive'] .dv-drive { pointer-events: auto; }
 .dv-chip {
   height: calc(var(--u) * 11);
   margin-top: var(--u);
@@ -288,19 +290,31 @@
 .dv-chip svg { width: calc(var(--u) * 5); height: calc(var(--u) * 5); }
 .dv-chip svg:last-child { width: 18px; height: 18px; }
 .dv-head { margin-top: calc(var(--u) * 10); }
-.dv-h, .dv-sub {
+.dv-h {
   margin: 0;
+  font-size: 28px;
+  line-height: 34px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--d-t2);
+  white-space: pre-line;
   transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out), filter 200ms var(--ease-out);
 }
-.dv-h { font-size: 56px; line-height: 60px; font-weight: 600; letter-spacing: -0.01em; white-space: pre-line; }
-.dv-h.is-long { font-size: 28px; line-height: 34px; color: var(--d-t2); }
-.dv-sub { margin-top: var(--u); font-size: 24px; line-height: 30px; color: var(--d-t2); font-variant-numeric: tabular-nums; }
-.dv-sub:empty { display: none; }
-.dv-head.is-out .dv-h, .dv-head.is-out .dv-sub { opacity: 0; transform: translateY(calc(var(--u) * -1)); filter: blur(2px); transition-duration: 160ms; }
-.dv-parts { display: none; gap: calc(var(--u) * 2); margin-top: calc(var(--u) * 4); }
-.dv[data-state='answer'] .dv-parts { display: flex; }
-.dv-parts i { width: calc(var(--u) * 20); height: var(--u); border-radius: calc(var(--u) / 2); background: rgb(255 255 255 / 0.24); overflow: hidden; }
-.dv-parts b { display: block; height: 100%; background: #fff; transform-origin: left; transform: scaleX(0); }
+.dv-head.is-out .dv-h { opacity: 0; transform: translateY(calc(var(--u) * -1)); filter: blur(2px); transition-duration: 160ms; }
+.dv-note {
+  position: absolute;
+  left: calc(var(--u) * 4);
+  right: calc(var(--u) * 4);
+  bottom: var(--bot);
+  margin: 0;
+  font-size: 17px;
+  line-height: 24px;
+  color: var(--t3);
+  opacity: 0;
+  transform: translateY(calc(var(--u) * 2));
+  transition: opacity 320ms var(--ease-out), transform 320ms var(--ease-out);
+}
+.dv[data-state='intro'] .dv-note { opacity: 1; transform: none; }
 
 /* the orb: 220 with rings at 220 and 176, its centre at 52% of the screen height as in Figma */
 .dv-orb {
@@ -311,54 +325,298 @@
   width: clamp(176px, 56.4cqw, 220px);
   aspect-ratio: 1;
   translate: -50% -50%;
-  cursor: pointer;
-  transition: opacity 200ms var(--ease-out);
+  border-radius: 50%;
 }
 .dv-ring {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  border: 1.5px solid rgb(255 255 255 / 0.12);
+  border: 1.5px solid rgb(255 255 255 / 0.2);
   transform: scale(calc(1 + var(--amp) * 0.1));
 }
-.dv-ring:first-child { inset: 10%; border-color: rgb(255 255 255 / 0.2); transform: scale(calc(1 + var(--amp) * 0.06)); }
-.dv-ring--arc { inset: 10%; border: 2px solid transparent; border-top-color: rgb(255 255 255 / 0.85); opacity: 0; transform: none; }
-/* ring strength follows the state, as in the indicator variants: quiet when waiting, clear when someone talks */
-.dv[data-state='listen'] .dv-ring, .dv[data-state='go'] .dv-ring { border-color: rgb(255 255 255 / 0.3); }
-.dv[data-state='listen'] .dv-ring:first-child, .dv[data-state='go'] .dv-ring:first-child { border-color: rgb(255 255 255 / 0.5); }
-.dv[data-state='answer'] .dv-ring { border-color: rgb(255 255 255 / 0.5); }
-.dv[data-state='answer'] .dv-ring:first-child { border-color: rgb(255 255 255 / 0.7); }
-.dv[data-state='think'] .dv-ring--arc { opacity: 1; animation: dv-spin 1.1s linear infinite; }
-@keyframes dv-spin { to { rotate: 1turn; } }
-.dv[data-state='muted'] .dv-orb, .dv[data-state='muted'] .dv-cat { opacity: 0.3; }
+.dv-ring:first-child { inset: 10%; border-color: rgb(255 255 255 / 0.3); transform: scale(calc(1 + var(--amp) * 0.06)); }
+/* waiting for a tap: the outer ring breathes out, so the cat reads as something to press */
+.dv[data-state='ready'] .dv-ring:last-child { animation: dv-call 2400ms var(--ease-out) infinite; }
+@keyframes dv-call { 0% { transform: scale(0.9); opacity: 0; } 30% { opacity: 1; } 100% { transform: scale(1.12); opacity: 0; } }
+.dv[data-state='intro'] .dv-ring { border-color: rgb(255 255 255 / 0.5); }
+.dv[data-state='intro'] .dv-ring:first-child { border-color: rgb(255 255 255 / 0.7); }
+.dv:not([data-mode='drive']) .dv-head { opacity: 0; transform: translateY(calc(var(--u) * 4)); }
+.dv-head { transition: opacity 320ms var(--ease-out) 240ms, transform 320ms var(--ease-out) 240ms; }
 
-.dv-dock { position: absolute; left: calc(var(--u) * 4); right: calc(var(--u) * 4); bottom: var(--bot); }
-.dv-big {
-  width: 100%;
-  height: calc(var(--u) * 26);
-  border-radius: calc(var(--R) - var(--u) * 4);
+/* ---------- the permissions sheet (5.6, 5.E1): ours, dark like the mode ---------- */
+.dv-sdim, .dv-adim {
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / 0.5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 320ms var(--ease-out);
+}
+.dv-sdim { z-index: 7; }
+.dv-adim { z-index: 9; background: rgb(0 0 0 / 0.2); transition-duration: 200ms; }
+.dv.is-sheet .dv-sdim, .dv.is-alert .dv-adim { opacity: 1; pointer-events: auto; }
+.dv-sheet {
+  position: absolute;
+  z-index: 8;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: calc(var(--u) * 2) calc(var(--u) * 4) calc(var(--bot) + var(--u) / 2);
+  border-radius: calc(var(--u) * 7) calc(var(--u) * 7) 0 0;
+  background: var(--d-surface);
+  color: #fff;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: var(--u);
-  font-size: 22px;
-  line-height: 28px;
+  gap: calc(var(--u) * 4);
+  transform: translateY(100%);
+  transition: transform 400ms var(--ease-out);
+}
+.dv.is-sheet .dv-sheet { transform: none; }
+.dv-grip { width: 36px; height: 5px; border-radius: 3px; background: rgb(255 255 255 / 0.25); }
+.dv-sh-t { margin: 0; font-size: 20px; line-height: 26px; font-weight: 600; text-align: center; }
+.dv-sh-s { margin: calc(var(--u) * -2.5) 0 0; font-size: 15px; line-height: 20px; color: var(--d-t2); text-align: center; text-wrap: balance; }
+.dv-perms { list-style: none; margin: 0; padding: 0; width: 100%; border-radius: calc(var(--u) * 5); background: #2a2a2a; }
+.dv-perms li { display: flex; align-items: center; gap: calc(var(--u) * 3); padding: calc(var(--u) * 3) calc(var(--u) * 4); }
+.dv-perms li + li { box-shadow: inset 16px 1px 0 -15px rgb(255 255 255 / 0.08); }
+.dv-perms span { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.dv-perms b { font-size: 17px; line-height: 24px; font-weight: 400; }
+.dv-perms small { font-size: 13px; line-height: 18px; color: var(--t3); }
+.dv-perms em { font-style: normal; font-size: 15px; line-height: 20px; color: var(--t3); display: flex; align-items: center; gap: 6px; }
+.dv-perms [data-g='ok'] em { color: var(--d-t2); }
+.dv-perms [data-g='ok'] em::before { content: '✓'; font-weight: 600; }
+.dv-perms [data-g='off'] em { color: var(--d-t2); }
+.dv-perms [data-g='off'] em::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #e5484d; }
+.dv-btn {
+  width: 100%;
+  height: calc(var(--u) * 14);
+  border-radius: calc(var(--u) * 7);
+  font-size: 17px;
+  line-height: 24px;
   font-weight: 600;
 }
-.dv-big[hidden] { visibility: hidden; }
-.dv-big svg { width: calc(var(--u) * 7); height: calc(var(--u) * 7); }
-.dv-big--primary { background: #fff; color: var(--t1); }
-.dv-big--secondary { background: var(--d-surface); color: #fff; }
-.dv:not([data-mode='drive']) .dv-dock, .dv:not([data-mode='drive']) .dv-head { opacity: 0; transform: translateY(calc(var(--u) * 4)); }
-.dv-dock, .dv-head { transition: opacity 320ms var(--ease-out) 240ms, transform 320ms var(--ease-out) 240ms; }
+.dv-btn--primary { background: #fff; color: var(--t1); }
+.dv-sheet .dv-btn:not(.dv-btn--primary) { margin-top: calc(var(--u) * -2); }
+
+/* ---------- system alerts (5.7–5.10): what iOS draws, light, over our sheet ---------- */
+.dv-alert {
+  position: absolute;
+  z-index: 10;
+  left: 50%;
+  top: 50%;
+  width: 270px;
+  border-radius: 14px;
+  background: rgb(242 242 247 / 0.96);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  color: #000;
+  overflow: hidden;
+  font-family: -apple-system, 'Inter', system-ui, sans-serif;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(1.08);
+  pointer-events: none;
+  transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out);
+}
+.dv.is-alert .dv-alert { opacity: 1; transform: translate(-50%, -50%); pointer-events: auto; }
+.dv-al-text { padding: 19px 16px; display: flex; flex-direction: column; gap: 4px; text-align: center; }
+.dv-al-text b { font-size: 17px; line-height: 22px; font-weight: 600; }
+.dv-al-text span { font-size: 13px; line-height: 18px; }
+.dv-al-map { position: relative; height: 140px; overflow: hidden; }
+.dv .dv-al-map .dv-map-svg { position: absolute; width: 340px; height: 736px; left: -35px; top: -440px; }
+.dv-al-map .dv-route, .dv-al-map .dv-route-case, .dv-al-map .dv-route-dot { display: none; }
+.dv-al-map .dv-puck { top: 50%; }
+.dv-al-map em { position: absolute; left: 10px; top: 10px; padding: 4px 10px; border-radius: 100px; background: rgb(255 255 255 / 0.92); color: #007aff; font: 600 12px/16px -apple-system, 'Inter', sans-serif; font-style: normal; }
+.dv-al-btns { display: flex; border-top: 0.5px solid rgb(60 60 67 / 0.29); }
+.dv-al-btns button { flex: 1; min-height: 44px; padding: 11px 8px; font-size: 17px; line-height: 22px; color: #007aff; border-radius: 0; }
+.dv-al-btns button + button { border-left: 0.5px solid rgb(60 60 67 / 0.29); }
+.dv-al-btns button.is-main { font-weight: 600; }
+.dv-alert.is-stack .dv-al-btns { flex-direction: column; }
+.dv-alert.is-stack .dv-al-btns button + button { border-left: 0; border-top: 0.5px solid rgb(60 60 67 / 0.29); }
+.dv-alert.is-stack .dv-al-btns button.is-main { font-weight: 400; }
+.dv-al-btns button:active { transform: none; background: rgb(0 0 0 / 0.06); }
+
+/* ---------- Карты (5.2–5.5): our own neutral maps app, opened by Ась ---------- */
+.dv-maps {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  background: #1d2026;
+  color: #fff;
+  overflow: hidden;
+  opacity: 0;
+  transform: scale(0.94);
+  pointer-events: none;
+  transition: opacity 400ms var(--ease-out), transform 400ms var(--ease-out);
+}
+.dv[data-mode='maps'] .dv-maps { opacity: 1; transform: none; pointer-events: auto; }
+.dv-maps .dv-status { z-index: 1; }
+.dv-map { position: absolute; inset: 0; transform-origin: 50% 72%; transition: transform 560ms var(--ease-move); }
+/* .dv .dv-map-svg beats the 24px icon rule above; stroke: none keeps the icon stroke off the map rects */
+.dv .dv-map-svg { width: 100%; height: 100%; display: block; stroke: none; }
+.dv-maps.is-nav .dv-map { transform: scale(1.12) translateY(-2%); }
+.dv-route, .dv-route-case { stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset 900ms var(--ease-out); }
+.dv-route-dot { opacity: 0; transition: opacity 200ms var(--ease-out) 700ms; }
+.dv-maps.is-route .dv-route, .dv-maps.is-route .dv-route-case { stroke-dashoffset: 0; }
+.dv-maps.is-route .dv-route-dot { opacity: 1; }
+.dv-puck {
+  position: absolute;
+  left: 50%;
+  top: 72.3%;
+  width: 34px;
+  height: 34px;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgb(0 0 0 / 0.35);
+}
+.dv-puck::after { content: ''; position: absolute; inset: 7px 8px 8px; background: #1d2026; clip-path: polygon(50% 0, 100% 100%, 50% 74%, 0 100%); }
+.dv-mbtns { position: absolute; right: calc(var(--u) * 3); top: 39%; display: flex; flex-direction: column; gap: calc(var(--u) * 2); }
+.dv-mbtns i { width: calc(var(--u) * 12); height: calc(var(--u) * 12); border-radius: 50%; background: #262a31; display: grid; place-items: center; font-style: normal; font-size: 20px; color: #d7dae0; }
+.dv-msheet {
+  position: absolute;
+  left: calc(var(--u) * 2);
+  right: calc(var(--u) * 2);
+  bottom: var(--bot);
+  padding: calc(var(--u) * 4) calc(var(--u) * 4) calc(var(--u) * 5);
+  border-radius: 26px;
+  background: #262a31;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 3.5);
+  transition: opacity 320ms var(--ease-out), transform 320ms var(--ease-out);
+}
+.dv-msearch {
+  height: calc(var(--u) * 12);
+  border-radius: calc(var(--u) * 6);
+  background: #33373f;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 2.5);
+  padding: 0 calc(var(--u) * 4);
+  color: #9aa0aa;
+  font-size: 17px;
+  line-height: 22px;
+  transition: background-color 200ms var(--ease-out), box-shadow 200ms var(--ease-out);
+}
+.dv-msearch svg { width: calc(var(--u) * 5); height: calc(var(--u) * 5); }
+.dv-maps.is-route .dv-msearch { background: #3a3f49; color: #fff; font-weight: 500; box-shadow: inset 0 0 0 1.5px #6ec8ff; }
+.dv-mrecent { display: flex; gap: calc(var(--u) * 2); }
+.dv-mrecent span { padding: calc(var(--u) * 2) calc(var(--u) * 3.5); border-radius: 100px; background: #33373f; color: #d7dae0; font-size: 15px; line-height: 20px; }
+.dv-mroute { display: none; flex-direction: column; gap: var(--u); }
+.dv-maps.is-route .dv-mrecent { display: none; }
+.dv-maps.is-route .dv-mroute { display: flex; }
+.dv-mroute > b { font-size: 20px; line-height: 26px; font-weight: 600; }
+.dv-mroute small { font-size: 15px; line-height: 20px; color: #9aa0aa; }
+.dv-mroute small:last-child { font-size: 13px; line-height: 18px; }
+.dv-mroute i { height: var(--u); margin-top: calc(var(--u) * 2); border-radius: 2px; background: rgb(255 255 255 / 0.12); overflow: hidden; }
+.dv-mroute i b { display: block; height: 100%; background: #6ec8ff; transform-origin: left; transform: scaleX(0); }
+.dv-maps.is-route .dv-mroute i b { transform: scaleX(1); transition: transform 1800ms linear; }
+.dv-maps.is-nav .dv-msheet { opacity: 0; transform: translateY(calc(var(--u) * 6)); pointer-events: none; }
+/* navigation (5.5): the manoeuvre, the speed and the arrival panel come in */
+.dv-man, .dv-speed, .dv-eta { opacity: 0; transition: opacity 320ms var(--ease-out) 160ms, transform 320ms var(--ease-out) 160ms; }
+.dv-maps.is-nav :is(.dv-man, .dv-speed, .dv-eta) { opacity: 1; transform: none; }
+.dv-man {
+  position: absolute;
+  left: calc(var(--u) * 3);
+  top: calc(var(--top) + var(--u) * 14);
+  padding: calc(var(--u) * 4) calc(var(--u) * 6) calc(var(--u) * 4) calc(var(--u) * 4);
+  border-radius: 26px;
+  background: #262a31;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 3.5);
+  transform: translateY(calc(var(--u) * -3));
+}
+.dv-man-ic svg { width: 40px; height: 40px; }
+.dv-man span { display: flex; flex-direction: column; }
+.dv-man b { font-size: 34px; line-height: 41px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.dv-man small { font-size: 13px; line-height: 17px; color: #9aa0aa; }
+.dv-speed { position: absolute; left: calc(var(--u) * 3.5); bottom: calc(var(--bot) + 126px); display: flex; align-items: center; gap: calc(var(--u) * 2); transform: translateY(calc(var(--u) * 3)); }
+.dv-speed i { width: 54px; height: 54px; border-radius: 50%; background: #fff; box-shadow: inset 0 0 0 6px #e5484d; display: grid; place-items: center; color: #000; font: 600 20px/1 'Inter', sans-serif; font-style: normal; }
+.dv-speed span { height: 42px; padding: 0 calc(var(--u) * 3); border-radius: 21px; background: #262a31; display: flex; align-items: center; gap: 6px; font-size: 13px; color: #9aa0aa; }
+.dv-speed span b { font-size: 22px; color: #fff; font-weight: 600; }
+.dv-eta {
+  position: absolute;
+  left: calc(var(--u) * 2);
+  right: calc(var(--u) * 2);
+  bottom: calc(var(--bot) - var(--u) * 2);
+  height: 112px;
+  padding: 0 calc(var(--u) * 5) 0 calc(var(--u) * 5.5);
+  border-radius: 26px;
+  background: #262a31;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transform: translateY(calc(var(--u) * 3));
+}
+.dv-eta span { display: flex; flex-direction: column; gap: 2px; }
+.dv-eta b { font-size: 34px; line-height: 38px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.dv-eta small { font-size: 15px; line-height: 18px; color: #9aa0aa; }
+.dv-eta-btn { height: 48px; padding: 0 calc(var(--u) * 5); border-radius: 24px; background: #33373f; font-size: 15px; font-weight: 600; pointer-events: none; }
+
+/* ---------- Dynamic Island with Ась (Live Activity over Карты) ---------- */
+.dv-isl {
+  --amp: 0;
+  position: absolute;
+  z-index: 5;
+  top: 12px;
+  left: 50%;
+  width: 126px;
+  height: 37px;
+  translate: -50% 0;
+  border-radius: 19px;
+  background: #000;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 3.5);
+  padding: 0 calc(var(--u) * 5) 0 82px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  cursor: pointer;
+  transition: width 400ms var(--ease-out), height 400ms var(--ease-out), border-radius 400ms var(--ease-out), padding 400ms var(--ease-out), opacity 200ms var(--ease-out);
+}
+.dv[data-mode='maps'] .dv-isl { opacity: 1; pointer-events: auto; }
+.dv-isl[data-s='open'] { width: calc(100% - 20px); height: 84px; border-radius: 40px; }
+.dv-isl[data-s='compact'] { width: 168px; padding: 0 calc(var(--u) * 3.5) 0 39px; justify-content: flex-end; }
+.dv-isl-text, .dv-isl-wave, .dv-isl-end { transition: opacity 200ms var(--ease-out); }
+.dv-isl-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.dv-isl-text small { font-size: 15px; line-height: 20px; color: rgb(255 255 255 / 0.55); white-space: nowrap; }
+.dv-isl-text b { font-size: 20px; line-height: 26px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dv-isl-text b.is-typing::after { content: ''; display: inline-block; width: 2px; height: 22px; margin-left: 2px; vertical-align: -4px; background: #fff; animation: dv-caret 1s steps(1) infinite; }
+@keyframes dv-caret { 50% { opacity: 0; } }
+.dv-isl-wave { display: flex; align-items: center; gap: 3px; height: 28px; }
+.dv-isl-wave i { width: 3px; height: 28px; border-radius: 2px; background: rgb(255 255 255 / 0.9); transform: scaleY(calc(0.25 + var(--amp) * var(--k, 0.6))); transition: transform 80ms linear; }
+.dv-isl-wave i:nth-child(1), .dv-isl-wave i:nth-child(5) { --k: 0.3; }
+.dv-isl-wave i:nth-child(2), .dv-isl-wave i:nth-child(4) { --k: 0.55; }
+.dv-isl-wave i:nth-child(3) { --k: 0.75; }
+.dv-isl-end { display: none; height: 36px; padding: 0 calc(var(--u) * 4); border-radius: 18px; background: #2a2a2a; font-size: 15px; font-weight: 600; flex: none; }
+.dv-isl.has-end .dv-isl-end { display: block; }
+.dv-isl.has-end .dv-isl-wave { display: none; }
+.dv-isl-right { display: none; font-size: 15px; line-height: 20px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.dv-isl[data-s='compact'] :is(.dv-isl-text, .dv-isl-wave, .dv-isl-end) { display: none; }
+.dv-isl[data-s='compact'] .dv-isl-right { display: block; }
+/* the address on its way from the island to the Карты search */
+.dv-fly {
+  position: absolute;
+  z-index: 6;
+  padding: 0;
+  font-size: 20px;
+  line-height: 26px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  transform-origin: left center;
+  pointer-events: none;
+}
 
 /* ---------- the cat ---------- */
 .dv-cat {
   position: absolute;
   left: 0;
   top: 0;
-  z-index: 3;
+  z-index: 6;
   pointer-events: none;
   transform: translate(var(--x, 0), var(--y, 0)) scale(var(--s, 1));
   transform-origin: center;
@@ -366,6 +624,7 @@
 }
 .dv-cat.is-fly { transition: transform 560ms var(--ease-move), opacity 200ms var(--ease-out); }
 .dv-cat.is-slide { transition: transform 320ms var(--ease-out); }
+.dv-cat.is-morph { transition: transform 400ms var(--ease-out); }
 .dv-cat-body { width: 100%; height: 100%; }
 .dv[data-mode='chat'] .dv-cat-body { filter: drop-shadow(0 2px 4px rgb(0 0 0 / 0.12)); }
 .dv-cat-body svg { width: 100%; height: 100%; display: block; }
@@ -373,7 +632,7 @@
 /* ---------- toast ---------- */
 .dv-toast {
   position: absolute;
-  z-index: 6;
+  z-index: 11;
   left: 50%;
   bottom: calc(var(--bot) + var(--u) * 28);
   height: calc(var(--u) * 11);
@@ -391,32 +650,33 @@
   pointer-events: none;
 }
 .dv-toast.is-on { opacity: 1; transform: translate(-50%, 0); }
+.dv[data-mode='maps'] .dv-toast, .dv[data-mode='drive'] .dv-toast { background: #fff; color: var(--t1); }
 
-/* a short phone (SE and the like): the title and dock shrink a step, the orb follows the free space */
+/* a short phone (SE and the like): the title shrinks a step, the orb follows the free space */
 @media (max-height: 700px) and (min-height: 561px) {
   .dv-head { margin-top: calc(var(--u) * 6); }
-  .dv-h { font-size: 44px; line-height: 48px; }
-  .dv-h.is-long { font-size: 24px; line-height: 30px; }
-  .dv-sub { font-size: 20px; line-height: 28px; }
+  .dv-h { font-size: 24px; line-height: 30px; }
   .dv-orb { top: 54%; width: clamp(144px, 46cqw, 184px); }
-  .dv-big { height: calc(var(--u) * 22); }
+  .dv-perms li { padding-block: calc(var(--u) * 2); }
+  .dv-sheet { gap: calc(var(--u) * 3); }
 }
 
-/* a phone on its side: text left, Ась right, the dock along the bottom */
+/* a phone on its side: text left, Ась right */
 @media (max-height: 560px) {
   .dv-head { margin-top: calc(var(--u) * 4); max-width: 50%; }
-  .dv-h { font-size: 40px; line-height: 44px; }
-  .dv-h.is-long { font-size: 24px; line-height: 30px; }
-  .dv-sub { font-size: 20px; line-height: 28px; }
-  .dv-orb { left: 75%; top: 42%; width: clamp(120px, 40cqh, 176px); }
-  .dv-big { height: calc(var(--u) * 18); flex-direction: row; gap: calc(var(--u) * 2); }
+  .dv-h { font-size: 24px; line-height: 30px; }
+  .dv-orb { left: 75%; top: 50%; width: clamp(120px, 40cqh, 176px); }
+  .dv-note { right: 50%; }
   .dv-hello { font-size: 24px; line-height: 32px; }
+  .dv-sheet { left: 50%; right: auto; width: min(420px, 90cqw); translate: -50% 0; max-height: 100%; overflow: auto; }
+  .dv-perms small { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .dv-drive { transition: opacity 160ms var(--ease-out); clip-path: none; opacity: 0; }
-  .dv[data-mode='drive'] .dv-drive { opacity: 1; clip-path: none; }
-  .dv-cat.is-fly, .dv-cat.is-slide, .dv-chat { transition: none; }
-  .dv[data-state='think'] .dv-ring--arc { animation: none; border-color: rgb(255 255 255 / 0.4); }
-  .dv-head.is-out .dv-h, .dv-head.is-out .dv-sub { transform: none; filter: none; }
+  .dv[data-mode='drive'] .dv-drive, .dv[data-mode='maps'] .dv-drive { opacity: 1; clip-path: none; }
+  .dv-cat.is-fly, .dv-cat.is-slide, .dv-cat.is-morph, .dv-chat, .dv-map, .dv-isl, .dv-sheet { transition: none; }
+  .dv-maps { transform: none; }
+  .dv[data-state='ready'] .dv-ring:last-child { animation: none; }
+  .dv-head.is-out .dv-h { transform: none; filter: none; }
 }
