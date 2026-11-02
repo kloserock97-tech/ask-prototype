@@ -8,6 +8,12 @@ Copyright 2018 The Manrope Project Authors (https://github.com/sharanda/manrope)
 Licensed under the SIL Open Font License, Version 1.1 — https://openfontlicense.org.
 Delivered through the `@fontsource/manrope` package. The app's main face.
 
+## Inter (font)
+
+Copyright 2020 The Inter Project Authors (https://github.com/rsms/inter).
+Licensed under the SIL Open Font License, Version 1.1 — https://openfontlicense.org.
+Delivered through the `@fontsource/inter` package. Used by the drive-mode stand (`#/drive`).
+
 ## Onest (font)
 
 Copyright 2021 The Onest Project Authors (https://github.com/simpals/onest).
@@ -29,3 +35,9 @@ the `ru_RU-dmitri-medium` voice and, in `public/voice/denis`, the `ru_RU-denis-m
 The character renders are made from a squishmoji "pebble" shape
 (@usespaceui/squishmoji, https://github.com/usespaceui) — MIT License, Copyright (c) 2026 Space UI.
 Recoloured and lit for the assistant; only the rendered WebP images are shipped.
+
+## Bubble cat (#/drive)
+
+The drive-mode stand draws its character live with the squishmoji engine, "cat" shape
+(`@usespaceui/squishmoji`, https://github.com/usespaceui/squishmoji) — MIT License, Copyright (c) 2026 Space UI.
+The iridescent fill, blinking and voice swell are our own.

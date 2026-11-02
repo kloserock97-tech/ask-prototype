@@ -14,6 +14,10 @@ import './styles/grif.css'
 import './styles/outside.css'
 import './styles/board.css'
 import './styles/glow.css'
+import '@fontsource/inter/400.css'
+import '@fontsource/inter/500.css'
+import '@fontsource/inter/600.css'
+import './styles/drive.css'
 import '@fontsource/onest/500.css'
 import '@fontsource/onest/600.css'
 import '@fontsource/onest/700.css'
@@ -24,12 +28,14 @@ import { SCREENS } from './data/screens'
 import { flow, guide, home, island, leaveGuide } from './pages/pages'
 import { OutsidePage } from './grif/outside'
 import { GlowPage } from './glow/glow'
+import { DrivePage } from './drive/drive'
 import { Player } from './player/player'
 
 let askApp: AskApp | null = null
 let grif: GrifApp | null = null
 let widget: OutsidePage | null = null
 let glow: GlowPage | null = null
+let drive: DrivePage | null = null
 
 const app = document.getElementById('app')!
 const go = (hash: string) => {
@@ -50,6 +56,19 @@ function route() {
   widget = null
   glow?.destroy()
   glow = null
+  drive?.destroy()
+  drive = null
+  if (h.startsWith('#/drive')) {
+    if (inPlayer) {
+      player.unmount()
+      inPlayer = false
+    }
+    askApp?.destroy()
+    askApp = null
+    drive = new DrivePage()
+    app.replaceChildren(drive.root)
+    return
+  }
   if (h.startsWith('#/glow')) {
     if (inPlayer) {
       player.unmount()
