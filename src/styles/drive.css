@@ -1,6 +1,6 @@
-/* #/drive — flow 5 (Figma 46:2, 5.1–5.11) with the chat (1.1) and menu (8.1) it starts from.
+/* #/drive — flow 5 (Figma 46:2) with the chat (1.1) and menu (8.1) it starts from.
    Base unit 4px. Sizes follow the mockups at 390 × 844; radii follow inner = outer − gap
-   (screen 44 → sheet and panels inset 8–16 → 26–28). */
+   (screen 44 → buttons inset 16 → 28). On the road nothing moves for show. */
 
 .dv {
   --u: 4px;
@@ -259,24 +259,28 @@
 .dv-me i { width: calc(var(--u) * 9); height: calc(var(--u) * 9); border-radius: 50%; background: var(--surface); display: grid; place-items: center; font-style: normal; font-size: 15px; font-weight: 600; }
 .dv-me svg { width: 22px; height: 22px; }
 
-/* ---------- drive (5.1, 5.11): Ась in the centre is the button ---------- */
-.dv-drive {
+/* ---------- on the road: no character, no showy motion. Screens swap with a short fade or at once ---------- */
+.dv-drive, .dv-maps, .dv-video {
   position: absolute;
   inset: 0;
-  z-index: 2;
-  background: #000;
   color: #fff;
-  padding: var(--top) calc(var(--u) * 4) 0;
-  clip-path: circle(0 at var(--ox, 50%) var(--oy, 10%));
-  pointer-events: none;
-  transition: clip-path 560ms var(--ease-move);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 160ms var(--ease-out), visibility 0s linear 160ms;
 }
 .dv[data-mode='drive'] .dv-drive,
-.dv[data-mode='maps'] .dv-drive { clip-path: circle(150% at var(--ox, 50%) var(--oy, 10%)); }
-.dv[data-mode='drive'] .dv-drive { pointer-events: auto; }
+.dv[data-mode='maps'] .dv-maps,
+.dv[data-mode='video'] .dv-video { opacity: 1; visibility: visible; transition: opacity 160ms var(--ease-out); }
+.dv-drive {
+  z-index: 2;
+  background: #000;
+  padding: var(--top) calc(var(--u) * 4) var(--bot);
+  display: flex;
+  flex-direction: column;
+}
+.dv-dhead { display: flex; align-items: center; justify-content: space-between; margin-top: var(--u); }
 .dv-chip {
   height: calc(var(--u) * 11);
-  margin-top: var(--u);
   padding: 0 calc(var(--u) * 3);
   border-radius: calc(var(--u) * 6);
   background: var(--d-surface);
@@ -289,61 +293,54 @@
 }
 .dv-chip svg { width: calc(var(--u) * 5); height: calc(var(--u) * 5); }
 .dv-chip svg:last-child { width: 18px; height: 18px; }
-.dv-head { margin-top: calc(var(--u) * 10); }
-.dv-h {
-  margin: 0;
-  font-size: 28px;
-  line-height: 34px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: var(--d-t2);
-  white-space: pre-line;
-  transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out), filter 200ms var(--ease-out);
-}
-.dv-head.is-out .dv-h { opacity: 0; transform: translateY(calc(var(--u) * -1)); filter: blur(2px); transition-duration: 160ms; }
-.dv-note {
-  position: absolute;
-  left: calc(var(--u) * 4);
-  right: calc(var(--u) * 4);
-  bottom: var(--bot);
-  margin: 0;
-  font-size: 17px;
-  line-height: 24px;
-  color: var(--t3);
-  opacity: 0;
-  transform: translateY(calc(var(--u) * 2));
-  transition: opacity 320ms var(--ease-out), transform 320ms var(--ease-out);
-}
-.dv[data-state='intro'] .dv-note { opacity: 1; transform: none; }
+/* the navigator is connected: only once a route runs */
+.dv-conn { display: none; align-items: center; gap: calc(var(--u) * 1.5); height: calc(var(--u) * 8); padding: 0 calc(var(--u) * 3); border-radius: calc(var(--u) * 4); background: rgb(79 180 255 / 0.16); color: #8fd0ff; font-size: 13px; font-weight: 600; }
+.dv-conn svg { width: 16px; height: 16px; }
+.dv-drive[data-view='rate'] .dv-conn { display: inline-flex; }
 
-/* the orb: 220 with rings at 220 and 176, its centre at 52% of the screen height as in Figma */
-.dv-orb {
-  --amp: 0;
-  position: absolute;
-  left: 50%;
-  top: 52.1%;
-  width: clamp(176px, 56.4cqw, 220px);
-  aspect-ratio: 1;
-  translate: -50% -50%;
-  border-radius: 50%;
+/* 5.1 «Куда едем?»: the question, what was heard and big places to tap */
+.dv-dest, .dv-show { display: none; flex: 1; flex-direction: column; min-height: 0; }
+.dv-drive[data-view='dest'] .dv-dest, .dv-drive[data-view='rate'] .dv-show { display: flex; }
+.dv-q { margin: calc(var(--u) * 10) 0 0; font-size: 40px; line-height: 44px; font-weight: 600; letter-spacing: -0.01em; }
+.dv-heard { margin: calc(var(--u) * 2) 0 0; font-size: 20px; line-height: 26px; color: var(--d-t2); }
+.dv-places { margin-top: auto; display: flex; flex-direction: column; gap: calc(var(--u) * 2); }
+.dv-place {
+  min-height: calc(var(--u) * 20);
+  padding: calc(var(--u) * 3) calc(var(--u) * 5);
+  border-radius: calc(var(--R) - var(--u) * 4);
+  background: var(--d-surface);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  text-align: left;
 }
-.dv-ring {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  border: 1.5px solid rgb(255 255 255 / 0.2);
-  transform: scale(calc(1 + var(--amp) * 0.1));
-}
-.dv-ring:first-child { inset: 10%; border-color: rgb(255 255 255 / 0.3); transform: scale(calc(1 + var(--amp) * 0.06)); }
-/* waiting for a tap: the outer ring breathes out, so the cat reads as something to press */
-.dv[data-state='ready'] .dv-ring:last-child { animation: dv-call 2400ms var(--ease-out) infinite; }
-@keyframes dv-call { 0% { transform: scale(0.9); opacity: 0; } 30% { opacity: 1; } 100% { transform: scale(1.12); opacity: 0; } }
-.dv[data-state='intro'] .dv-ring { border-color: rgb(255 255 255 / 0.5); }
-.dv[data-state='intro'] .dv-ring:first-child { border-color: rgb(255 255 255 / 0.7); }
-.dv:not([data-mode='drive']) .dv-head { opacity: 0; transform: translateY(calc(var(--u) * 4)); }
-.dv-head { transition: opacity 320ms var(--ease-out) 240ms, transform 320ms var(--ease-out) 240ms; }
+.dv-place b { font-size: 22px; line-height: 28px; font-weight: 600; }
+.dv-place small { font-size: 15px; line-height: 20px; color: var(--d-t2); }
+.dv-place.is-on { background: #fff; color: var(--t1); }
+.dv-place.is-on small { color: var(--t2); }
 
-/* ---------- the permissions sheet (5.6, 5.E1): ours, dark like the mode ---------- */
+/* «Покажи»: one big fact per screen, the next by «Дальше» */
+.dv-kicker { margin: calc(var(--u) * 10) 0 0; font-size: 17px; line-height: 24px; color: var(--d-t2); }
+.dv-body { margin-top: calc(var(--u) * 3); }
+.dv-big { display: block; font-size: 96px; line-height: 100px; font-weight: 600; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.dv-big.is-wide { font-size: 56px; line-height: 60px; letter-spacing: -0.02em; }
+.dv-line { margin: calc(var(--u) * 4) 0 0; font-size: 22px; line-height: 30px; color: var(--d-t2); }
+.dv-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: calc(var(--u) * 5); }
+.dv-rows li { display: flex; flex-direction: column; gap: var(--u); }
+.dv-rows b { font-size: 28px; line-height: 34px; font-weight: 600; }
+.dv-rows span { font-size: 20px; line-height: 26px; color: var(--d-t2); }
+.dv-back { margin: calc(var(--u) * 6) 0 0; font-size: 17px; line-height: 24px; color: var(--t3); }
+.dv-back:empty { display: none; }
+.dv-dots { margin-top: auto; padding-bottom: calc(var(--u) * 4); display: flex; gap: calc(var(--u) * 2); justify-content: center; }
+.dv-dots i { width: calc(var(--u) * 2); height: calc(var(--u) * 2); border-radius: 50%; background: rgb(255 255 255 / 0.24); }
+.dv-dots i.is-on { background: #fff; }
+.dv-actions { display: flex; flex-direction: column; gap: calc(var(--u) * 2); }
+.dv-actions .dv-btn--primary { height: calc(var(--u) * 20); border-radius: calc(var(--R) - var(--u) * 4); font-size: 22px; line-height: 28px; }
+.dv-btn[hidden] { display: none; }
+.dv-btn--dark { background: var(--d-surface); color: #fff; }
+
+/* ---------- the permissions sheet: ours, dark like the mode: ours, dark like the mode ---------- */
 .dv-sdim, .dv-adim {
   position: absolute;
   inset: 0;
@@ -398,7 +395,7 @@
 .dv-btn--primary { background: #fff; color: var(--t1); }
 .dv-sheet .dv-btn:not(.dv-btn--primary) { margin-top: calc(var(--u) * -2); }
 
-/* ---------- system alerts (5.7–5.10): what iOS draws, light, over our sheet ---------- */
+/* ---------- system alerts: what iOS draws, light, over our sheet ---------- */
 .dv-alert {
   position: absolute;
   z-index: 10;
@@ -435,29 +432,12 @@
 .dv-alert.is-stack .dv-al-btns button.is-main { font-weight: 400; }
 .dv-al-btns button:active { transform: none; background: rgb(0 0 0 / 0.06); }
 
-/* ---------- Карты (5.2–5.5): our own neutral maps app, opened by Ась ---------- */
-.dv-maps {
-  position: absolute;
-  inset: 0;
-  z-index: 4;
-  background: #1d2026;
-  color: #fff;
-  overflow: hidden;
-  opacity: 0;
-  transform: scale(0.94);
-  pointer-events: none;
-  transition: opacity 400ms var(--ease-out), transform 400ms var(--ease-out);
-}
-.dv[data-mode='maps'] .dv-maps { opacity: 1; transform: none; pointer-events: auto; }
-.dv-maps .dv-status { z-index: 1; }
-.dv-map { position: absolute; inset: 0; transform-origin: 50% 72%; transition: transform 560ms var(--ease-move); }
+
+/* ---------- the navigator: our own neutral one, the route already laid ---------- */
+.dv-maps { z-index: 4; background: #1d2026; overflow: hidden; }
+.dv-map { position: absolute; inset: 0; transform: scale(1.12) translateY(-2%); transform-origin: 50% 72%; }
 /* .dv .dv-map-svg beats the 24px icon rule above; stroke: none keeps the icon stroke off the map rects */
 .dv .dv-map-svg { width: 100%; height: 100%; display: block; stroke: none; }
-.dv-maps.is-nav .dv-map { transform: scale(1.12) translateY(-2%); }
-.dv-route, .dv-route-case { stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset 900ms var(--ease-out); }
-.dv-route-dot { opacity: 0; transition: opacity 200ms var(--ease-out) 700ms; }
-.dv-maps.is-route .dv-route, .dv-maps.is-route .dv-route-case { stroke-dashoffset: 0; }
-.dv-maps.is-route .dv-route-dot { opacity: 1; }
 .dv-puck {
   position: absolute;
   left: 50%;
@@ -472,49 +452,6 @@
 .dv-puck::after { content: ''; position: absolute; inset: 7px 8px 8px; background: #1d2026; clip-path: polygon(50% 0, 100% 100%, 50% 74%, 0 100%); }
 .dv-mbtns { position: absolute; right: calc(var(--u) * 3); top: 39%; display: flex; flex-direction: column; gap: calc(var(--u) * 2); }
 .dv-mbtns i { width: calc(var(--u) * 12); height: calc(var(--u) * 12); border-radius: 50%; background: #262a31; display: grid; place-items: center; font-style: normal; font-size: 20px; color: #d7dae0; }
-.dv-msheet {
-  position: absolute;
-  left: calc(var(--u) * 2);
-  right: calc(var(--u) * 2);
-  bottom: var(--bot);
-  padding: calc(var(--u) * 4) calc(var(--u) * 4) calc(var(--u) * 5);
-  border-radius: 26px;
-  background: #262a31;
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--u) * 3.5);
-  transition: opacity 320ms var(--ease-out), transform 320ms var(--ease-out);
-}
-.dv-msearch {
-  height: calc(var(--u) * 12);
-  border-radius: calc(var(--u) * 6);
-  background: #33373f;
-  display: flex;
-  align-items: center;
-  gap: calc(var(--u) * 2.5);
-  padding: 0 calc(var(--u) * 4);
-  color: #9aa0aa;
-  font-size: 17px;
-  line-height: 22px;
-  transition: background-color 200ms var(--ease-out), box-shadow 200ms var(--ease-out);
-}
-.dv-msearch svg { width: calc(var(--u) * 5); height: calc(var(--u) * 5); }
-.dv-maps.is-route .dv-msearch { background: #3a3f49; color: #fff; font-weight: 500; box-shadow: inset 0 0 0 1.5px #6ec8ff; }
-.dv-mrecent { display: flex; gap: calc(var(--u) * 2); }
-.dv-mrecent span { padding: calc(var(--u) * 2) calc(var(--u) * 3.5); border-radius: 100px; background: #33373f; color: #d7dae0; font-size: 15px; line-height: 20px; }
-.dv-mroute { display: none; flex-direction: column; gap: var(--u); }
-.dv-maps.is-route .dv-mrecent { display: none; }
-.dv-maps.is-route .dv-mroute { display: flex; }
-.dv-mroute > b { font-size: 20px; line-height: 26px; font-weight: 600; }
-.dv-mroute small { font-size: 15px; line-height: 20px; color: #9aa0aa; }
-.dv-mroute small:last-child { font-size: 13px; line-height: 18px; }
-.dv-mroute i { height: var(--u); margin-top: calc(var(--u) * 2); border-radius: 2px; background: rgb(255 255 255 / 0.12); overflow: hidden; }
-.dv-mroute i b { display: block; height: 100%; background: #6ec8ff; transform-origin: left; transform: scaleX(0); }
-.dv-maps.is-route .dv-mroute i b { transform: scaleX(1); transition: transform 1800ms linear; }
-.dv-maps.is-nav .dv-msheet { opacity: 0; transform: translateY(calc(var(--u) * 6)); pointer-events: none; }
-/* navigation (5.5): the manoeuvre, the speed and the arrival panel come in */
-.dv-man, .dv-speed, .dv-eta { opacity: 0; transition: opacity 320ms var(--ease-out) 160ms, transform 320ms var(--ease-out) 160ms; }
-.dv-maps.is-nav :is(.dv-man, .dv-speed, .dv-eta) { opacity: 1; transform: none; }
 .dv-man {
   position: absolute;
   left: calc(var(--u) * 3);
@@ -525,13 +462,12 @@
   display: flex;
   align-items: center;
   gap: calc(var(--u) * 3.5);
-  transform: translateY(calc(var(--u) * -3));
 }
-.dv-man-ic svg { width: 40px; height: 40px; }
-.dv-man span { display: flex; flex-direction: column; }
+.dv .dv-man-ic svg { width: 40px; height: 40px; }
+.dv-man > span:last-child { display: flex; flex-direction: column; }
 .dv-man b { font-size: 34px; line-height: 41px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .dv-man small { font-size: 13px; line-height: 17px; color: #9aa0aa; }
-.dv-speed { position: absolute; left: calc(var(--u) * 3.5); bottom: calc(var(--bot) + 126px); display: flex; align-items: center; gap: calc(var(--u) * 2); transform: translateY(calc(var(--u) * 3)); }
+.dv-speed { position: absolute; left: calc(var(--u) * 3.5); bottom: calc(var(--bot) + 126px); display: flex; align-items: center; gap: calc(var(--u) * 2); }
 .dv-speed i { width: 54px; height: 54px; border-radius: 50%; background: #fff; box-shadow: inset 0 0 0 6px #e5484d; display: grid; place-items: center; color: #000; font: 600 20px/1 'Inter', sans-serif; font-style: normal; }
 .dv-speed span { height: 42px; padding: 0 calc(var(--u) * 3); border-radius: 21px; background: #262a31; display: flex; align-items: center; gap: 6px; font-size: 13px; color: #9aa0aa; }
 .dv-speed span b { font-size: 22px; color: #fff; font-weight: 600; }
@@ -547,86 +483,146 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  transform: translateY(calc(var(--u) * 3));
 }
-.dv-eta span { display: flex; flex-direction: column; gap: 2px; }
+.dv-eta > span:first-child { display: flex; flex-direction: column; gap: 2px; }
 .dv-eta b { font-size: 34px; line-height: 38px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .dv-eta small { font-size: 15px; line-height: 18px; color: #9aa0aa; }
-.dv-eta-btn { height: 48px; padding: 0 calc(var(--u) * 5); border-radius: 24px; background: #33373f; font-size: 15px; font-weight: 600; pointer-events: none; }
+.dv-eta-btn { height: 48px; padding: 0 calc(var(--u) * 5); border-radius: 24px; background: #33373f; font-size: 15px; font-weight: 600; display: flex; align-items: center; }
 
-/* ---------- Dynamic Island with Ась (Live Activity over Карты) ---------- */
-.dv-isl {
-  --amp: 0;
+/* ---------- the video app: neutral, stands for whatever the person has (ВК Видео and the like) ---------- */
+.dv-video { z-index: 4; background: #0f0f10; padding: var(--top) 0 var(--bot); display: flex; flex-direction: column; }
+.dv-vbar { margin: calc(var(--u) * 12) calc(var(--u) * 4) calc(var(--u) * 3); height: calc(var(--u) * 11); border-radius: calc(var(--u) * 3); background: #1f1f22; display: flex; align-items: center; gap: calc(var(--u) * 2); padding: 0 calc(var(--u) * 3); font-size: 17px; }
+.dv-vbar svg { width: 20px; height: 20px; color: #9aa0aa; }
+.dv-player { position: relative; aspect-ratio: 16 / 9; background: linear-gradient(160deg, #2a2420 0%, #141414 55%, #3a2a12 100%); display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; padding: calc(var(--u) * 4); }
+.dv-player b { font-size: 20px; line-height: 26px; font-weight: 600; }
+.dv-player small { font-size: 13px; line-height: 18px; color: rgb(255 255 255 / 0.7); }
+.dv-play { position: absolute; left: 50%; top: 42%; translate: -50% -50%; width: 64px; height: 64px; border-radius: 50%; background: rgb(255 255 255 / 0.18); display: grid; place-items: center; }
+.dv-vnote { margin: calc(var(--u) * 3) calc(var(--u) * 4) 0; font-size: 13px; line-height: 18px; color: #9aa0aa; }
+.dv-vlist { list-style: none; margin: calc(var(--u) * 3) 0 0; padding: 0 calc(var(--u) * 4); display: flex; flex-direction: column; gap: calc(var(--u) * 3); }
+.dv-vlist li { display: flex; gap: calc(var(--u) * 3); }
+.dv-vlist i { width: 128px; aspect-ratio: 16 / 9; border-radius: 8px; background: #26262a; flex: none; }
+.dv-vlist span { display: flex; flex-direction: column; gap: 2px; }
+.dv-vlist b { font-size: 15px; line-height: 20px; font-weight: 500; }
+.dv-vlist small { font-size: 13px; line-height: 18px; color: #9aa0aa; }
+
+/* ---------- Dynamic Island ----------
+   Over the navigator: Ась's Live Activity, a status line; an alert opens it with big chips.
+   Over Ась's screens and the video app: the navigator's Live Activity with the turn, Ась as a small circle. */
+.dv-navi {
   position: absolute;
   z-index: 5;
   top: 12px;
   left: 50%;
-  width: 126px;
-  height: 37px;
   translate: -50% 0;
+  height: 37px;
+  min-width: 150px;
+  padding: 0 calc(var(--u) * 4) 0 calc(var(--u) * 2.5);
   border-radius: 19px;
   background: #000;
   color: #fff;
-  display: flex;
+  display: none;
   align-items: center;
-  gap: calc(var(--u) * 3.5);
-  padding: 0 calc(var(--u) * 5) 0 82px;
-  overflow: hidden;
-  opacity: 0;
-  pointer-events: none;
-  cursor: pointer;
-  transition: width 400ms var(--ease-out), height 400ms var(--ease-out), border-radius 400ms var(--ease-out), padding 400ms var(--ease-out), opacity 200ms var(--ease-out);
-}
-.dv[data-mode='maps'] .dv-isl { opacity: 1; pointer-events: auto; }
-.dv-isl[data-s='open'] { width: calc(100% - 20px); height: 84px; border-radius: 40px; }
-.dv-isl[data-s='compact'] { width: 168px; padding: 0 calc(var(--u) * 3.5) 0 39px; justify-content: flex-end; }
-.dv-isl-text, .dv-isl-wave, .dv-isl-end { transition: opacity 200ms var(--ease-out); }
-.dv-isl-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.dv-isl-text small { font-size: 15px; line-height: 20px; color: rgb(255 255 255 / 0.55); white-space: nowrap; }
-.dv-isl-text b { font-size: 20px; line-height: 26px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.dv-isl-text b.is-typing::after { content: ''; display: inline-block; width: 2px; height: 22px; margin-left: 2px; vertical-align: -4px; background: #fff; animation: dv-caret 1s steps(1) infinite; }
-@keyframes dv-caret { 50% { opacity: 0; } }
-.dv-isl-wave { display: flex; align-items: center; gap: 3px; height: 28px; }
-.dv-isl-wave i { width: 3px; height: 28px; border-radius: 2px; background: rgb(255 255 255 / 0.9); transform: scaleY(calc(0.25 + var(--amp) * var(--k, 0.6))); transition: transform 80ms linear; }
-.dv-isl-wave i:nth-child(1), .dv-isl-wave i:nth-child(5) { --k: 0.3; }
-.dv-isl-wave i:nth-child(2), .dv-isl-wave i:nth-child(4) { --k: 0.55; }
-.dv-isl-wave i:nth-child(3) { --k: 0.75; }
-.dv-isl-end { display: none; height: 36px; padding: 0 calc(var(--u) * 4); border-radius: 18px; background: #2a2a2a; font-size: 15px; font-weight: 600; flex: none; }
-.dv-isl.has-end .dv-isl-end { display: block; }
-.dv-isl.has-end .dv-isl-wave { display: none; }
-.dv-isl-right { display: none; font-size: 15px; line-height: 20px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.dv-isl[data-s='compact'] :is(.dv-isl-text, .dv-isl-wave, .dv-isl-end) { display: none; }
-.dv-isl[data-s='compact'] .dv-isl-right { display: block; }
-/* the address on its way from the island to the Карты search */
-.dv-fly {
-  position: absolute;
-  z-index: 6;
-  padding: 0;
-  font-size: 20px;
-  line-height: 26px;
+  justify-content: space-between;
+  gap: calc(var(--u) * 3);
+  font-size: 17px;
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.dv .dv-navi-ic svg { width: 24px; height: 24px; color: #4fb4ff; display: block; }
+.dv[data-mode='drive'] .dv-drive[data-view='rate'] ~ .dv-navi,
+.dv[data-mode='video'] .dv-navi { display: flex; }
+.dv-isl {
+  position: absolute;
+  z-index: 5;
+  top: 12px;
+  left: 50%;
+  translate: -50% 0;
+  width: max-content;
+  min-width: 168px;
+  max-width: calc(100% - 20px);
+  min-height: 37px;
+  padding: 0 calc(var(--u) * 4) 0 calc(var(--u) * 3);
+  border-radius: 19px;
+  background: #000;
   color: #fff;
-  white-space: nowrap;
-  transform-origin: left center;
-  pointer-events: none;
+  display: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: calc(var(--u) * 2.5);
+  cursor: pointer;
+}
+.dv[data-mode='maps'] .dv-isl, .dv[data-mode='video'] .dv-isl { display: flex; }
+.dv .dv-isl-ic svg { width: 18px; height: 18px; display: block; }
+.dv-isl-text { display: flex; flex-direction: column; min-width: 0; }
+.dv-isl-text small { font-size: 13px; line-height: 18px; color: rgb(255 255 255 / 0.6); }
+.dv-isl-text small:empty { display: none; }
+.dv-isl-text b { font-size: 15px; line-height: 20px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dv-isl[data-s='open'] {
+  width: calc(100% - 20px);
+  padding: calc(var(--u) * 4) calc(var(--u) * 4) calc(var(--u) * 4) calc(var(--u) * 5);
+  border-radius: 32px;
+  align-items: flex-start;
+  row-gap: calc(var(--u) * 3);
+  cursor: default;
+}
+.dv-isl[data-s='open'] .dv-isl-ic { padding-top: 3px; }
+.dv-isl[data-s='open'] .dv-isl-text { flex: 1; }
+.dv-isl[data-s='open'] .dv-isl-text b { font-size: 20px; line-height: 26px; white-space: normal; }
+.dv-isl-chips { display: none; flex: 1 0 100%; flex-wrap: wrap; gap: calc(var(--u) * 2); }
+.dv-isl[data-s='open'] .dv-isl-chips:not(:empty) { display: flex; }
+.dv-isl-chips button { flex: 1 0 auto; min-width: calc(var(--u) * 18); height: calc(var(--u) * 13); padding: 0 calc(var(--u) * 4); border-radius: calc(var(--u) * 6.5); background: #2a2a2c; font-size: 17px; font-weight: 600; }
+.dv-isl-chips button:first-child { background: #fff; color: var(--t1); }
+/* in the video app Ась is the minimal circle next to the navigator's island: a tap brings the route back */
+.dv[data-mode='video'] .dv-navi { translate: calc(-50% - 24px) 0; }
+.dv[data-mode='video'] .dv-isl[data-s='compact'] { left: auto; right: 24px; translate: none; min-width: 0; width: 37px; padding: 0; justify-content: center; }
+.dv[data-mode='video'] .dv-isl[data-s='compact'] .dv-isl-text { display: none; }
+
+/* ---------- «Сказать голосом»: the stand's stand-in for the microphone, outside the phone ---------- */
+.dv-say {
+  position: absolute;
+  z-index: 20;
+  right: calc(var(--u) * 3);
+  top: 30%;
+  width: min(260px, calc(100vw - var(--u) * 6));
+  color: var(--t1);
+  font-size: 15px;
+}
+/* on a phone: a small round mic on the free right edge of the map, the list opens under it */
+.dv-say-head { margin-left: auto; width: calc(var(--u) * 12); height: calc(var(--u) * 12); border-radius: 50%; background: #fff; box-shadow: var(--lift); display: grid; place-items: center; }
+.dv-say-head span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.dv-say-head svg { width: 20px; height: 20px; }
+.dv-say-list, .dv-say-note { display: none; }
+.dv.is-say .dv-say-list { display: flex; }
+.dv-say-list { position: absolute; right: 0; top: calc(100% + var(--u) * 2); width: 100%; max-height: 60dvh; overflow: auto; flex-direction: column; gap: var(--u); padding: calc(var(--u) * 2); border-radius: 20px; background: #fff; box-shadow: var(--lift); }
+.dv-say-list button { padding: calc(var(--u) * 2.5) calc(var(--u) * 3); border-radius: 12px; text-align: left; }
+.dv-say-list button:hover:not(:disabled) { background: var(--surface); }
+.dv-say-list button:disabled { color: #b8b8b8; cursor: default; }
+.dv-say-list button.is-sim { margin-top: var(--u); border-top: 1px solid #ececec; border-radius: 0 0 12px 12px; color: var(--t2); }
+.dv-say-list button.is-sim:disabled { color: #c8c8c8; }
+.dv[data-mode='chat'] .dv-say { display: none; }
+/* next to the framed phone on a wide screen: always open */
+@media (min-width: 1000px) and (min-height: 640px) {
+  .dv-say { right: auto; bottom: auto; left: calc(50% + min(844px, 100dvh - var(--u) * 12) * 390 / 844 / 2 + var(--u) * 8); top: 50%; translate: 0 -50%; width: 260px; }
+  .dv-say-head { display: none; }
+  .dv-say::before { content: 'Сказать голосом'; display: block; margin: 0 0 calc(var(--u) * 2) calc(var(--u) * 3); font-weight: 600; }
+  .dv-say-list { display: flex; position: static; max-height: none; }
+  .dv-say-note { display: block; margin: calc(var(--u) * 2) calc(var(--u) * 3) 0; font-size: 13px; line-height: 18px; color: var(--t3); }
 }
 
-/* ---------- the cat ---------- */
+/* ---------- the cat: only in the chat header ---------- */
 .dv-cat {
   position: absolute;
   left: 0;
   top: 0;
-  z-index: 6;
+  z-index: 3;
   pointer-events: none;
   transform: translate(var(--x, 0), var(--y, 0)) scale(var(--s, 1));
   transform-origin: center;
-  transition: opacity 200ms var(--ease-out);
+  transition: opacity 160ms var(--ease-out);
 }
-.dv-cat.is-fly { transition: transform 560ms var(--ease-move), opacity 200ms var(--ease-out); }
-.dv-cat.is-slide { transition: transform 320ms var(--ease-out); }
-.dv-cat.is-morph { transition: transform 400ms var(--ease-out); }
-.dv-cat-body { width: 100%; height: 100%; }
-.dv[data-mode='chat'] .dv-cat-body { filter: drop-shadow(0 2px 4px rgb(0 0 0 / 0.12)); }
+.dv-cat.is-slide { transition: transform 320ms var(--ease-out), opacity 160ms var(--ease-out); }
+.dv:not([data-mode='chat']) .dv-cat { opacity: 0; }
+.dv-cat-body { width: 100%; height: 100%; filter: drop-shadow(0 2px 4px rgb(0 0 0 / 0.12)); }
 .dv-cat-body svg { width: 100%; height: 100%; display: block; }
 
 /* ---------- toast ---------- */
@@ -650,33 +646,33 @@
   pointer-events: none;
 }
 .dv-toast.is-on { opacity: 1; transform: translate(-50%, 0); }
-.dv[data-mode='maps'] .dv-toast, .dv[data-mode='drive'] .dv-toast { background: #fff; color: var(--t1); }
+.dv:not([data-mode='chat']) .dv-toast { background: #fff; color: var(--t1); }
 
-/* a short phone (SE and the like): the title shrinks a step, the orb follows the free space */
+/* a short phone (SE and the like) */
 @media (max-height: 700px) and (min-height: 561px) {
-  .dv-head { margin-top: calc(var(--u) * 6); }
-  .dv-h { font-size: 24px; line-height: 30px; }
-  .dv-orb { top: 54%; width: clamp(144px, 46cqw, 184px); }
+  .dv-q { margin-top: calc(var(--u) * 6); font-size: 32px; line-height: 38px; }
+  .dv-kicker { margin-top: calc(var(--u) * 6); }
+  .dv-big { font-size: 72px; line-height: 76px; }
+  .dv-place { min-height: calc(var(--u) * 16); }
   .dv-perms li { padding-block: calc(var(--u) * 2); }
   .dv-sheet { gap: calc(var(--u) * 3); }
 }
 
-/* a phone on its side: text left, Ась right */
+/* a phone on its side */
 @media (max-height: 560px) {
-  .dv-head { margin-top: calc(var(--u) * 4); max-width: 50%; }
-  .dv-h { font-size: 24px; line-height: 30px; }
-  .dv-orb { left: 75%; top: 50%; width: clamp(120px, 40cqh, 176px); }
-  .dv-note { right: 50%; }
+  .dv-q, .dv-kicker { margin-top: calc(var(--u) * 3); }
+  .dv-q { font-size: 28px; line-height: 34px; }
+  .dv-big { font-size: 56px; line-height: 60px; }
+  .dv-places { flex-direction: row; }
+  .dv-place { flex: 1; min-height: calc(var(--u) * 16); }
+  .dv-actions { flex-direction: row; }
+  .dv-actions .dv-btn, .dv-actions .dv-btn--primary { flex: 1; height: calc(var(--u) * 14); }
+  .dv-dots { display: none; }
   .dv-hello { font-size: 24px; line-height: 32px; }
   .dv-sheet { left: 50%; right: auto; width: min(420px, 90cqw); translate: -50% 0; max-height: 100%; overflow: auto; }
   .dv-perms small { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dv-drive { transition: opacity 160ms var(--ease-out); clip-path: none; opacity: 0; }
-  .dv[data-mode='drive'] .dv-drive, .dv[data-mode='maps'] .dv-drive { opacity: 1; clip-path: none; }
-  .dv-cat.is-fly, .dv-cat.is-slide, .dv-cat.is-morph, .dv-chat, .dv-map, .dv-isl, .dv-sheet { transition: none; }
-  .dv-maps { transform: none; }
-  .dv[data-state='ready'] .dv-ring:last-child { animation: none; }
-  .dv-head.is-out .dv-h { transform: none; filter: none; }
+  .dv-drive, .dv-maps, .dv-video, .dv-cat, .dv-cat.is-slide, .dv-chat, .dv-sheet { transition: none; }
 }
