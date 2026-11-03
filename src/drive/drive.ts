@@ -1,5 +1,6 @@
 import { Cat } from './cat'
-import { Garage, car, carSrc } from './garage'
+import { Garage, car, carSrc, COLORS } from './garage'
+import { map3d } from './map3d'
 import { sticker, type StickerId } from './stickers'
 
 // #/drive — flow 5 of the Figma page (46:2), entered from the menu (8.1 + a «В дорогу» row).
@@ -69,12 +70,16 @@ const TALK: Record<Topic, { id: string; title: string; big: string; ask: string 
   ],
 }
 
-// Ась's own screens for «покажи»: one big fact per screen, «Дальше» by button or by voice
-const CARDS = [
-  { kicker: 'Ставка ЦБ · решение 23 октября', big: '14%', line: 'Без изменений. Следующее решение 18 декабря' },
-  { kicker: 'На что влияет', rows: [['Кредиты и ипотека', 'остаются дорогими'], ['Вклады', 'проценты пока держатся'], ['Цены', 'ЦБ сдерживает рост, цель 4%']] },
-  { kicker: 'Что дальше · прогноз ЦБ', big: '12,5–13,5%', line: 'В среднем в 2027 году. Это прогноз, а не решение' },
-] as const
+// Ась's own screen for «покажи»: the main fact on top, the rest below it the way a chat answer goes on.
+// No paging: nothing to swipe while driving, the navigator comes back by itself
+const SHOW = `<p class="dv-kicker">Ставка ЦБ · решение 23 октября</p>
+<b class="dv-big">14%</b>
+<p class="dv-line">Без изменений. Следующее решение 18 декабря</p>
+<h3 class="dv-sh">На что влияет</h3>
+<ul class="dv-rows"><li><b>Кредиты и ипотека</b><span>остаются дорогими</span></li><li><b>Вклады</b><span>проценты пока держатся</span></li><li><b>Цены</b><span>ЦБ сдерживает рост, цель 4%</span></li></ul>
+<h3 class="dv-sh">Что дальше</h3>
+<p class="dv-next"><b>12,5–13,5%</b><span>в среднем в 2027 году, прогноз ЦБ, а не решение</span></p>`
+const SHOW_IDLE = 15000 // ms without a touch before the navigator returns
 
 const TURNS = [
   { d: 800, dir: 'right' as const, to: 'на Пулковское шоссе' },
@@ -107,7 +112,6 @@ export class DrivePage {
   private ro: ResizeObserver
   private onKey = (e: KeyboardEvent) => this.key(e)
   private view: 'dest' | 'rate' = 'dest'
-  private card = 0
   private routing = false
   private turn = 0
   private dist = 0
@@ -178,29 +182,23 @@ export class DrivePage {
       <h2 class="dv-q">Куда едем?</h2>
       <p class="dv-heard">Скажите адрес или выберите</p>
       <div class="dv-places">
-        <button class="dv-place" data-say="dest"><b>Пулково, терминал 1</b><small>34 мин · 28 км</small></button>
-        <button class="dv-place" data-act="nope"><b>Работа</b><small>Невский, 38 · 22 мин</small></button>
-        <button class="dv-place" data-act="nope"><b>Дом</b><small>Савушкина, 12 · 18 мин</small></button>
+        <button class="dv-place is-first" data-say="dest"><b>Пулково, терминал 1</b><span>34 мин</span></button>
+        <button class="dv-place" data-act="nope"><b>Работа</b><span>22 мин</span></button>
+        <button class="dv-place" data-act="nope"><b>Дом</b><span>18 мин</span></button>
       </div>
     </div>
-    <div class="dv-show" aria-live="polite">
-      <p class="dv-kicker"></p>
-      <div class="dv-body"></div>
-      <p class="dv-back"></p>
-      <div class="dv-dots" aria-hidden="true"><i></i><i></i><i></i></div>
-      <div class="dv-actions">
-        <button class="dv-btn dv-btn--primary" data-say="next">Дальше</button>
-        <button class="dv-btn dv-btn--dark" data-say="route">К маршруту</button>
-      </div>
+    <div class="dv-show">
+      <div class="dv-body" aria-live="polite"></div>
+      <div class="dv-actions"><button class="dv-btn dv-btn--primary" data-say="route">К маршруту</button></div>
     </div>
   </section>
   <section class="dv-maps" aria-label="Навигатор" aria-hidden="true">
     <div class="dv-status is-dark" aria-hidden="true"><b><span class="dv-crumb">◀ Ась</span><span class="dv-time">9:41</span></b><span><i class="dv-sig"></i><i class="dv-bat"></i></span></div>
-    <div class="dv-map">${MAP}<span class="dv-carw"><img class="dv-car" alt="Ваша машинка"></span></div>
-    <div class="dv-mbtns" aria-hidden="true"><i>+</i><i>−</i><i>◎</i></div>
+    <div class="dv-map" role="img" aria-label="Карта с маршрутом и вашей машинкой"></div>
+    <div class="dv-mbtns" aria-hidden="true"><i>◎</i></div>
     <div class="dv-man"><span class="dv-man-ic"></span><span><b class="dv-dist"></b><small class="dv-to"></small></span></div>
     <div class="dv-speed" aria-hidden="true"><i>90</i><span><b>72</b> км/ч</span></div>
-    <div class="dv-eta"><span><b>13:27</b><small>34 мин · 28 км</small></span><span class="dv-eta-btn">Обзор</span></div>
+    <div class="dv-eta"><span><b>13:27</b><small>34 мин · 28 км</small></span><span class="dv-eta-btn" aria-hidden="true">Обзор</span></div>
   </section>
   <section class="dv-video" aria-label="Видео" aria-hidden="true">
     ${status('is-dark')}
@@ -219,14 +217,13 @@ export class DrivePage {
     <span class="dv-isl-text"><small></small><b></b></span>
     <span class="dv-isl-chips"></span>
   </div>
-  <div class="dv-sdim"></div>
+  <div class="dv-sdim" data-act="sheet-later"></div>
   <div class="dv-sheet" role="dialog" aria-modal="true" aria-label="Разрешения" aria-hidden="true">
     <i class="dv-grip" aria-hidden="true"></i>
     <h3 class="dv-sh-t"></h3>
     <p class="dv-sh-s"></p>
     <ul class="dv-perms">${PERMS.map((p) => `<li data-k="${p.k}"><span><b>${p.t}</b><small>${p.sub}</small></span><em></em></li>`).join('')}</ul>
     <button class="dv-btn dv-btn--primary" data-act="sheet-go"></button>
-    <button class="dv-btn" data-act="sheet-later">Позже</button>
   </div>
   <div class="dv-adim"></div>
   <div class="dv-alert" role="alertdialog" aria-modal="true" aria-hidden="true"></div>
@@ -242,6 +239,8 @@ export class DrivePage {
     this.q('.dv-toast').before(this.garage.el)
     this.paintCar()
     this.root.addEventListener('click', (e) => this.click(e))
+    this.q('.dv-body').addEventListener('scroll', () => this.idleShow(), { passive: true })
+    this.q('.dv-show').addEventListener('pointerdown', () => this.idleShow())
     addEventListener('keydown', this.onKey)
     this.ro = new ResizeObserver(() => this.placeCat())
     this.ro.observe(this.q('.dv-phone'))
@@ -294,16 +293,12 @@ export class DrivePage {
   // everything the driver can do, by voice or by the same words on a button
   private say(k: Say): void {
     if (!this.can(k)) return
-    const m = this.root.dataset.mode as Mode
     if (k === 'dest') return this.heard()
     if (k === 'turn') { this.dist = Math.min(this.dist, ZONE); return this.paintTurn() }
     if (k === 'rate' || k === 'hl3') return this.start(k)
     if (k === 'route') return this.toRoute()
     if (k === 'end') return this.exit('Поездка закончилась, «В дороге» выключен')
-    if (k === 'next') {
-      if (m === 'drive' && this.view === 'rate') return this.card < CARDS.length - 1 ? this.showCard(this.card + 1) : this.toRoute()
-      return this.say('yes')
-    }
+    if (k === 'next') return this.say('yes')
     if (k === 'yes') {
       if (!this.asked || !this.topic) return
       this.asked = false
@@ -336,7 +331,7 @@ export class DrivePage {
     if (!this.routing) return false
     if (k === 'rate' || k === 'hl3' || k === 'turn' || k === 'end' || k === 'other') return true
     if (k === 'route') return m !== 'maps'
-    if (k === 'next') return (m === 'drive' && this.view === 'rate') || this.asked
+    if (k === 'next') return this.asked
     if (k === 'yes' || k === 'no') return this.asked
     if (k === 'show') return !!this.topic && m === 'maps'
     if (k === 'stop') return this.speaking || this.held || this.asked
@@ -380,7 +375,7 @@ export class DrivePage {
   // a place named in the conversation becomes a card with «Поехали» (Яндекс «Спросить AI», Ask Maps)
   private flight() {
     this.thread(`<div class="dv-msg dv-msg--me">Завтра лечу из Пулково в 15:40</div>
-<div class="dv-msg dv-msg--as"><p>До Пулково сейчас 34 минуты. На регистрацию лучше успеть к 14:00, так что выезжайте около 13:00.</p>
+<div class="dv-msg dv-msg--as"><p><b>Выезжайте около 13:00.</b> Дорога сейчас 34 минуты, регистрация до 14:00.</p>
 <div class="dv-placecard"><div class="dv-pc-map">${MAP}</div><div class="dv-pc-body"><b>Пулково, терминал 1</b><small>34 мин · 28 км · пробки 4 балла</small>
 <div class="dv-pc-act"><button class="dv-pill-btn dv-pill-btn--dark" data-act="go-route">${I.car}<span>Поехали</span></button><button class="dv-pill-btn" data-act="remind">Напомнить выехать</button></div></div></div></div>`)
   }
@@ -413,11 +408,11 @@ export class DrivePage {
     give('hello', true)
     give('voice', this.trip.voice)
     give('early', this.fromChat)
-    const rows = [`<li><b>Пулково, терминал 1</b><span>28 км · 34 мин, доехали</span></li>`]
+    const rows: string[] = []
     if (this.trip.rate) rows.push(`<li><b>Ставка ЦБ: 14%</b><span>до 18 декабря. Три экрана сохранил здесь</span></li>`)
-    if (this.trip.hl) rows.push(`<li><b>Half-Life 3</b><span>${this.trip.hlLater ? 'тизер ждал стоянки' : 'Valve молчит, есть слух про HLX'}</span>${this.trip.hlLater ? '<button class="dv-pill-btn" data-act="watch">Смотреть</button>' : ''}</li>`)
+    if (this.trip.hl) rows.push(`<li><b>Half-Life 3</b><span>${this.trip.hlLater ? 'тизер ждал стоянки' : 'Valve молчит, есть слух про HLX'}</span>${this.trip.hlLater ? '<button class="dv-link" data-act="watch">Смотреть</button>' : ''}</li>`)
     const st = got.length ? `<div class="dv-sum-st"><span class="dv-sum-icons">${got.map((id) => `<i title="${sticker(id).name}">${sticker(id).svg}</i>`).join('')}</span><span><b>${got.length === 1 ? 'Новая наклейка' : 'Новые наклейки'}</b><small>${got.map((id) => sticker(id).name).join(' · ')}</small></span><button class="dv-pill-btn dv-pill-btn--dark" data-act="garage">Наклеить</button></div>` : ''
-    this.thread(`<div class="dv-msg dv-msg--as"><div class="dv-sum"><p class="dv-sum-k"><img alt="" src="${carSrc('top')}">Пока вы ехали</p><ul>${rows.join('')}</ul>${st}</div></div>`)
+    this.thread(`<div class="dv-msg dv-msg--as"><div class="dv-sum"><div class="dv-pc-map">${MAP}</div><div class="dv-sum-in"><p class="dv-sum-k">Пока вы ехали · Пулково, терминал 1</p><div class="dv-sum-n"><span><b>28</b>км</span><span><b>34</b>мин</span><span><b>13:27</b>прибыли</span></div>${rows.length ? `<ul>${rows.join('')}</ul>` : ''}${st}</div></div></div>`)
     this.fromChat = false
   }
 
@@ -437,7 +432,8 @@ export class DrivePage {
   }
 
   private paintCar() {
-    this.q<HTMLImageElement>('.dv-car').src = carSrc('top')
+    // the 3D navigator is one SVG frame with the car in it: a new colour or body redraws it
+    this.q('.dv-map').innerHTML = map3d(COLORS.find((c) => c.id === car.color)!.hex, car.body)
     this.q<HTMLImageElement>('.dv-row-car').src = carSrc('top')
   }
 
@@ -580,7 +576,7 @@ export class DrivePage {
     this.speaking = false
     this.asked = true
     const c = TALK[this.topic][this.chunk]
-    const chips: [Say, string][] = [['yes', 'Да'], ['no', 'Нет'], ['show', 'Покажи'], ['other', this.topic === 'rate' ? 'Другая тема' : 'Про ставку']]
+    const chips: [Say, string][] = [['yes', 'Да'], ['show', 'Покажи'], ['other', this.topic === 'rate' ? 'Другая тема' : 'Про ставку']]
     this.pop({ label: c.title, main: c.ask, chips, ms: 10000 })
   }
 
@@ -591,27 +587,19 @@ export class DrivePage {
   // ---------- Ась's own screens (5.x «Покажи») ----------
   private openShow() {
     this.view = 'rate'
-    this.q<HTMLElement>('.dv-drive').dataset.view = 'rate'
-    this.showCard(0)
+    const d = this.q<HTMLElement>('.dv-drive')
+    d.dataset.view = 'rate'
+    const body = this.q<HTMLElement>('.dv-body')
+    body.innerHTML = SHOW
+    body.scrollTop = 0
     this.mode('drive')
+    this.idleShow()
   }
 
-  private showCard(i: number) {
+  // the navigator comes back by itself after a while without a touch; looking around restarts the wait
+  private idleShow() {
     this.clear()
-    this.card = i
-    const c = CARDS[i]
-    this.q('.dv-kicker').textContent = c.kicker
-    this.q('.dv-body').innerHTML = 'rows' in c
-      ? `<ul class="dv-rows">${c.rows.map(([a, b]) => `<li><b>${a}</b><span>${b}</span></li>`).join('')}</ul>`
-      : `<b class="dv-big${c.big.length > 4 ? ' is-wide' : ''}">${c.big}</b><p class="dv-line">${c.line}</p>`
-    const last = i === CARDS.length - 1
-    this.q('.dv-back').textContent = last ? 'Через 5 секунд верну маршрут' : ''
-    this.q('[data-say="next"].dv-btn').toggleAttribute('hidden', last)
-    this.q('[data-say="route"].dv-btn').classList.toggle('dv-btn--primary', last)
-    this.root.querySelectorAll('.dv-dots i').forEach((d, j) => d.classList.toggle('is-on', j === i))
-    // seen it all → the navigator comes back by itself
-    if (last) this.later(5000, () => this.toRoute())
-    this.paintSay()
+    if (this.root.dataset.mode === 'drive' && this.view === 'rate') this.later(SHOW_IDLE, () => this.toRoute())
   }
 
   private openVideo() {
@@ -632,7 +620,7 @@ export class DrivePage {
   // ---------- the island: Ась's Live Activity. Over Ась's own screens the navigator's one shows the turn ----------
   private pop(p: Pop | null) {
     clearTimeout(this.popTimer)
-    this.q('.dv-carw').classList.toggle('is-ai', this.speaking || this.asked)
+    this.q('.dv-maps').classList.toggle('is-ai', this.speaking || this.asked)
     const el = this.q<HTMLElement>('.dv-isl')
     if (!p) { el.dataset.s = 'compact'; this.paintIsland(); return }
     el.dataset.s = 'open'
@@ -646,7 +634,7 @@ export class DrivePage {
 
   private paintIsland() {
     // Ась speaks or waits for a yes: a quiet ring under the car, no pulse
-    this.q('.dv-carw').classList.toggle('is-ai', this.speaking || this.asked)
+    this.q('.dv-maps').classList.toggle('is-ai', this.speaking || this.asked)
     const el = this.q<HTMLElement>('.dv-isl')
     this.paintSay()
     if (el.dataset.s === 'open') return
@@ -666,7 +654,7 @@ export class DrivePage {
   }
 
   // ---------- permissions: our sheet, then the system alerts ----------
-  private sheet(open: boolean, title = 'Ась в дороге', sub = 'Нужно четыре разрешения. Телефон спросит по очереди, один раз и пока вы стоите', go = 'Разрешить по очереди') {
+  private sheet(open: boolean, title = 'Ась в дороге', sub = 'Нужно четыре разрешения. Телефон спросит по очереди, один раз и пока вы стоите', go = 'Продолжить') {
     this.root.classList.toggle('is-sheet', open)
     this.q('.dv-sheet').setAttribute('aria-hidden', String(!open))
     if (!open) { this.alert(null); this.paintSay(); return }

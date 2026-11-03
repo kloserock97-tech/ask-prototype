@@ -1,44 +1,47 @@
 import { STICKERS, sticker, type StickerId } from './stickers'
 
-// Ась's car: chosen in the garage (only while parked), shown instead of the arrow in Карты.
-// Renders are our own Blender model (public/car): top view for the map, a 3/4 view for the garage.
+// Ась's car: chosen in the garage (only while parked). On the map it is the 3D SVG car (map3d.ts),
+// in the garage a generated picture per body (public/car/gen-*.webp), recoloured by a filter.
 
 export type Body = 'compact' | 'sedan' | 'pickup'
-type Slot = 'roof' | 'hood'
+type Slot = 'hood' | 'door'
+type Tab = 'body' | 'color' | 'stickers'
 
 export const BODIES: { id: Body; name: string }[] = [
   { id: 'compact', name: 'Капля' },
   { id: 'sedan', name: 'Седан' },
   { id: 'pickup', name: 'Пикап' },
 ]
-// all read on the dark map; no black or navy, they sink into it
+// all read on the dark map; no black or navy, they sink into it.
+// `f` turns the blue picture into this colour (the base paint is #3D7BFF)
 export const COLORS = [
-  { id: 'blue', name: 'Небо', hex: '#3D7BFF' },
-  { id: 'mint', name: 'Мята', hex: '#3DD9B0' },
-  { id: 'yellow', name: 'Лимон', hex: '#FFC83D' },
-  { id: 'orange', name: 'Мандарин', hex: '#FF8A3D' },
-  { id: 'red', name: 'Коралл', hex: '#E5484D' },
-  { id: 'pink', name: 'Фламинго', hex: '#FF7AB8' },
-  { id: 'violet', name: 'Сирень', hex: '#9B6BFF' },
-  { id: 'white', name: 'Снег', hex: '#F5F6F8' },
+  { id: 'blue', name: 'Небо', hex: '#3D7BFF', f: 'none' },
+  { id: 'mint', name: 'Мята', hex: '#3DD9B0', f: 'hue-rotate(-70deg) saturate(0.8) brightness(1.3)' },
+  { id: 'yellow', name: 'Лимон', hex: '#FFC83D', f: 'hue-rotate(190deg) saturate(1.5) brightness(1.8)' },
+  { id: 'orange', name: 'Мандарин', hex: '#FF8A3D', f: 'hue-rotate(160deg) saturate(1.6) brightness(1.35)' },
+  { id: 'red', name: 'Коралл', hex: '#E5484D', f: 'hue-rotate(135deg) saturate(1.1) brightness(1.08)' },
+  { id: 'pink', name: 'Фламинго', hex: '#FF7AB8', f: 'hue-rotate(108deg) saturate(0.75) brightness(1.35)' },
+  { id: 'violet', name: 'Сирень', hex: '#9B6BFF', f: 'hue-rotate(32deg) saturate(0.9) brightness(1.12)' },
+  { id: 'white', name: 'Снег', hex: '#F5F6F8', f: 'saturate(0) brightness(1.7)' },
 ]
 
 // the visit's car; a reload starts with a blue «Капля» and no stickers
 export const car = {
   body: 'compact' as Body,
   color: 'blue',
-  slots: { roof: null, hood: null } as Record<Slot, StickerId | null>,
+  slots: { hood: null, door: null } as Record<Slot, StickerId | null>,
   earned: new Set<StickerId>(),
   fresh: new Set<StickerId>(),
 }
 
-export const carSrc = (view: 'top' | 'hero') => `./car/${view}-${car.body}-${car.color}.webp`
+export const carSrc = (view: 'top' | 'gen') => (view === 'gen' ? `./car/gen-${car.body}.webp` : `./car/top-${car.body}-${car.color}.webp`)
 
-// roof and hood corners in the hero image (0..1), projected from the Blender camera (scratchpad quads.py)
+// hood and door corners (top-left, top-right, bottom-right, bottom-left) in the garage picture, 0..1, measured by hand.
+// The roof is a thin sliver from this angle, so the stickers go on the two big flat panels
 const QUADS: Record<Body, Record<Slot, number[][]>> = {
-  compact: { roof: [[0.6225, 0.3767], [0.4738, 0.4295], [0.3199, 0.3667], [0.467, 0.3214]], hood: [[0.7884, 0.5328], [0.6312, 0.6058], [0.547, 0.567], [0.7045, 0.4994]] },
-  sedan: { roof: [[0.6399, 0.3967], [0.4917, 0.4513], [0.3416, 0.3889], [0.4885, 0.342]], hood: [[0.8338, 0.558], [0.6771, 0.6346], [0.5637, 0.5819], [0.721, 0.5129]] },
-  pickup: { roof: [[0.7194, 0.3871], [0.5629, 0.4461], [0.437, 0.3959], [0.5931, 0.3436]], hood: [[0.8462, 0.5386], [0.6826, 0.6174], [0.6282, 0.5926], [0.7923, 0.5176]] },
+  compact: { hood: [[0.3125, 0.426], [0.516, 0.439], [0.5, 0.523], [0.25, 0.498]], door: [[0.617, 0.42], [0.711, 0.4], [0.719, 0.566], [0.625, 0.586]] },
+  sedan: { hood: [[0.305, 0.434], [0.547, 0.453], [0.4375, 0.547], [0.172, 0.512]], door: [[0.59, 0.453], [0.672, 0.434], [0.68, 0.596], [0.597, 0.621]] },
+  pickup: { hood: [[0.32, 0.445], [0.54, 0.469], [0.47, 0.566], [0.18, 0.531]], door: [[0.547, 0.453], [0.669, 0.434], [0.675, 0.586], [0.553, 0.609]] },
 }
 
 // a square of side s mapped onto four points: the projective transform as a CSS matrix3d
@@ -67,15 +70,17 @@ function matrixTo(s: number, q: number[][]) {
   return `matrix3d(${h[0]},${h[3]},0,${h[6]},${h[1]},${h[4]},0,${h[7]},0,0,1,0,${h[2]},${h[5]},0,1)`
 }
 
-// shrink a slot toward its centre, so a round sticker sits inside the panel, not on its edge
+// a round sticker sits inside the panel, not on its edge
 function inset(q: number[][], k: number) {
   const cx = q.reduce((a, p) => a + p[0], 0) / 4, cy = q.reduce((a, p) => a + p[1], 0) / 4
   return q.map(([x, y]) => [cx + (x - cx) * k, cy + (y - cy) * k])
 }
 
+// the car on top, one sheet below; the segmented control swaps what the sheet holds instead of stacking three sections
 export class Garage {
   readonly el: HTMLElement
   private ro: ResizeObserver
+  private tab: Tab = 'body'
   constructor(private onClose: () => void) {
     this.el = document.createElement('section')
     this.el.className = 'dv-garage'
@@ -83,25 +88,25 @@ export class Garage {
     this.el.setAttribute('aria-hidden', 'true')
     this.el.innerHTML = `
 <div class="dv-status" aria-hidden="true"><b>9:41</b><span><i class="dv-sig"></i><i class="dv-bat"></i></span></div>
-<header class="dv-gtop"><button class="dv-round" data-g="close" aria-label="Назад"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button><h2>Гараж</h2><span class="dv-gcount"></span></header>
-<div class="dv-gscroll">
-  <div class="dv-ghero"><img alt=""><i data-slot="roof"></i><i data-slot="hood"></i></div>
-  <p class="dv-gnote">Машинку меняем только на стоянке. На карте она без наклеек, чтобы не отвлекать</p>
-  <div class="dv-gseg" role="radiogroup" aria-label="Кузов">${BODIES.map((b) => `<button role="radio" data-body="${b.id}">${b.name}</button>`).join('')}</div>
-  <div class="dv-gcolors" role="radiogroup" aria-label="Цвет">${COLORS.map((c) => `<button role="radio" data-color="${c.id}" aria-label="${c.name}" style="--c:${c.hex}"></button>`).join('')}</div>
-  <p class="dv-gcname"></p>
-  <h3 class="dv-gh">Наклейки</h3>
-  <p class="dv-gsub">Нажмите на свою, она встанет на крышу, следующая на капот</p>
-  <div class="dv-ggrid">${STICKERS.map((s) => `<button data-st="${s.id}"><span class="dv-gst">${s.svg}</span><b>${s.name}</b><small>${s.how}</small></button>`).join('')}</div>
+<header class="dv-gtop"><button class="dv-round" data-g="close" aria-label="Назад"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button><h2>Гараж</h2><span></span></header>
+<div class="dv-ghero"><div class="dv-gpic"><img alt=""><i data-slot="hood"></i><i data-slot="door"></i></div><p class="dv-gcname"></p></div>
+<div class="dv-gsheet">
+  <div class="dv-gseg" role="tablist" aria-label="Что меняем">
+    <button role="tab" data-tab="body">Кузов</button><button role="tab" data-tab="color">Цвет</button><button role="tab" data-tab="stickers">Наклейки<span class="dv-gcount"></span></button>
+  </div>
+  <div class="dv-gpane" data-pane="body"><div class="dv-gbodies">${BODIES.map((b) => `<button role="radio" data-body="${b.id}"><img alt="" src="./car/gen-${b.id}.webp"><b>${b.name}</b></button>`).join('')}</div></div>
+  <div class="dv-gpane" data-pane="color"><div class="dv-gcolors" role="radiogroup" aria-label="Цвет">${COLORS.map((c) => `<button role="radio" data-color="${c.id}" aria-label="${c.name}" style="--c:${c.hex}"></button>`).join('')}</div></div>
+  <div class="dv-gpane" data-pane="stickers"><div class="dv-ggrid">${STICKERS.map((s) => `<button data-st="${s.id}" aria-label="${s.name}: ${s.how}"><span class="dv-gst">${s.svg}</span><b>${s.name}</b><small>${s.how}</small></button>`).join('')}</div></div>
 </div>`
     this.el.addEventListener('click', (e) => this.click(e))
     this.ro = new ResizeObserver(() => this.paintSlots())
-    this.ro.observe(this.q('.dv-ghero'))
+    this.ro.observe(this.q('.dv-gpic'))
   }
 
   private q<T extends Element = HTMLElement>(s: string) { return this.el.querySelector(s) as T }
 
-  open() {
+  open(tab: Tab = car.fresh.size ? 'stickers' : 'body') {
+    this.tab = tab
     this.el.setAttribute('aria-hidden', 'false')
     this.el.classList.add('is-open')
     this.render()
@@ -116,9 +121,10 @@ export class Garage {
   destroy() { this.ro.disconnect() }
 
   private click(e: MouseEvent) {
-    const t = (e.target as HTMLElement).closest<HTMLElement>('[data-g], [data-body], [data-color], [data-st]')
+    const t = (e.target as HTMLElement).closest<HTMLElement>('[data-g], [data-tab], [data-body], [data-color], [data-st]')
     if (!t) return
     if (t.dataset.g === 'close') { this.close(); this.onClose(); return }
+    if (t.dataset.tab) this.tab = t.dataset.tab as Tab
     if (t.dataset.body) car.body = t.dataset.body as Body
     if (t.dataset.color) car.color = t.dataset.color
     if (t.dataset.st) {
@@ -126,19 +132,31 @@ export class Garage {
       if (!car.earned.has(id)) return
       const at = (Object.keys(car.slots) as Slot[]).find((k) => car.slots[k] === id)
       if (at) car.slots[at] = null
-      else if (!car.slots.roof) car.slots.roof = id
-      else car.slots.hood = id
+      else if (!car.slots.hood) car.slots.hood = id
+      else car.slots.door = id
     }
     this.render()
   }
 
   render() {
-    this.q<HTMLImageElement>('.dv-ghero img').src = carSrc('hero')
-    for (const b of this.el.querySelectorAll<HTMLElement>('[data-body]')) b.setAttribute('aria-checked', String(b.dataset.body === car.body))
+    const col = COLORS.find((c) => c.id === car.color)!
+    const img = this.q<HTMLImageElement>('.dv-gpic img')
+    img.src = carSrc('gen')
+    img.style.filter = col.f
+    this.q('.dv-gcname').textContent = `${BODIES.find((b) => b.id === car.body)!.name} · ${col.name}`
+    this.q('.dv-gcount').textContent = car.earned.size ? ` ${car.earned.size}` : ''
+    for (const b of this.el.querySelectorAll<HTMLElement>('[data-tab]')) b.setAttribute('aria-selected', String(b.dataset.tab === this.tab))
+    for (const p of this.el.querySelectorAll<HTMLElement>('[data-pane]')) p.hidden = p.dataset.pane !== this.tab
+    for (const b of this.el.querySelectorAll<HTMLElement>('[data-body]')) {
+      b.setAttribute('aria-checked', String(b.dataset.body === car.body))
+      b.querySelector('img')!.style.filter = col.f
+    }
     for (const b of this.el.querySelectorAll<HTMLElement>('[data-color]')) b.setAttribute('aria-checked', String(b.dataset.color === car.color))
-    this.q('.dv-gcname').textContent = `${BODIES.find((b) => b.id === car.body)!.name} · ${COLORS.find((c) => c.id === car.color)!.name}`
-    this.q('.dv-gcount').textContent = `${car.earned.size} из ${STICKERS.length}`
-    for (const b of this.el.querySelectorAll<HTMLButtonElement>('[data-st]')) {
+    // earned first, the rest after with the condition under the name
+    const grid = this.q('.dv-ggrid')
+    const btns = [...grid.querySelectorAll<HTMLButtonElement>('[data-st]')]
+    btns.sort((a, b) => Number(car.earned.has(b.dataset.st as StickerId)) - Number(car.earned.has(a.dataset.st as StickerId))).forEach((b) => grid.append(b))
+    for (const b of btns) {
       const id = b.dataset.st as StickerId
       b.classList.toggle('is-locked', !car.earned.has(id))
       b.classList.toggle('is-on', Object.values(car.slots).includes(id))
@@ -149,17 +167,15 @@ export class Garage {
   }
 
   private paintSlots() {
-    const box = this.q('.dv-ghero')
-    const w = box.clientWidth
+    const box = this.q('.dv-gpic')
+    const w = box.clientWidth, h = box.clientHeight
     if (!w) return
     for (const el of box.querySelectorAll<HTMLElement>('[data-slot]')) {
       const slot = el.dataset.slot as Slot
       const id = car.slots[slot]
       el.innerHTML = id ? sticker(id).svg : ''
       if (!id) continue
-      const raw = QUADS[car.body][slot]
-      // corners as top-left, top-right, bottom-right, bottom-left of the sticker: it reads across the panel
-      const q = inset([raw[2], raw[3], raw[0], raw[1]], slot === 'roof' ? 0.82 : 0.9).map(([x, y]) => [x * w, y * w])
+      const q = inset(QUADS[car.body][slot], slot === 'hood' ? 0.7 : 0.78).map(([x, y]) => [x * w, y * h])
       el.style.transform = matrixTo(100, q)
     }
   }
