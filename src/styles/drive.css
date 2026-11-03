@@ -506,18 +506,19 @@
 .dv-vlist b { font-size: 15px; line-height: 20px; font-weight: 500; }
 .dv-vlist small { font-size: 13px; line-height: 18px; color: #9aa0aa; }
 
-/* ---------- Dynamic Island ----------
-   Over the navigator: Ась's Live Activity, a status line; an alert opens it with big chips.
-   Over Ась's screens and the video app: the navigator's Live Activity with the turn, Ась as a small circle. */
+/* ---------- the island ----------
+   Inside Карты (our app) the island shows nothing of ours: Ась is a pill in the app, the same on every iPhone.
+   Outside Карты the trip is one Live Activity: the turn left of the camera, the distance right of it. */
 .dv-navi {
   position: absolute;
   z-index: 5;
   top: 12px;
   left: 50%;
   translate: -50% 0;
+  width: 200px;
   height: 37px;
-  min-width: 150px;
-  padding: 0 calc(var(--u) * 4) 0 calc(var(--u) * 2.5);
+  padding: 0 14px 0 12px;
+  cursor: pointer;
   border-radius: 19px;
   background: #000;
   color: #fff;
@@ -529,7 +530,8 @@
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
-.dv .dv-navi-ic svg { width: 24px; height: 24px; color: #4fb4ff; display: block; }
+.dv .dv-navi-ic svg { width: 20px; height: 20px; color: #4fb4ff; display: block; }
+.dv-navi .dv-dist { font-size: 15px; color: #4fb4ff; }
 .dv[data-mode='video'] .dv-navi { display: flex; }
 .dv-isl {
   position: absolute;
@@ -580,11 +582,8 @@
 .dv .dv-isl-tr svg { width: 18px; height: 18px; display: block; color: #8fd0ff; }
 .dv-isl-mark { width: 22px; height: 22px; border-radius: 50%; background: #3d7bff; display: grid; place-items: center; font: 700 12px/1 'Inter', sans-serif; font-style: normal; color: #fff; }
 
-/* compact over Карты (HIG): Ась's mark snug left of the camera, the state right of it, nothing over the camera;
-   iOS drops the signal icon beside a compact Live Activity */
-.dv[data-dev='island'][data-mode='maps'] .dv-maps .dv-sig { visibility: hidden; }
-.dv[data-mode='maps'] .dv-isl[data-s='compact'] { width: 200px; min-width: 0; padding: 0 12px 0 8px; justify-content: space-between; }
-.dv[data-mode='maps'] .dv-isl[data-s='compact'] .dv-isl-text { display: none; }
+/* Ась's state inside Карты: a pill under the turn banner, mark + word + state icon */
+.dv[data-mode='maps'] .dv-isl[data-s='compact'] { top: calc(var(--top) + var(--u) * 36); left: calc(var(--u) * 2); translate: none; width: max-content; min-width: 0; padding: 0 14px 0 8px; background: #1c1f26; justify-content: flex-start; }
 .dv[data-mode='maps'] .dv-isl[data-s='compact'] .dv-isl-tr { display: block; }
 /* a question is Карты' own card under the turn banner: same ecosystem, so it works on every iPhone and
    keeps the status bar and the manoeuvre in sight */
@@ -602,24 +601,19 @@
 .dv[data-mode='maps'] .dv-isl[data-s='open'] .dv-isl-ic { display: none; }
 .dv[data-mode='maps'] .dv-isl[data-s='open'] .dv-isl-text small::before { content: 'Ась · '; }
 
-/* no Dynamic Island: Карты show Ась's state themselves under the banner, other apps get the
-   Live Activity as a banner under the status bar (HIG: the Lock Screen presentation as a banner) */
+/* no Dynamic Island: outside Карты nothing stays on top; an important update comes as the Lock Screen
+   presentation shown as a banner (HIG), the way back is the system «◀ Карты» */
 .dv[data-dev='notch'] .dv-navi { display: none; }
-.dv[data-dev='notch'][data-mode='maps'] .dv-isl[data-s='compact'] { top: calc(var(--top) + var(--u) * 36); left: calc(var(--u) * 2); translate: none; width: max-content; padding: 0 14px 0 8px; background: #1c1f26; justify-content: flex-start; }
-.dv[data-dev='notch'][data-mode='maps'] .dv-isl[data-s='compact'] .dv-isl-text { display: flex; }
-.dv[data-dev='notch'][data-mode='video'] .dv-isl[data-s='compact'] { display: none; }
 .dv[data-dev='notch'][data-mode='video'] .dv-isl[data-s='open'] { top: calc(var(--top) + var(--u)); width: calc(100% - var(--u) * 4); border-radius: 22px; background: #1c1f26; }
 
 /* the model switch in the voice panel */
 .dv-dev { display: flex; gap: 4px; padding: 3px; margin-bottom: var(--u); border-radius: 12px; background: var(--surface); }
 .dv-say-list .dv-dev button { flex: 1; padding: 6px 8px; border-radius: 9px; font-size: 13px; color: var(--t2); }
 .dv-say-list .dv-dev button.is-on { background: #fff; color: var(--t1); box-shadow: 0 1px 3px rgb(0 0 0 / 0.12); }
-.dv-back { font-size: 15px; cursor: pointer; }
-.dv-video .dv-status { z-index: 6; }
-/* in the video app Ась is the minimal circle next to the navigator's island: a tap brings the route back */
-.dv[data-mode='video'] .dv-navi { translate: calc(-50% - 24px) 0; }
-.dv[data-mode='video'] .dv-isl[data-s='compact'] { left: auto; right: 24px; translate: none; min-width: 0; width: 37px; padding: 0; justify-content: center; }
-.dv[data-mode='video'] .dv-isl[data-s='compact'] .dv-isl-text { display: none; }
+.dv-back { font-size: 14px; cursor: pointer; }
+.dv-video .dv-status { z-index: 6; padding-left: 18px; }
+/* in the video app the trip's Live Activity is the only thing in the island (no second circle for Ась) */
+.dv[data-mode='video'] .dv-isl[data-s='compact'] { display: none; }
 
 /* ---------- «Сказать голосом»: the stand's stand-in for the microphone, outside the phone ---------- */
 .dv-say {

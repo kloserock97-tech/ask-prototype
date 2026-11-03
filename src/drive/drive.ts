@@ -195,7 +195,7 @@ export class DrivePage {
       <li><i></i><span><b>Half-Life 3 — концепт-тизер</b><small>фанатский ролик · 2:30</small></span></li>
     </ul>
   </section>
-  <div class="dv-navi" aria-hidden="true"><span class="dv-navi-ic"></span><b class="dv-dist"></b></div>
+  <div class="dv-navi" data-act="back" aria-label="Вернуться в Карты"><span class="dv-navi-ic"></span><b class="dv-dist"></b></div>
   <div class="dv-isl" data-act="island" role="status" aria-live="polite">
     <span class="dv-isl-ic"></span>
     <span class="dv-isl-text"><small></small><b></b></span>
