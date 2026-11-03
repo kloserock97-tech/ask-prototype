@@ -676,3 +676,128 @@
 @media (prefers-reduced-motion: reduce) {
   .dv-drive, .dv-maps, .dv-video, .dv-cat, .dv-cat.is-slide, .dv-chat, .dv-sheet { transition: none; }
 }
+
+/* ---------- the chat thread: a place from the conversation, «Пока вы ехали» ---------- */
+.dv-thread { display: none; flex: 1; min-height: 0; overflow: auto; padding: calc(var(--u) * 4) calc(var(--u) * 4) calc(var(--u) * 2); flex-direction: column; gap: calc(var(--u) * 4); }
+.dv-chat.has-thread .dv-thread { display: flex; }
+.dv-chat.has-thread .dv-hello, .dv-chat.has-thread .dv-sugg { display: none; }
+.dv-msg { font-size: 17px; line-height: 26px; }
+.dv-msg p { margin: 0; }
+.dv-msg--me { align-self: flex-end; max-width: 80%; padding: calc(var(--u) * 2.5) calc(var(--u) * 4); border-radius: 22px; background: var(--surface); line-height: 24px; }
+.dv-msg--as { display: flex; flex-direction: column; gap: calc(var(--u) * 3); }
+.dv-placecard, .dv-sum { border-radius: 22px; background: var(--bg); box-shadow: var(--lift); overflow: hidden; flex: none; }
+.dv-pc-map { height: 96px; position: relative; overflow: hidden; }
+.dv .dv-pc-map .dv-map-svg { position: absolute; width: 100%; height: 420px; top: -150px; }
+.dv-pc-body { padding: calc(var(--u) * 3) calc(var(--u) * 4) calc(var(--u) * 4); display: flex; flex-direction: column; gap: 2px; }
+.dv-pc-body b { font-size: 17px; line-height: 24px; font-weight: 600; }
+.dv-pc-body small { font-size: 15px; line-height: 20px; color: var(--t2); }
+.dv-pc-act { display: flex; gap: calc(var(--u) * 2); margin-top: calc(var(--u) * 3); flex-wrap: wrap; }
+.dv-pill-btn { height: calc(var(--u) * 11); padding: 0 calc(var(--u) * 4); border-radius: calc(var(--u) * 6); background: var(--surface); display: inline-flex; align-items: center; gap: calc(var(--u) * 2); font-size: 15px; font-weight: 600; white-space: nowrap; }
+.dv-pill-btn svg { width: 20px; height: 20px; }
+.dv-pill-btn--dark { background: var(--inv); color: var(--on-inv); }
+.dv-sum { padding: calc(var(--u) * 4); display: flex; flex-direction: column; gap: calc(var(--u) * 3); }
+.dv-sum-k { margin: 0; display: flex; align-items: center; gap: calc(var(--u) * 2); font-size: 13px; line-height: 18px; color: var(--t3); font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; }
+.dv-sum-k img { width: 14px; height: 27px; object-fit: contain; }
+.dv-sum ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: calc(var(--u) * 3); }
+.dv-sum li { display: grid; grid-template-columns: 1fr auto; column-gap: calc(var(--u) * 3); align-items: center; }
+.dv-sum li b { font-size: 17px; line-height: 24px; font-weight: 600; }
+.dv-sum li span { grid-column: 1; font-size: 15px; line-height: 20px; color: var(--t2); }
+.dv-sum li button { grid-column: 2; grid-row: 1 / 3; }
+.dv-sum-st { display: flex; align-items: center; gap: calc(var(--u) * 3); padding-top: calc(var(--u) * 3); border-top: 1px solid #ececec; }
+.dv-sum-st > span:nth-child(2) { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.dv-sum-st b { font-size: 15px; line-height: 20px; font-weight: 600; }
+.dv-sum-st small { font-size: 13px; line-height: 18px; color: var(--t2); }
+.dv-sum-icons { display: flex; }
+.dv-sum-icons i { width: 36px; height: 36px; display: block; filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.18)); }
+.dv-sum-icons i + i { margin-left: -10px; }
+.dv-sum-icons svg { width: 100%; height: 100%; }
+.dv-row-car { width: 12px; height: 23px; margin: 0 5px; object-fit: contain; }
+
+/* «Пора выезжать»: a system notification from Ась, the tap opens the ready route */
+.dv-push {
+  position: absolute;
+  z-index: 12;
+  left: calc(var(--u) * 2);
+  right: calc(var(--u) * 2);
+  top: calc(var(--top) + var(--u));
+  padding: calc(var(--u) * 3) calc(var(--u) * 4);
+  border-radius: 22px;
+  background: rgb(245 245 247 / 0.92);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.14);
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 3);
+  text-align: left;
+  opacity: 0;
+  transform: translateY(calc(var(--u) * -4));
+  pointer-events: none;
+  transition: opacity 200ms var(--ease-out), transform 320ms var(--ease-out);
+}
+.dv-push.is-on { opacity: 1; transform: none; pointer-events: auto; }
+.dv-push-ic { width: 38px; height: 38px; border-radius: 10px; background: var(--inv); color: #fff; display: grid; place-items: center; font: 600 17px/1 'Inter', sans-serif; font-style: normal; flex: none; }
+.dv-push > span { flex: 1; display: flex; flex-direction: column; }
+.dv-push b { font-size: 15px; line-height: 20px; font-weight: 600; }
+.dv-push small { font-size: 15px; line-height: 20px; color: var(--t1); }
+.dv-push em { align-self: flex-start; font-style: normal; font-size: 13px; color: var(--t3); }
+
+/* Карты opened from the chat: iOS puts «◀ Ась» in place of the time */
+.dv-maps .dv-status { z-index: 1; }
+.dv-crumb { display: none; font-size: 15px; }
+.dv-maps.from-chat .dv-crumb { display: inline; }
+.dv-maps.from-chat .dv-time { display: none; }
+
+/* the car instead of the arrow: constant size, light edge and a soft shadow keep it readable */
+.dv-carw { position: absolute; left: 50%; top: 72.3%; width: 28px; height: 54px; translate: -50% -50%; }
+.dv-car { position: relative; width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 0 1px rgb(255 255 255 / 0.9)) drop-shadow(0 3px 6px rgb(0 0 0 / 0.5)); }
+.dv-carw::before { content: ''; position: absolute; left: 50%; top: 50%; width: 64px; height: 64px; translate: -50% -50%; border-radius: 50%; border: 2px solid transparent; transition: border-color 150ms var(--ease-out), background-color 150ms var(--ease-out); }
+.dv-carw.is-ai::before { border-color: rgb(143 208 255 / 0.8); background: rgb(79 180 255 / 0.12); }
+
+/* ---------- the garage: a chat screen, parked only ---------- */
+.dv-garage {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  background: var(--bg);
+  padding-top: var(--top);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  visibility: hidden;
+  transition: transform 320ms var(--ease-out), visibility 0s linear 320ms;
+}
+.dv-garage.is-open { transform: none; visibility: visible; transition: transform 320ms var(--ease-out); }
+.dv-gtop { height: calc(var(--u) * 14); padding: 0 calc(var(--u) * 4); display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; }
+.dv-gtop h2 { margin: 0; text-align: center; font-size: 17px; line-height: 24px; font-weight: 600; }
+.dv-gcount { font-size: 13px; color: var(--t3); text-align: right; white-space: nowrap; }
+.dv-gscroll { flex: 1; min-height: 0; overflow: auto; padding: 0 calc(var(--u) * 4) var(--bot); }
+.dv-ghero { position: relative; width: 100%; aspect-ratio: 1; margin: calc(var(--u) * -6) 0 calc(var(--u) * -10); }
+.dv-ghero img { width: 100%; height: 100%; display: block; }
+.dv-ghero [data-slot] { position: absolute; left: 0; top: 0; width: 100px; height: 100px; transform-origin: 0 0; pointer-events: none; }
+.dv-ghero [data-slot] svg { width: 100%; height: 100%; display: block; }
+.dv-gnote { margin: 0 0 calc(var(--u) * 4); font-size: 13px; line-height: 18px; color: var(--t3); text-align: center; }
+.dv-gseg { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--u); padding: var(--u); border-radius: calc(var(--u) * 6); background: var(--surface); }
+.dv-gseg button { height: calc(var(--u) * 10); border-radius: calc(var(--u) * 5); font-size: 15px; font-weight: 600; color: var(--t2); }
+.dv-gseg [aria-checked='true'] { background: var(--bg); color: var(--t1); box-shadow: var(--lift); }
+.dv-gcolors { display: flex; justify-content: space-between; margin-top: calc(var(--u) * 4); }
+.dv-gcolors button { width: 36px; height: 36px; border-radius: 50%; background: var(--c); box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.08); }
+.dv-gcolors [aria-checked='true'] { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--t1); }
+.dv-gcname { margin: calc(var(--u) * 3) 0 0; font-size: 13px; color: var(--t2); text-align: center; }
+.dv-gh { margin: calc(var(--u) * 8) 0 0; font-size: 20px; line-height: 26px; font-weight: 600; }
+.dv-gsub { margin: var(--u) 0 calc(var(--u) * 4); font-size: 15px; line-height: 20px; color: var(--t2); }
+.dv-ggrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: calc(var(--u) * 2); }
+.dv-ggrid button { position: relative; padding: calc(var(--u) * 3) calc(var(--u) * 2); border-radius: 20px; background: var(--surface); display: flex; flex-direction: column; align-items: center; gap: var(--u); text-align: center; }
+.dv-gst { width: 56px; height: 56px; filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.16)); }
+.dv-gst svg { width: 100%; height: 100%; display: block; }
+.dv-ggrid b { font-size: 13px; line-height: 17px; font-weight: 600; }
+.dv-ggrid small { display: none; font-size: 11px; line-height: 14px; color: var(--t3); }
+.dv-ggrid .is-locked .dv-gst { filter: grayscale(1); opacity: 0.3; }
+.dv-ggrid .is-locked b { color: var(--t3); }
+.dv-ggrid .is-locked small { display: block; }
+.dv-ggrid .is-locked { cursor: default; }
+.dv-ggrid .is-on { background: var(--bg); box-shadow: 0 0 0 2px var(--t1); }
+.dv-ggrid .is-fresh::after { content: 'новая'; position: absolute; top: 8px; right: 8px; padding: 1px 6px; border-radius: 8px; background: var(--inv); color: #fff; font-size: 10px; font-weight: 600; }
+.dv-garage .dv-status { display: none; }
+@media (min-width: 600px) and (min-height: 640px) { .dv-garage .dv-status { display: flex; } }
+.dv.is-garage .dv-cat { opacity: 0; }

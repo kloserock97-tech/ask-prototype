@@ -1,4 +1,6 @@
 import { Cat } from './cat'
+import { Garage, car, carSrc } from './garage'
+import { sticker, type StickerId } from './stickers'
 
 // #/drive — flow 5 of the Figma page (46:2), entered from the menu (8.1 + a «В дорогу» row).
 // No character and no showy motion on the road: Ась is a voice, a status line in the island and big buttons.
@@ -121,6 +123,10 @@ export class DrivePage {
   private queued: (() => void) | null = null
   private popTimer = 0
   private idle = 'Ась слушает'
+  private fromChat = false // the route came from a place in the chat: Карты show «◀ Ась»
+  private pendingTrip = false // waiting for the permissions sheet before the route
+  private trip = { voice: false, rate: false, hl: false, hlLater: false }
+  private garage = new Garage(() => { this.root.classList.remove('is-garage'); this.paintCar() })
 
   constructor() {
     this.root = document.createElement('div')
@@ -133,6 +139,7 @@ export class DrivePage {
     <div class="dv-search">${I.search}<span>Поиск по разговорам</span></div>
     <button class="dv-row">${I.compose}<span>Новый чат</span></button>
     <button class="dv-row" data-act="drive">${I.car}<span>В дорогу</span><i class="dv-new">Новое</i></button>
+    <button class="dv-row" data-act="garage"><img class="dv-row-car" alt=""><span>Гараж</span></button>
     <p class="dv-label">Закреплённые</p>
     <button class="dv-item"><span>Подарок маме к 14 ноября</span></button>
     <p class="dv-label">Разговоры</p>
@@ -150,8 +157,9 @@ export class DrivePage {
       <span class="dv-pill"><button aria-label="Новый чат">${I.compose}</button><button aria-label="Ещё">${I.more}</button></span>
     </header>
     <h1 class="dv-hello">Чем помочь?</h1>
+    <div class="dv-thread" aria-live="polite"></div>
     <div class="dv-sugg">
-      <button class="dv-card"><b>Новости дня</b><span>коротко</span></button>
+      <button class="dv-card" data-act="flight"><b>Рейс из Пулково</b><span>завтра в 15:40</span></button>
       <button class="dv-card"><b>Ставка ЦБ</b><span>что дальше</span></button>
     </div>
     <div class="dv-input">
@@ -187,7 +195,8 @@ export class DrivePage {
     </div>
   </section>
   <section class="dv-maps" aria-label="Навигатор" aria-hidden="true">
-    <div class="dv-map">${MAP}<i class="dv-puck"></i></div>
+    <div class="dv-status is-dark" aria-hidden="true"><b><span class="dv-crumb">◀ Ась</span><span class="dv-time">9:41</span></b><span><i class="dv-sig"></i><i class="dv-bat"></i></span></div>
+    <div class="dv-map">${MAP}<span class="dv-carw"><img class="dv-car" alt="Ваша машинка"></span></div>
     <div class="dv-mbtns" aria-hidden="true"><i>+</i><i>−</i><i>◎</i></div>
     <div class="dv-man"><span class="dv-man-ic"></span><span><b class="dv-dist"></b><small class="dv-to"></small></span></div>
     <div class="dv-speed" aria-hidden="true"><i>90</i><span><b>72</b> км/ч</span></div>
@@ -221,6 +230,7 @@ export class DrivePage {
   </div>
   <div class="dv-adim"></div>
   <div class="dv-alert" role="alertdialog" aria-modal="true" aria-hidden="true"></div>
+  <button class="dv-push" data-act="push" aria-hidden="true"><i class="dv-push-ic" aria-hidden="true">А</i><span><b>Пора выезжать в Пулково</b><small>Рейс в 15:40. С пробками 34 минуты, маршрут готов</small></span><em>сейчас</em></button>
   <div class="dv-toast" role="status"></div>
 </div>
 <aside class="dv-say" aria-label="Сказать голосом">
@@ -229,6 +239,8 @@ export class DrivePage {
   <p class="dv-say-note">Вместо микрофона. Кнопки на экране работают так же</p>
 </aside>`
     this.q('.dv-phone').append(this.cat.el)
+    this.q('.dv-toast').before(this.garage.el)
+    this.paintCar()
     this.root.addEventListener('click', (e) => this.click(e))
     addEventListener('keydown', this.onKey)
     this.ro = new ResizeObserver(() => this.placeCat())
@@ -245,6 +257,7 @@ export class DrivePage {
     clearTimeout(this.popTimer)
     this.audio.pause()
     this.ro.disconnect()
+    this.garage.destroy()
     this.cat.destroy()
     removeEventListener('keydown', this.onKey)
   }
@@ -260,11 +273,16 @@ export class DrivePage {
     else if (a === 'drive') this.enter()
     else if (a === 'exit') this.exit()
     else if (a === 'sheet-go') this.sheetGo()
-    else if (a === 'sheet-later') this.sheet(false)
+    else if (a === 'sheet-later') { this.pendingTrip = false; this.sheet(false) }
     else if (a === 'alert') this.answer(el.dataset.k as Perm, el.dataset.yes === '1')
     else if (a === 'island') this.islandTap()
     else if (a === 'say-toggle') this.root.classList.toggle('is-say')
     else if (a === 'nope') this.toast('В демо маршрут есть только в Пулково')
+    else if (a === 'flight') this.flight()
+    else if (a === 'go-route' || a === 'push') this.tripFromChat()
+    else if (a === 'remind') this.remind()
+    else if (a === 'garage') this.openGarage()
+    else if (a === 'watch') this.toast('Откроется в приложении видео: машина стоит')
   }
 
   private key(e: KeyboardEvent) {
@@ -307,7 +325,7 @@ export class DrivePage {
       return this.openShow()
     }
     if (k === 'passenger') return this.openVideo()
-    if (k === 'later') { this.idle = 'Тизер покажу на стоянке'; return this.rest() }
+    if (k === 'later') { this.idle = 'Тизер покажу на стоянке'; this.trip.hlLater = true; return this.rest() }
   }
 
   // which phrases make sense right now: the rest are greyed out in the voice panel
@@ -347,13 +365,80 @@ export class DrivePage {
   }
 
   private exit(msg = 'Режим «В дороге» выключен') {
+    const drove = this.routing
     this.clear()
     clearInterval(this.tick)
     this.audio.pause()
-    Object.assign(this, { routing: false, topic: null, speaking: false, held: false, asked: false, queued: null, quiet: false, toldTurn: false, idle: 'Ась слушает' })
+    Object.assign(this, { routing: false, topic: null, speaking: false, held: false, asked: false, queued: null, quiet: false, toldTurn: false, idle: 'Ась слушает', pendingTrip: false })
     this.sheet(false)
     this.mode('chat')
-    this.toast(msg)
+    if (drove) this.summary()
+    else this.toast(msg)
+  }
+
+  // ---------- the ecosystem: chat → Карты before the trip, Карты → chat after it ----------
+  // a place named in the conversation becomes a card with «Поехали» (Яндекс «Спросить AI», Ask Maps)
+  private flight() {
+    this.thread(`<div class="dv-msg dv-msg--me">Завтра лечу из Пулково в 15:40</div>
+<div class="dv-msg dv-msg--as"><p>До Пулково сейчас 34 минуты. На регистрацию лучше успеть к 14:00, так что выезжайте около 13:00.</p>
+<div class="dv-placecard"><div class="dv-pc-map">${MAP}</div><div class="dv-pc-body"><b>Пулково, терминал 1</b><small>34 мин · 28 км · пробки 4 балла</small>
+<div class="dv-pc-act"><button class="dv-pill-btn dv-pill-btn--dark" data-act="go-route">${I.car}<span>Поехали</span></button><button class="dv-pill-btn" data-act="remind">Напомнить выехать</button></div></div></div></div>`)
+  }
+
+  // «пора выезжать»: Карты count the traffic, the push leads straight into the ready route (Apple Time to Leave)
+  private remind() {
+    this.toast('Напомню, когда пора выезжать')
+    window.setTimeout(() => {
+      if (this.root.dataset.mode !== 'chat') return
+      const p = this.q<HTMLElement>('.dv-push')
+      p.classList.add('is-on')
+      p.setAttribute('aria-hidden', 'false')
+      window.setTimeout(() => { p.classList.remove('is-on'); p.setAttribute('aria-hidden', 'true') }, 7000)
+    }, 2600)
+  }
+
+  private tripFromChat() {
+    this.q('.dv-push').classList.remove('is-on')
+    this.fromChat = true
+    this.trip = { voice: false, rate: false, hl: false, hlLater: false }
+    this.root.classList.remove('is-menu')
+    if (!PERMS.every((p) => granted[p.k] === 'ok')) { this.pendingTrip = true; this.enter(); return }
+    this.startRoute()
+  }
+
+  // «Пока вы ехали»: what waited for the stop, the trip in one line, new stickers (given only now, parked)
+  private summary() {
+    const got: StickerId[] = []
+    const give = (id: StickerId, ok: boolean) => { if (ok && !car.earned.has(id)) { car.earned.add(id); car.fresh.add(id); got.push(id) } }
+    give('hello', true)
+    give('voice', this.trip.voice)
+    give('early', this.fromChat)
+    const rows = [`<li><b>Пулково, терминал 1</b><span>28 км · 34 мин, доехали</span></li>`]
+    if (this.trip.rate) rows.push(`<li><b>Ставка ЦБ: 14%</b><span>до 18 декабря. Три экрана сохранил здесь</span></li>`)
+    if (this.trip.hl) rows.push(`<li><b>Half-Life 3</b><span>${this.trip.hlLater ? 'тизер ждал стоянки' : 'Valve молчит, есть слух про HLX'}</span>${this.trip.hlLater ? '<button class="dv-pill-btn" data-act="watch">Смотреть</button>' : ''}</li>`)
+    const st = got.length ? `<div class="dv-sum-st"><span class="dv-sum-icons">${got.map((id) => `<i title="${sticker(id).name}">${sticker(id).svg}</i>`).join('')}</span><span><b>${got.length === 1 ? 'Новая наклейка' : 'Новые наклейки'}</b><small>${got.map((id) => sticker(id).name).join(' · ')}</small></span><button class="dv-pill-btn dv-pill-btn--dark" data-act="garage">Наклеить</button></div>` : ''
+    this.thread(`<div class="dv-msg dv-msg--as"><div class="dv-sum"><p class="dv-sum-k"><img alt="" src="${carSrc('top')}">Пока вы ехали</p><ul>${rows.join('')}</ul>${st}</div></div>`)
+    this.fromChat = false
+  }
+
+  private thread(html: string) {
+    const t = this.q<HTMLElement>('.dv-thread')
+    t.insertAdjacentHTML('beforeend', html)
+    this.q('.dv-chat').classList.add('has-thread')
+    t.scrollTop = t.scrollHeight
+  }
+
+  // the garage is a chat screen: it opens only while parked, never from the road
+  private openGarage() {
+    if (this.root.dataset.mode !== 'chat') { this.toast('Гараж откроется на стоянке'); return }
+    this.menu(false)
+    this.garage.open()
+    this.root.classList.add('is-garage')
+  }
+
+  private paintCar() {
+    this.q<HTMLImageElement>('.dv-car').src = carSrc('top')
+    this.q<HTMLImageElement>('.dv-row-car').src = carSrc('top')
   }
 
   private mode(m: Mode) {
@@ -368,17 +453,24 @@ export class DrivePage {
   private heard() {
     this.q('.dv-heard').textContent = '«В Пулково, терминал 1»'
     this.q('.dv-place[data-say="dest"]').classList.add('is-on')
+    this.trip = { voice: false, rate: false, hl: false, hlLater: false }
     this.later(900, () => {
       this.q('.dv-place[data-say="dest"]').classList.remove('is-on')
-      this.routing = true
-      this.turn = 0
-      this.dist = TURNS[0].d
-      this.paintTurn()
-      clearInterval(this.tick)
-      this.tick = window.setInterval(() => this.drive(), 1000)
-      this.mode('maps')
-      this.pop({ label: 'Маршрут построен', main: 'Пулково, терминал 1 · 34 мин', ms: 3500 })
+      this.startRoute()
     })
+  }
+
+  private startRoute() {
+    this.routing = true
+    this.turn = 0
+    this.dist = TURNS[0].d
+    this.paintTurn()
+    clearInterval(this.tick)
+    this.tick = window.setInterval(() => this.drive(), 1000)
+    this.paintCar()
+    this.q('.dv-maps').classList.toggle('from-chat', this.fromChat)
+    this.mode('maps')
+    this.pop({ label: 'Маршрут построен', main: 'Пулково, терминал 1 · 34 мин', ms: 3500 })
   }
 
   // the car moves: the next manoeuvre gets closer once a second (numbers change, nothing slides)
@@ -388,7 +480,7 @@ export class DrivePage {
       this.turn = (this.turn + 1) % TURNS.length
       this.dist = TURNS[this.turn].d
       this.quiet = false
-      this.later(1200, () => this.afterTurn())
+      window.setTimeout(() => this.afterTurn(), 1200) // not in this.timers: screen changes must not lose the resume
     } else if (this.dist <= ZONE && !this.quiet) {
       this.quiet = true
       this.beforeTurn()
@@ -467,6 +559,7 @@ export class DrivePage {
     // the demo brings the next turn into the middle of the first chunk, to show the pause
     if (i === 0 && this.dist > ZONE + SPEED * 6) this.dist = ZONE + SPEED * 6
     this.paintTurn()
+    if (i === 0) { this.trip.voice = true; this.trip[t === 'rate' ? 'rate' : 'hl'] = true }
     this.audio.src = `./voice/${TALK[t][i].id}.mp3`
     this.audio.currentTime = 0
     this.resume()
@@ -539,6 +632,7 @@ export class DrivePage {
   // ---------- the island: Ась's Live Activity. Over Ась's own screens the navigator's one shows the turn ----------
   private pop(p: Pop | null) {
     clearTimeout(this.popTimer)
+    this.q('.dv-carw').classList.toggle('is-ai', this.speaking || this.asked)
     const el = this.q<HTMLElement>('.dv-isl')
     if (!p) { el.dataset.s = 'compact'; this.paintIsland(); return }
     el.dataset.s = 'open'
@@ -551,6 +645,8 @@ export class DrivePage {
   }
 
   private paintIsland() {
+    // Ась speaks or waits for a yes: a quiet ring under the car, no pulse
+    this.q('.dv-carw').classList.toggle('is-ai', this.speaking || this.asked)
     const el = this.q<HTMLElement>('.dv-isl')
     this.paintSay()
     if (el.dataset.s === 'open') return
@@ -604,7 +700,11 @@ export class DrivePage {
 
   private next() {
     const p = PERMS.find((x) => granted[x.k] === 'need')
-    if (!p) { this.sheet(false); return }
+    if (!p) {
+      this.sheet(false)
+      if (this.pendingTrip) { this.pendingTrip = false; this.startRoute() }
+      return
+    }
     this.later(200, () => this.alert(p))
   }
 
