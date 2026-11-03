@@ -420,8 +420,7 @@
 .dv-al-text b { font-size: 17px; line-height: 22px; font-weight: 600; }
 .dv-al-text span { font-size: 13px; line-height: 18px; }
 .dv-al-map { position: relative; height: 140px; overflow: hidden; }
-.dv .dv-al-map .dv-map-svg { position: absolute; width: 340px; height: 736px; left: -35px; top: -440px; }
-.dv-al-map .dv-route, .dv-al-map .dv-route-case, .dv-al-map .dv-route-dot { display: none; }
+.dv-al-map .dv-mapimg { object-position: 50% 62%; }
 .dv-al-map .dv-puck { top: 50%; }
 .dv-al-map em { position: absolute; left: 10px; top: 10px; padding: 4px 10px; border-radius: 100px; background: rgb(255 255 255 / 0.92); color: #007aff; font: 600 12px/16px -apple-system, 'Inter', sans-serif; font-style: normal; }
 .dv-al-btns { display: flex; border-top: 0.5px solid rgb(60 60 67 / 0.29); }
@@ -437,11 +436,12 @@
 /* ---------- the navigator: our own neutral one, the route already laid ---------- */
 .dv-maps { z-index: 4; background: #1d2026; overflow: hidden; }
 .dv-map { position: absolute; inset: 0; }
-.dv .dv-map3d { width: 100%; height: 100%; display: block; stroke: none; }
+/* the map picture fills the screen from the bottom: the route starts under the car */
+.dv-mapimg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 100%; user-select: none; }
+.dv-carw { position: absolute; left: calc(50% - 60px); top: calc(72% - 70px); width: 120px; height: 100px; pointer-events: none; }
+.dv .dv-car3d { width: 100%; height: 100%; display: block; stroke: none; overflow: visible; }
 .dv-ai-ring { opacity: 0; transition: opacity 150ms var(--ease-out); }
 .dv-maps.is-ai .dv-ai-ring { opacity: 1; }
-/* .dv .dv-map-svg beats the 24px icon rule above; stroke: none keeps the icon stroke off the map rects */
-.dv .dv-map-svg { width: 100%; height: 100%; display: block; stroke: none; }
 .dv-puck {
   position: absolute;
   left: 50%;
@@ -691,7 +691,7 @@
 .dv-msg--as { display: flex; flex-direction: column; gap: calc(var(--u) * 3); }
 .dv-placecard, .dv-sum { border-radius: 22px; background: var(--bg); box-shadow: var(--lift); overflow: hidden; flex: none; }
 .dv-pc-map { height: 96px; position: relative; overflow: hidden; }
-.dv .dv-pc-map .dv-map-svg { position: absolute; width: 100%; height: 420px; top: -150px; }
+.dv-pc-map .dv-mapimg { object-position: 50% 22%; }
 .dv-pc-body { padding: calc(var(--u) * 3) calc(var(--u) * 4) calc(var(--u) * 4); display: flex; flex-direction: column; gap: 2px; }
 .dv-pc-body b { font-size: 17px; line-height: 24px; font-weight: 600; }
 .dv-pc-body small { font-size: 15px; line-height: 20px; color: var(--t2); }

@@ -1,6 +1,6 @@
 import { Cat } from './cat'
 import { Garage, car, carSrc, COLORS } from './garage'
-import { map3d } from './map3d'
+import { carSvg } from './car3d'
 import { sticker, type StickerId } from './stickers'
 
 // #/drive — flow 5 of the Figma page (46:2), entered from the menu (8.1 + a «В дорогу» row).
@@ -34,18 +34,10 @@ const I = {
   play: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>`,
 }
 
-// the map: our own street grid with the route already laid, 390 × 844 like the Figma navigator
-const MAP = (() => {
-  const xs = [-20, 70, 270, 360], ys = [120, 300, 470, 640, 800]
-  const streets = xs.map((x) => `<rect x="${x}" y="-20" width="12" height="900"/>`).join('') + ys.map((y) => `<rect x="-20" y="${y}" width="430" height="12"/>`).join('')
-  const road = 'M195 900V430C195 340 228 300 290 262L430 176'
-  return `<svg class="dv-map-svg" viewBox="0 0 390 844" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-<rect width="390" height="844" fill="#1d2026"/><g fill="#272b33">${streets}</g>
-<path d="${road}" stroke="#30353f" stroke-width="26" fill="none"/>
-<path class="dv-route" d="${road}" stroke="#163a57" stroke-width="18" fill="none" stroke-linecap="round"/>
-<path class="dv-route" d="${road}" stroke="#4fb4ff" stroke-width="10" fill="none" stroke-linecap="round"/>
-<circle class="dv-route" cx="195" cy="420" r="7" fill="#f5a524" stroke="#1d2026" stroke-width="3"/></svg>`
-})()
+// the map is a picture in the style of city map apps (generated, public/car/map-night.webp):
+// the route is drawn in it, our SVG car and the interface lie on top
+const MAP_SRC = './car/map-night.webp'
+const MAP = `<img class="dv-mapimg" src="${MAP_SRC}" alt="" draggable="false">`
 
 const PERMS: { k: Perm; t: string; sub: string; title: string; msg: string; btns: string[] }[] = [
   { k: 'mic', t: 'Микрофон', sub: 'слышать адрес и вопросы', title: 'Приложение «Ась» запрашивает доступ к микрофону', msg: 'Чтобы слышать адрес и вопросы, пока вы за рулём', btns: ['Не разрешать', 'Разрешить'] },
@@ -433,7 +425,7 @@ export class DrivePage {
 
   private paintCar() {
     // the 3D navigator is one SVG frame with the car in it: a new colour or body redraws it
-    this.q('.dv-map').innerHTML = map3d(COLORS.find((c) => c.id === car.color)!.hex, car.body)
+    this.q('.dv-map').innerHTML = `${MAP}<span class="dv-carw">${carSvg(COLORS.find((c) => c.id === car.color)!.hex, car.body)}</span>`
     this.q<HTMLImageElement>('.dv-row-car').src = carSrc('top')
   }
 
