@@ -12,7 +12,7 @@ type Mode = 'chat' | 'maps' | 'video'
 type Perm = 'mic' | 'speech' | 'notif'
 type Grant = 'need' | 'ok' | 'off'
 type Topic = 'rate' | 'hl3'
-type Say = 'dest' | 'rate' | 'hl3' | 'yes' | 'no' | 'show' | 'next' | 'stop' | 'passenger' | 'sound' | 'route' | 'other' | 'end' | 'turn'
+type Say = 'dest' | 'rate' | 'hl3' | 'yes' | 'no' | 'show' | 'next' | 'stop' | 'watch' | 'sound' | 'route' | 'other' | 'end' | 'turn'
 
 const I = {
   menu: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h16M4 15h16"/></svg>`,
@@ -84,6 +84,7 @@ const SAY: { k: Say; t: string; sim?: true }[] = [
   { k: 'show', t: 'Покажи' },
   { k: 'next', t: 'Дальше' },
   { k: 'stop', t: 'Стоп' },
+  { k: 'watch', t: 'Всё равно покажи' },
   { k: 'route', t: 'Сверни' },
   { k: 'turn', t: 'Поворот через 150 м', sim: true },
 ]
@@ -118,13 +119,15 @@ export class DrivePage {
   private fromChat = false // the route came from a place in the chat: Карты show «◀ Ась»
   private pendingTrip = false // waiting for the permissions sheet before the route
   private trip = { voice: false, rate: false, hl: false, hlLater: false }
+  private guard = false // the video question is on screen
   private garage = new Garage(() => { this.root.classList.remove('is-garage'); this.paintCar() })
 
   constructor() {
     this.root = document.createElement('div')
     this.root.className = 'dv'
     this.root.dataset.mode = 'chat'
-    const status = (cls: string) => `<div class="dv-status ${cls}" aria-hidden="true"><b>9:41</b><span><i class="dv-sig"></i><i class="dv-bat"></i></span></div>`
+    this.root.dataset.dev = 'island'
+    const status = (cls: string, back = '') => `<div class="dv-status ${cls}" aria-hidden="true"><b>${back ? `<span class="dv-back" data-act="back">◀ ${back}</span>` : '9:41'}</b><span><i class="dv-sig"></i><i class="dv-bat"></i></span></div>`
     this.root.innerHTML = `
 <div class="dv-phone">
   <nav class="dv-menu" aria-label="Меню" aria-hidden="true">
@@ -182,7 +185,7 @@ export class DrivePage {
     </div>
   </section>
   <section class="dv-video" aria-label="Видео" aria-hidden="true">
-    ${status('is-dark')}
+    ${status('is-dark', 'Карты')}
     <div class="dv-vbar">${I.search}<span>Half-Life 3 тизер</span></div>
     <div class="dv-player"><span class="dv-play">${I.play}</span><b>Half-Life 3 · тизер</b><small>ролик фанатов · 1:42</small></div>
     <p class="dv-vnote">Официального тизера нет: Valve ничего не объявляла. Это ролики фанатов</p>
@@ -197,6 +200,7 @@ export class DrivePage {
     <span class="dv-isl-ic"></span>
     <span class="dv-isl-text"><small></small><b></b></span>
     <span class="dv-isl-chips"></span>
+    <span class="dv-isl-tr" aria-hidden="true"></span>
   </div>
   <div class="dv-sdim" data-act="sheet-later"></div>
   <div class="dv-sheet" role="dialog" aria-modal="true" aria-label="Разрешения" aria-hidden="true">
@@ -213,7 +217,7 @@ export class DrivePage {
 </div>
 <aside class="dv-say" aria-label="Сказать голосом">
   <button class="dv-say-head" data-act="say-toggle">${I.mic}<span>Сказать голосом</span></button>
-  <div class="dv-say-list">${SAY.map((s) => `<button data-say="${s.k}"${s.sim ? ' class="is-sim"' : ''}>${s.sim ? '' : '«'}${s.t}${s.sim ? '' : '»'}</button>`).join('')}</div>
+  <div class="dv-say-list"><div class="dv-dev" role="group" aria-label="Модель iPhone"><button data-act="dev" data-dev="island" class="is-on">С островом</button><button data-act="dev" data-dev="notch">Без острова</button></div>${SAY.map((s) => `<button data-say="${s.k}"${s.sim ? ' class="is-sim"' : ''}>${s.sim ? '' : '«'}${s.t}${s.sim ? '' : '»'}</button>`).join('')}</div>
   <p class="dv-say-note">Вместо микрофона. Кнопки на экране работают так же</p>
 </aside>`
     this.q('.dv-phone').append(this.cat.el)
@@ -254,7 +258,12 @@ export class DrivePage {
     else if (a === 'sheet-later') { this.pendingTrip = false; this.sheet(false) }
     else if (a === 'alert') this.answer(el.dataset.k as Perm, el.dataset.yes === '1')
     else if (a === 'island') this.islandTap()
+    else if (a === 'back') this.toRoute()
     else if (a === 'say-toggle') this.root.classList.toggle('is-say')
+    else if (a === 'dev') {
+      this.root.dataset.dev = el.dataset.dev
+      for (const b of this.root.querySelectorAll<HTMLElement>('[data-act="dev"]')) b.classList.toggle("is-on", b === el)
+    }
     else if (a === 'nope') { this.clear(); this.q('.dv-auto').textContent = ''; this.toast('В демо маршрут есть только в Пулково') }
     else if (a === 'flight') this.flight()
     else if (a === 'go-route' || a === 'push') this.tripFromChat()
@@ -293,15 +302,16 @@ export class DrivePage {
       this.audio.pause()
       this.speaking = this.held = this.asked = false
       if (this.topic === 'hl3') {
-        // NHTSA and ПДД: no video for the driver while moving. The passenger or a stop opens it
-        // the alternative comes first: sound now, the picture on the stop; a passenger can still watch
-        return this.pop({ label: 'Видео за рулём не включаю', main: 'Включить только звук? Картинку покажу на стоянке', chips: [['sound', 'Только звук']], alt: ['passenger', 'Я пассажир'], ms: 9000 })
+        // video at the wheel distracts (NHTSA: no video for the driver), so sound is offered first,
+        // but the choice is the person's: the picture is one equal tap away (a passenger, a jam, a stop)
+        this.guard = true
+        return this.pop({ label: 'Видео на ходу', main: 'Включить только звук? Картинку можно и сейчас', chips: [['sound', 'Только звук'], ['watch', 'Показать видео']], ms: 9000 })
       }
       this.pop(null)
       return this.openCard()
     }
-    if (k === 'passenger') return this.openVideo()
-    if (k === 'sound') { this.idle = 'Тизер · звук'; this.trip.hlLater = true; this.toast('Звук тизера, картинка на стоянке'); return this.rest() }
+    if (k === 'watch') { this.guard = false; return this.openVideo() }
+    if (k === 'sound') { this.guard = false; this.idle = 'Тизер · звук'; this.trip.hlLater = true; this.toast('Звук тизера, картинка на стоянке'); return this.rest() }
   }
 
   // which phrases make sense right now: the rest are greyed out in the voice panel
@@ -316,11 +326,12 @@ export class DrivePage {
     if (k === 'yes' || k === 'no') return this.asked
     if (k === 'show') return !!this.topic && m === 'maps' && !this.cardOn
     if (k === 'stop') return this.speaking || this.held || this.asked
+    if (k === 'watch') return this.guard
     return true
   }
 
   private paintSay() {
-    for (const b of this.root.querySelectorAll<HTMLButtonElement>('.dv-say-list button')) b.disabled = !this.can(b.dataset.say as Say)
+    for (const b of this.root.querySelectorAll<HTMLButtonElement>('.dv-say-list button[data-say]')) b.disabled = !this.can(b.dataset.say as Say)
   }
 
   // ---------- menu and mode ----------
@@ -636,6 +647,7 @@ export class DrivePage {
   // ---------- the island: Ась's Live Activity. Over Ась's own screens the navigator's one shows the turn ----------
   private pop(p: Pop | null) {
     clearTimeout(this.popTimer)
+    if (p?.chips?.[1]?.[0] !== 'watch') this.guard = false
     this.q('.dv-maps').classList.toggle('is-ai', this.speaking || this.asked)
     const el = this.q<HTMLElement>('.dv-isl')
     if (!p) { el.dataset.s = 'compact'; this.paintIsland(); return }
@@ -656,7 +668,8 @@ export class DrivePage {
     if (el.dataset.s === 'open') return
     el.dataset.s = 'compact'
     const text = this.held ? 'Пауза · поворот' : this.speaking && this.topic ? TALK[this.topic][this.chunk].title : this.idle
-    this.q('.dv-isl-ic').innerHTML = this.held ? I.pause : this.speaking ? I.speaker : I.mic
+    this.q('.dv-isl-ic').innerHTML = '<i class="dv-isl-mark">А</i>'
+    this.q('.dv-isl-tr').innerHTML = this.held ? I.pause : this.speaking ? I.speaker : I.mic
     this.q('.dv-isl-text small').textContent = ''
     this.q('.dv-isl-text b').textContent = text
     this.q('.dv-isl-chips').innerHTML = ''
