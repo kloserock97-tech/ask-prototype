@@ -260,7 +260,7 @@
 .dv-me svg { width: 22px; height: 22px; }
 
 /* ---------- on the road: no character, no showy motion. Screens swap with a short fade or at once ---------- */
-.dv-drive, .dv-maps, .dv-video {
+.dv-maps, .dv-video {
   position: absolute;
   inset: 0;
   color: #fff;
@@ -268,78 +268,8 @@
   visibility: hidden;
   transition: opacity 160ms var(--ease-out), visibility 0s linear 160ms;
 }
-.dv[data-mode='drive'] .dv-drive,
 .dv[data-mode='maps'] .dv-maps,
 .dv[data-mode='video'] .dv-video { opacity: 1; visibility: visible; transition: opacity 160ms var(--ease-out); }
-.dv-drive {
-  z-index: 2;
-  background: #000;
-  padding: var(--top) calc(var(--u) * 4) var(--bot);
-  display: flex;
-  flex-direction: column;
-}
-.dv-dhead { display: flex; align-items: center; justify-content: space-between; margin-top: var(--u); }
-.dv-chip {
-  height: calc(var(--u) * 11);
-  padding: 0 calc(var(--u) * 3);
-  border-radius: calc(var(--u) * 6);
-  background: var(--d-surface);
-  display: inline-flex;
-  align-items: center;
-  gap: calc(var(--u) * 2);
-  font-size: 15px;
-  line-height: 20px;
-  font-weight: 600;
-}
-.dv-chip svg { width: calc(var(--u) * 5); height: calc(var(--u) * 5); }
-.dv-chip svg:last-child { width: 18px; height: 18px; }
-/* the navigator is connected: only once a route runs */
-.dv-conn { display: none; align-items: center; gap: calc(var(--u) * 1.5); height: calc(var(--u) * 8); padding: 0 calc(var(--u) * 3); border-radius: calc(var(--u) * 4); background: rgb(79 180 255 / 0.16); color: #8fd0ff; font-size: 13px; font-weight: 600; }
-.dv-conn svg { width: 16px; height: 16px; }
-.dv-drive[data-view='rate'] .dv-conn { display: inline-flex; }
-
-/* 5.1 «Куда едем?»: the question, what was heard and big places to tap */
-.dv-dest, .dv-show { display: none; flex: 1; flex-direction: column; min-height: 0; }
-.dv-drive[data-view='dest'] .dv-dest, .dv-drive[data-view='rate'] .dv-show { display: flex; }
-.dv-q { margin: calc(var(--u) * 10) 0 0; font-size: 34px; line-height: 41px; font-weight: 600; letter-spacing: -0.01em; }
-.dv-heard { margin: calc(var(--u) * 2) 0 0; font-size: 20px; line-height: 26px; color: var(--d-t2); }
-.dv-places { margin-top: auto; display: flex; flex-direction: column; gap: calc(var(--u) * 2); }
-.dv-place {
-  min-height: calc(var(--u) * 24);
-  padding: 0 calc(var(--u) * 6);
-  border-radius: calc(var(--R) - var(--u) * 4);
-  background: var(--d-surface);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: calc(var(--u) * 4);
-  text-align: left;
-}
-.dv-place b { font-size: 22px; line-height: 28px; font-weight: 600; }
-.dv-place span { font-size: 17px; line-height: 22px; color: var(--d-t2); font-variant-numeric: tabular-nums; white-space: nowrap; }
-/* the likeliest place is marked by colour, not by size */
-.dv-place.is-first { background: rgb(79 180 255 / 0.18); }
-.dv-place.is-first span { color: #8fd0ff; }
-.dv-place.is-on { background: #fff; color: var(--t1); }
-.dv-place.is-on span { color: var(--t2); }
-
-/* «Покажи»: one big fact per screen, the next by «Дальше» */
-.dv-body { flex: 1; min-height: 0; overflow: auto; margin: 0 calc(var(--u) * -4); padding: calc(var(--u) * 10) calc(var(--u) * 4) calc(var(--u) * 6); }
-.dv-kicker { margin: 0; font-size: 17px; line-height: 24px; color: var(--d-t2); }
-.dv-big { display: block; margin-top: calc(var(--u) * 2); font-size: 112px; line-height: 112px; font-weight: 600; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
-.dv-line { margin: calc(var(--u) * 3) 0 0; font-size: 22px; line-height: 30px; color: var(--d-t2); }
-.dv-sh { margin: calc(var(--u) * 12) 0 calc(var(--u) * 4); font-size: 13px; line-height: 18px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--t3); }
-.dv-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: calc(var(--u) * 4); }
-.dv-rows li { display: flex; flex-direction: column; gap: 2px; }
-.dv-rows b { font-size: 22px; line-height: 28px; font-weight: 600; }
-.dv-rows span { font-size: 17px; line-height: 24px; color: var(--d-t2); }
-.dv-next { margin: 0; display: flex; flex-direction: column; gap: 2px; }
-.dv-next b { font-size: 34px; line-height: 41px; font-weight: 600; font-variant-numeric: tabular-nums; }
-.dv-next span { font-size: 17px; line-height: 24px; color: var(--d-t2); }
-.dv-actions { flex: none; padding-top: calc(var(--u) * 3); }
-.dv-actions .dv-btn--primary { height: calc(var(--u) * 16); border-radius: calc(var(--R) - var(--u) * 4); font-size: 20px; line-height: 26px; }
-.dv-btn[hidden] { display: none; }
-.dv-btn--dark { background: var(--d-surface); color: #fff; }
 
 /* ---------- the permissions sheet: ours, dark like the mode: ours, dark like the mode ---------- */
 .dv-sdim, .dv-adim {
@@ -456,44 +386,104 @@
   box-shadow: 0 0 0 3px rgb(0 0 0 / 0.35);
 }
 .dv-puck::after { content: ''; position: absolute; inset: 7px 8px 8px; background: #1d2026; clip-path: polygon(50% 0, 100% 100%, 50% 74%, 0 100%); }
-.dv-mbtns { position: absolute; right: calc(var(--u) * 3); top: 39%; display: flex; flex-direction: column; gap: calc(var(--u) * 2); }
-.dv-mbtns i { width: calc(var(--u) * 12); height: calc(var(--u) * 12); border-radius: 50%; background: #262a31; display: grid; place-items: center; font-style: normal; font-size: 20px; color: #d7dae0; }
+/* the manoeuvre: a full-width banner on top, like Apple and Google Maps; the distance is the biggest thing on screen */
 .dv-man {
   position: absolute;
-  left: calc(var(--u) * 3);
-  top: calc(var(--top) + var(--u) * 14);
-  padding: calc(var(--u) * 4) calc(var(--u) * 6) calc(var(--u) * 4) calc(var(--u) * 4);
+  left: calc(var(--u) * 2);
+  right: calc(var(--u) * 2);
+  top: calc(var(--top) + var(--u) * 12);
+  min-height: calc(var(--u) * 22);
+  padding: calc(var(--u) * 3) calc(var(--u) * 5);
   border-radius: 26px;
-  background: #262a31;
+  background: #1f6f4a;
   display: flex;
   align-items: center;
-  gap: calc(var(--u) * 3.5);
+  gap: calc(var(--u) * 4);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.3);
 }
-.dv .dv-man-ic svg { width: 40px; height: 40px; }
-.dv-man > span:last-child { display: flex; flex-direction: column; }
-.dv-man b { font-size: 34px; line-height: 41px; font-weight: 600; font-variant-numeric: tabular-nums; }
-.dv-man small { font-size: 13px; line-height: 17px; color: #9aa0aa; }
-.dv-speed { position: absolute; left: calc(var(--u) * 3.5); bottom: calc(var(--bot) + 104px); display: flex; align-items: center; gap: calc(var(--u) * 2); }
-.dv-speed i { width: 54px; height: 54px; border-radius: 50%; background: #fff; box-shadow: inset 0 0 0 6px #e5484d; display: grid; place-items: center; color: #000; font: 600 20px/1 'Inter', sans-serif; font-style: normal; }
-.dv-speed span { height: 42px; padding: 0 calc(var(--u) * 3); border-radius: 21px; background: #262a31; display: flex; align-items: center; gap: 6px; font-size: 13px; color: #9aa0aa; }
-.dv-speed span b { font-size: 22px; color: #fff; font-weight: 600; }
+.dv .dv-man-ic svg { width: 44px; height: 44px; }
+.dv-man > span:last-child { display: flex; flex-direction: column; min-width: 0; }
+.dv-man b { font-size: 34px; line-height: 40px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.dv-man small { font-size: 17px; line-height: 22px; color: rgb(255 255 255 / 0.85); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* speed and the limit in one badge: the limit sits on the edge, the badge turns red only over the limit */
+.dv-speed { position: absolute; left: calc(var(--u) * 3); bottom: calc(var(--bot) + 76px); width: 56px; height: 56px; border-radius: 50%; background: #1f2229; display: grid; place-items: center; box-shadow: 0 4px 12px rgb(0 0 0 / 0.35); }
+.dv-speed b { font-size: 22px; line-height: 1; font-weight: 700; font-variant-numeric: tabular-nums; }
+.dv-speed i { position: absolute; right: -8px; top: -8px; width: 28px; height: 28px; border-radius: 50%; background: #fff; box-shadow: inset 0 0 0 3px #e5484d; display: grid; place-items: center; color: #000; font: 700 12px/1 'Inter', sans-serif; font-style: normal; }
+/* arrival: one slim line, the overview lives behind a swipe, not a button */
 .dv-eta {
   position: absolute;
   left: calc(var(--u) * 2);
   right: calc(var(--u) * 2);
   bottom: calc(var(--bot) - var(--u) * 2);
-  height: 96px;
-  padding: 0 calc(var(--u) * 5) 0 calc(var(--u) * 5.5);
-  border-radius: 26px;
-  background: #262a31;
+  height: 64px;
+  padding: 0 calc(var(--u) * 5);
+  border-radius: 22px;
+  background: #1f2229;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  align-items: baseline;
+  justify-content: center;
+  gap: calc(var(--u) * 3);
+  padding-top: 18px;
 }
-.dv-eta > span:first-child { display: flex; flex-direction: column; gap: 2px; }
-.dv-eta b { font-size: 28px; line-height: 34px; font-weight: 600; font-variant-numeric: tabular-nums; }
-.dv-eta small { font-size: 15px; line-height: 18px; color: #9aa0aa; }
-.dv-eta-btn { height: 48px; padding: 0 calc(var(--u) * 5); border-radius: 24px; background: #33373f; font-size: 15px; font-weight: 600; display: flex; align-items: center; }
+.dv-eta b { font-size: 24px; line-height: 28px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.dv-eta span { font-size: 17px; line-height: 22px; color: #9aa0aa; font-variant-numeric: tabular-nums; }
+.dv-maps.is-pick :is(.dv-man, .dv-speed, .dv-eta) { display: none; }
+
+/* «Куда едем?»: a sheet over the map, like Waze and Apple Maps; the likeliest place counts down by itself */
+.dv-pick {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: calc(var(--u) * 2) calc(var(--u) * 4) var(--bot);
+  border-radius: 28px 28px 0 0;
+  background: #16191f;
+  display: none;
+  flex-direction: column;
+  gap: calc(var(--u) * 2);
+  box-shadow: 0 -12px 32px rgb(0 0 0 / 0.35);
+}
+.dv-maps.is-pick .dv-pick { display: flex; }
+.dv-pick .dv-grip { align-self: center; }
+.dv-pick-h { display: flex; align-items: center; justify-content: space-between; padding: calc(var(--u) * 2) 0 var(--u); }
+.dv-pick-h h2 { margin: 0; font-size: 28px; line-height: 34px; font-weight: 700; }
+.dv-x { width: 36px; height: 36px; border-radius: 50%; background: #2a2e36; color: #c9ced8; display: grid; place-items: center; }
+.dv-x svg { width: 18px; height: 18px; }
+.dv-prow { min-height: 72px; padding: calc(var(--u) * 2) calc(var(--u) * 4); border-radius: 18px; background: #22262e; display: grid; grid-template-columns: 1fr auto; align-items: center; column-gap: calc(var(--u) * 3); text-align: left; }
+.dv-prow b { font-size: 20px; line-height: 26px; font-weight: 600; }
+.dv-prow-t { font-size: 17px; line-height: 22px; color: #9aa0aa; font-variant-numeric: tabular-nums; }
+.dv-prow.is-first { background: #1d3a5c; }
+.dv-prow.is-first .dv-prow-t { color: #8fd0ff; }
+.dv-auto { grid-column: 1 / -1; font-size: 13px; line-height: 18px; color: #8fd0ff; font-variant-numeric: tabular-nums; }
+.dv-auto:empty { display: none; }
+.dv-prow.is-on { background: #fff; color: var(--t1); }
+.dv-pick-hint { margin: var(--u) 0 0; display: flex; align-items: center; justify-content: center; gap: calc(var(--u) * 2); font-size: 15px; color: #9aa0aa; }
+.dv-pick-hint svg { width: 18px; height: 18px; }
+
+/* «Покажи»: a card over the map, above the arrival line; the turn banner stays on top */
+.dv-acard {
+  position: absolute;
+  left: calc(var(--u) * 2);
+  right: calc(var(--u) * 2);
+  bottom: calc(var(--bot) + 64px);
+  padding: calc(var(--u) * 4) calc(var(--u) * 5);
+  border-radius: 26px;
+  background: #fff;
+  color: var(--t1);
+  display: none;
+  flex-direction: column;
+  gap: var(--u);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.35);
+}
+.dv-maps.is-card .dv-acard { display: flex; }
+.dv-maps.is-card .dv-speed { display: none; }
+.dv-ac-k { margin: 0; font-size: 15px; line-height: 20px; color: var(--t2); }
+.dv-ac-row { display: flex; align-items: center; gap: calc(var(--u) * 3); }
+.dv-ac-n { font-size: 88px; line-height: 92px; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.dv-ac-pill { white-space: nowrap; padding: 4px 12px; border-radius: 100px; background: #eef1f5; font-size: 15px; font-weight: 600; color: var(--t2); }
+.dv-ac-l { margin: 0; font-size: 17px; line-height: 24px; color: var(--t2); }
+.dv-ac-btn { margin-top: calc(var(--u) * 3); height: 56px; border-radius: 28px; background: var(--inv); color: #fff; font-size: 17px; font-weight: 600; }
+.dv-ac-t { color: rgb(255 255 255 / 0.55); font-variant-numeric: tabular-nums; }
 
 /* ---------- the video app: neutral, stands for whatever the person has (ВК Видео and the like) ---------- */
 .dv-video { z-index: 4; background: #0f0f10; padding: var(--top) 0 var(--bot); display: flex; flex-direction: column; }
@@ -535,7 +525,6 @@
   font-variant-numeric: tabular-nums;
 }
 .dv .dv-navi-ic svg { width: 24px; height: 24px; color: #4fb4ff; display: block; }
-.dv[data-mode='drive'] .dv-drive[data-view='rate'] ~ .dv-navi,
 .dv[data-mode='video'] .dv-navi { display: flex; }
 .dv-isl {
   position: absolute;
@@ -578,6 +567,9 @@
 .dv-isl[data-s='open'] .dv-isl-chips:not(:empty) { display: flex; }
 .dv-isl-chips button { flex: 1 0 auto; min-width: calc(var(--u) * 18); height: calc(var(--u) * 13); padding: 0 calc(var(--u) * 4); border-radius: calc(var(--u) * 6.5); background: #2a2a2c; font-size: 17px; font-weight: 600; }
 .dv-isl-chips button:first-child { background: #fff; color: var(--t1); }
+.dv-isl-chips button { flex: 1 0 100%; height: 50px; }
+.dv-isl-chips button.is-alt { flex: 0 0 auto; height: 36px; background: none; color: #8fd0ff; padding: 0; font-size: 15px; }
+.dv-isl-hint { flex: 1 0 auto; align-self: center; font-size: 13px; line-height: 18px; color: rgb(255 255 255 / 0.55); }
 /* in the video app Ась is the minimal circle next to the navigator's island: a tap brings the route back */
 .dv[data-mode='video'] .dv-navi { translate: calc(-50% - 24px) 0; }
 .dv[data-mode='video'] .dv-isl[data-s='compact'] { left: auto; right: 24px; translate: none; min-width: 0; width: 37px; padding: 0; justify-content: center; }
@@ -656,31 +648,24 @@
 
 /* a short phone (SE and the like) */
 @media (max-height: 700px) and (min-height: 561px) {
-  .dv-q { margin-top: calc(var(--u) * 6); font-size: 32px; line-height: 38px; }
-  .dv-kicker { margin-top: calc(var(--u) * 6); }
-  .dv-big { font-size: 72px; line-height: 76px; }
-  .dv-place { min-height: calc(var(--u) * 16); }
+  .dv-prow { min-height: 60px; }
+  .dv-ac-n { font-size: 64px; line-height: 68px; }
   .dv-perms li { padding-block: calc(var(--u) * 2); }
   .dv-sheet { gap: calc(var(--u) * 3); }
 }
 
 /* a phone on its side */
 @media (max-height: 560px) {
-  .dv-q, .dv-kicker { margin-top: calc(var(--u) * 3); }
-  .dv-q { font-size: 28px; line-height: 34px; }
-  .dv-big { font-size: 56px; line-height: 60px; }
-  .dv-places { flex-direction: row; }
-  .dv-place { flex: 1; min-height: calc(var(--u) * 16); }
-  .dv-actions { flex-direction: row; }
-  .dv-actions .dv-btn, .dv-actions .dv-btn--primary { flex: 1; height: calc(var(--u) * 14); }
-  .dv-dots { display: none; }
+  .dv-pick { left: auto; right: calc(var(--u) * 2); bottom: calc(var(--u) * 2); width: min(380px, 50cqw); border-radius: 24px; padding-bottom: calc(var(--u) * 3); }
+  .dv-acard { right: auto; width: min(380px, 50cqw); }
+  .dv-ac-n { font-size: 56px; line-height: 60px; }
   .dv-hello { font-size: 24px; line-height: 32px; }
   .dv-sheet { left: 50%; right: auto; width: min(420px, 90cqw); translate: -50% 0; max-height: 100%; overflow: auto; }
   .dv-perms small { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dv-drive, .dv-maps, .dv-video, .dv-cat, .dv-cat.is-slide, .dv-chat, .dv-sheet { transition: none; }
+  .dv-maps, .dv-video, .dv-cat, .dv-cat.is-slide, .dv-chat, .dv-sheet { transition: none; }
 }
 
 /* ---------- the chat thread: a place from the conversation, «Пока вы ехали» ---------- */
@@ -755,9 +740,9 @@
 
 /* Карты opened from the chat: iOS puts «◀ Ась» in place of the time */
 .dv-maps .dv-status { z-index: 1; }
-.dv-crumb { display: none; font-size: 15px; }
-.dv-maps.from-chat .dv-crumb { display: inline; }
-.dv-maps.from-chat .dv-time { display: none; }
+.dv-status .dv-crumb { display: none; font-size: 15px; }
+.dv-maps.from-chat .dv-status .dv-crumb { display: inline; }
+.dv-maps.from-chat .dv-status .dv-time { display: none; }
 
 /* ---------- the garage: a chat screen, parked only. The car in the top 40%, one sheet below ---------- */
 .dv-garage {
@@ -813,3 +798,6 @@
 .dv-garage .dv-status { display: none; }
 @media (min-width: 600px) and (min-height: 640px) { .dv-garage .dv-status { display: flex; } }
 .dv.is-garage .dv-cat { opacity: 0; }
+
+/* notifications are offered after the trip, not before it */
+.dv-notif { margin: 0; padding-top: calc(var(--u) * 3); border-top: 1px solid #ececec; font-size: 15px; line-height: 20px; color: var(--t2); }
