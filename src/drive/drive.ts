@@ -1,6 +1,5 @@
 import { Cat } from './cat'
-import { Garage, car, carSrc, COLORS } from './garage'
-import { carSvg } from './car3d'
+import { Garage, car, carSrc } from './garage'
 import { sticker, type StickerId } from './stickers'
 
 // #/drive — flow 5 of the Figma page (46:2), entered from the menu (8.1 + a «В дорогу» row).
@@ -425,7 +424,7 @@ export class DrivePage {
 
   private paintCar() {
     // the 3D navigator is one SVG frame with the car in it: a new colour or body redraws it
-    this.q('.dv-map').innerHTML = `${MAP}<span class="dv-carw">${carSvg(COLORS.find((c) => c.id === car.color)!.hex, car.body)}</span>`
+    this.q('.dv-map').innerHTML = `${MAP}<span class="dv-carw"><i class="dv-ai-ring"></i><img class="dv-carimg" src="${carSrc('nav')}" alt=""></span>`
     this.q<HTMLImageElement>('.dv-row-car').src = carSrc('top')
   }
 

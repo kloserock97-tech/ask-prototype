@@ -1,6 +1,7 @@
 import { STICKERS, sticker, type StickerId } from './stickers'
 
-// Ась's car: chosen in the garage (only while parked). On the map it is the 3D SVG car (map3d.ts),
+// Ась's car: chosen in the garage (only while parked). On the map it is our own detailed low-poly model
+// rendered from behind and above (public/car/nav-*.webp, Blender),
 // in the garage a generated picture per body (public/car/gen-*.webp), recoloured by a filter.
 
 export type Body = 'compact' | 'sedan' | 'pickup'
@@ -25,16 +26,17 @@ export const COLORS = [
   { id: 'white', name: 'Снег', hex: '#F5F6F8', f: 'saturate(0) brightness(1.7)' },
 ]
 
-// the visit's car; a reload starts with a blue «Капля» and no stickers
+// the visit's car; a reload starts with a white «Капля» (it reads best on the blue route) and no stickers
 export const car = {
   body: 'compact' as Body,
-  color: 'blue',
+  color: 'white',
   slots: { hood: null, door: null } as Record<Slot, StickerId | null>,
   earned: new Set<StickerId>(),
   fresh: new Set<StickerId>(),
 }
 
-export const carSrc = (view: 'top' | 'gen') => (view === 'gen' ? `./car/gen-${car.body}.webp` : `./car/top-${car.body}-${car.color}.webp`)
+// gen: the garage picture; nav: the car seen from behind for the navigator; top: the small one for the menu
+export const carSrc = (view: 'top' | 'gen' | 'nav') => (view === 'gen' ? `./car/gen-${car.body}.webp` : `./car/${view}-${car.body}-${car.color}.webp`)
 
 // hood and door corners (top-left, top-right, bottom-right, bottom-left) in the garage picture, 0..1, measured by hand.
 // The roof is a thin sliver from this angle, so the stickers go on the two big flat panels

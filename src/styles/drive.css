@@ -438,8 +438,10 @@
 .dv-map { position: absolute; inset: 0; }
 /* the map picture fills the screen from the bottom: the route starts under the car */
 .dv-mapimg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 100%; user-select: none; }
-.dv-carw { position: absolute; left: calc(50% - 60px); top: calc(72% - 70px); width: 120px; height: 100px; pointer-events: none; }
-.dv .dv-car3d { width: 100%; height: 100%; display: block; stroke: none; overflow: visible; }
+/* the car: our low-poly model seen from behind, about one lane wide; the ring lies on the road under it */
+.dv-carw { position: absolute; left: 50%; top: 72%; width: 64px; height: 80px; translate: -50% -66%; pointer-events: none; }
+.dv-carimg { position: relative; width: 100%; height: 100%; display: block; filter: drop-shadow(0 0 1px rgb(255 255 255 / 0.9)) drop-shadow(0 6px 8px rgb(0 0 0 / 0.45)); }
+.dv-ai-ring { position: absolute; left: 50%; bottom: 2px; width: 72px; height: 24px; translate: -50% 0; border-radius: 50%; border: 2px solid rgb(143 208 255 / 0.85); background: rgb(79 180 255 / 0.14); }
 .dv-ai-ring { opacity: 0; transition: opacity 150ms var(--ease-out); }
 .dv-maps.is-ai .dv-ai-ring { opacity: 1; }
 .dv-puck {
